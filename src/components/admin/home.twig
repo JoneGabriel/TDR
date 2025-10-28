@@ -1,0 +1,79 @@
+
+<br>
+<br>
+<br>
+
+<div class="mx-5 mt-5 mb-4 ">
+    <h5>Análises <i class="bi bi-bar-chart"></i></h5>
+    <div class="row mt-3">
+        <div class="col-lg-2"> 
+            <input c-id="date" value="{{now}}" type="date" class="form-control input-style" max="{{max}}">
+        </div>
+        <div class="col-lg-2">
+            <input c-id="domain" class="form-control input-style" type="text" placeholder="domain.com">
+        </div>
+        <div class="col-lg-8">
+            <button c-id="filter" class="btn-add-product">Atualizar</button>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-lg-4">
+            <div class="area-metric p-3">
+                <p><b>Sessões ao longo do tempo</b></p>
+                <h4 c-id="total-session">
+                    {{session}}
+                </h4>
+                 <div id="chart_div"></div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="area-metric p-3">
+                <p><b>Distribuição da taxa de conversão</b></p>
+                <div class="row">
+                    <div class="col-lg-4">
+                        <div class="box-coversion">
+                            <label class="form-label">Sessões</label>
+                            <br>
+                            <label class="label-values">100%</label>
+                            <label c-id="session-value" class="ms-1 label-values"> {{session}}</label>
+                            
+                            <div class="position-chart">    
+                                <div c-id="chart-session" class="charts"></div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="box-coversion">
+                            <label class="form-label">Adicionado ao carrinho</label>
+                            <br>
+                            <label c-id="add-percentage" class="label-values"></label>
+                            <label c-id="add-value" class="ms-1 label-values"></label>
+                            
+                            <div class="position-chart">    
+                                <div c-id="chart-cart" class="charts"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        
+                        <label class="form-label ellipsis-label">Redirecionado para o checkout</label>
+
+                        <br>
+                        <label c-id="init-percentage" class="label-values"></label>
+                        <label c-id="init-value" class="ms-1 label-values"></label>
+                        
+                        <div class="position-chart">    
+                            <div c-id="chart-init" class="charts"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="col-lg-4"></div>
+    </div>
+   
+
+</div>

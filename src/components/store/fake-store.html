@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Doudone — Offres Spéciales Jaquettes</title>
+  <meta name="description" content="Deux offres exclusives sur nos jaquettes Doudone + bundle à prix réduit. Coupe moderne, chaleur légère et finitions premium. Livraison rapide.">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    :root{
+      /* Nouvelle palette (clair, editorial) */
+      --bg:#fffdf8;            /* areia quente */
+      --paper:#ffffff;
+      --ink:#1b2832;           /* carvão azulado */
+      --muted:#6a7782;
+      --stroke:rgba(0,0,0,.08);
+
+      --accent:#156f6a;        /* verde floresta */
+      --accent-2:#e46a3a;      /* terracota */
+      --accent-3:#2e90e5;      /* azul céu */
+
+      --pill:#f5efe7;          /* chip neutro */
+      --soft:#f8f4ef;          /* cartões */
+      --badge:#fff2ea;         /* selo */
+      --ok:#28a46d;
+      --warn:#f4b740;
+
+      --radius-outer:18px;
+      --radius-card:16px;
+
+      --shadow-1:0 10px 24px rgba(22,45,53,.08);
+      --shadow-2:0 14px 40px rgba(22,45,53,.12);
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      background:
+        radial-gradient(900px 420px at 10% -10%, #f7eee3 0%, transparent 60%),
+        radial-gradient(700px 380px at 110% -20%, #e9f2fb 0%, transparent 55%),
+        var(--bg);
+      color:var(--ink);
+      font-family:'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      line-height:1.6;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    }
+    img{max-width:100%;display:block}
+    a{color:inherit;text-decoration:none}
+
+    .container{max-width:1180px;margin:0 auto;padding:0 22px}
+
+    /* Header */
+    header{
+      position:sticky; top:0; z-index:50;
+      backdrop-filter:saturate(140%) blur(8px);
+      background:rgba(255,255,255,.75);
+      border-bottom:1px solid var(--stroke);
+    }
+    .nav{display:flex;justify-content:space-between;align-items:center;padding:14px 0}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{
+      width:36px;height:36px;border-radius:10px;
+      background:conic-gradient(from 200deg at 50% 50%, var(--accent), var(--accent-2), var(--accent-3), var(--accent));
+      box-shadow:inset 0 0 10px rgba(255,255,255,.6), 0 6px 14px rgba(23,43,51,.1);
+    }
+    .brand h1{
+      font-family:'Playfair Display', serif;
+      font-size:1.35rem; letter-spacing:.3px;
+    }
+    .navlinks{display:flex;gap:14px;align-items:center}
+    .pill{
+      border:1px solid var(--stroke); border-radius:999px; padding:10px 14px;
+      background:#fff; color:#24323a; font-weight:600; font-size:.94rem;
+    }
+    .pill:hover{border-color:rgba(0,0,0,.14)}
+    .cta-mini{
+      border:none; border-radius:10px; padding:10px 14px; color:#fff; background:linear-gradient(135deg,var(--accent),#199b93);
+      box-shadow:var(--shadow-1); font-weight:700;
+    }
+
+    /* Top benefits sticky (desktop) */
+    .benefit-bar{
+      display:none;
+    }
+    @media (min-width:900px){
+      .benefit-bar{display:block;border-bottom:1px solid var(--stroke);background:#fff}
+      .benefit-bar .wrap{display:flex;gap:20px;justify-content:center;padding:10px 0;color:#2d3a43}
+      .benefit{display:flex;gap:8px;align-items:center;font-size:.93rem}
+      .dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+    }
+
+    /* Hero (split editorial) */
+    .hero{padding:26px 0 10px}
+    .hero-grid{
+      display:grid;grid-template-columns:1.15fr .85fr;gap:24px;align-items:stretch;
+    }
+    .poster{
+      background:#fff;border:1px solid var(--stroke);border-radius:var(--radius-outer);overflow:hidden;
+      box-shadow:var(--shadow-2);
+    }
+    .poster img{aspect-ratio:16/10;object-fit:cover}
+    .poster .cap{
+      padding:16px;border-top:1px solid var(--stroke);background:linear-gradient(180deg,#fff, #fffdf9);
+      display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px
+    }
+    .stars{color:#ef9a1f;font-weight:800}
+    .cap small{color:#55626c}
+
+    .hero-card{
+      background:linear-gradient(180deg,#ffffff,#fffbf4);
+      border:1px solid var(--stroke);border-radius:var(--radius-outer);padding:22px;
+      box-shadow:var(--shadow-2)
+    }
+    .eyebrow{
+      color:var(--accent-2); font-weight:800; letter-spacing:.4px; text-transform:uppercase; font-size:.85rem
+    }
+    .title-xl{
+      font-family:'Playfair Display', serif;
+      font-size:2.25rem; line-height:1.1; margin:6px 0 10px;
+    }
+    .subtitle{color:#4a5a65}
+    .kpis{display:flex; gap:16px; flex-wrap:wrap; margin:10px 0 14px}
+    .kpi{background:var(--pill); border:1px solid var(--stroke); border-radius:10px; padding:8px 10px; font-size:.92rem;color:#3a4a55}
+    .price-row{display:flex;align-items:center;gap:12px;margin:12px 0}
+    .price{font-size:1.6rem;font-weight:800;color:var(--accent)}
+    .old{text-decoration:line-through;color:#8b99a5}
+    .cta-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+    .btn{
+      padding:12px 18px;border-radius:12px;border:1px solid var(--stroke);background:#fff;font-weight:700;cursor:pointer
+    }
+    .btn.primary{
+      color:#fff; border:none;
+      background:linear-gradient(135deg,var(--accent), #1f867f);
+      box-shadow:var(--shadow-1)
+    }
+    .btn.ghost:hover{border-color:rgba(0,0,0,.16)}
+
+    /* Offers grid (cards resp.) */
+    .section{padding:18px 0}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:20px}
+    .card{
+      grid-column:span 6; background:#fff;border:1px solid var(--stroke);border-radius:var(--radius-card);overflow:hidden;box-shadow:var(--shadow-1)
+    }
+    .media{position:relative}
+    .media img{aspect-ratio:4/3;object-fit:cover}
+    .flag{
+      position:absolute;top:12px;left:12px;background:var(--badge);color:#7d3b12;border:1px solid rgba(0,0,0,.06);
+      padding:6px 10px;border-radius:10px;font-weight:800;font-size:.85rem
+    }
+    .body{padding:16px}
+    .h3{font-size:1.28rem;font-weight:800;margin-bottom:6px;font-family:'Playfair Display',serif}
+    .muted{color:#5a6a75}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0}
+    .chip{
+      background:var(--pill);border:1px solid var(--stroke);border-radius:10px;padding:8px 10px;font-size:.92rem;color:#3a4a55;cursor:pointer
+    }
+    .chip.active{outline:2px solid rgba(21,111,106,.28)}
+    .price-sm{font-weight:800;color:var(--accent)}
+    .swatch{width:22px;height:22px;border-radius:50%;border:1px solid rgba(0,0,0,.2);display:inline-block;cursor:pointer}
+    .swatch.active{outline:2px solid var(--accent)}
+
+    /* Bundle banner */
+    .bundle{
+      grid-column:1 / -1; background:linear-gradient(135deg,#fff7ee,#f2fff9);
+      border:1px solid var(--stroke); border-radius:18px; padding:16px; display:grid; grid-template-columns:1fr auto; align-items:center; gap:12px;
+      box-shadow:var(--shadow-1)
+    }
+    .bundle h3{font-size:1.2rem}
+    .badge{border:1px dashed var(--stroke);border-radius:999px;padding:8px 10px;color:#3a4a55;font-weight:600}
+
+    /* Avantages */
+    .bgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+    .bcard{background:#fff;border:1px solid var(--stroke);border-radius:14px;padding:14px;box-shadow:var(--shadow-1)}
+    .btitle{font-weight:800;margin-bottom:4px}
+
+    /* Avis */
+    .revgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+    .rev{background:#fff;border:1px solid var(--stroke);border-radius:14px;padding:14px;font-style:italic;box-shadow:var(--shadow-1)}
+
+    /* Footer */
+    footer{margin-top:36px;border-top:1px solid var(--stroke);background:#fff}
+    .fgrid{display:flex;flex-wrap:wrap;gap:20px;justify-content:space-between;padding:18px 0}
+    .fcol h4{margin-bottom:8px}
+    .fcol a{display:block;color:#4a5963;margin:6px 0;cursor:pointer}
+    .fcol a:hover{color:#20303a}
+    .copy{color:#6a7782;text-align:center;padding:10px 0 20px}
+
+    /* Modals (políticas preservadas) */
+    .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(2px);z-index:9999}
+    .modal-content{max-width:760px;margin:5% auto;background:#fff;border:1px solid var(--stroke);border-radius:16px;padding:22px;position:relative;box-shadow:var(--shadow-2)}
+    .close{position:absolute;right:16px;top:10px;font-size:1.6rem;cursor:pointer}
+
+    /* Sticky buy bar (mobile/desktop) */
+    .sticky{
+      position:sticky; bottom:0; z-index:40; background:rgba(255,255,255,.9); backdrop-filter:blur(6px);
+      border-top:1px solid var(--stroke)
+    }
+    .sticky .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 22px}
+    .mini{display:flex;align-items:center;gap:12px}
+    .mini strong{font-size:.98rem}
+    .mini small{color:#6a7782}
+    .sticky .btn{padding:10px 16px}
+
+    /* Responsive */
+    @media (max-width:1024px){
+      .hero-grid{grid-template-columns:1fr}
+      .card{grid-column:span 12}
+      .revgrid{grid-template-columns:1fr 1fr}
+      .bgrid{grid-template-columns:1fr 1fr}
+    }
+    @media (max-width:640px){
+      .navlinks .pill{display:none}
+      .title-xl{font-size:1.8rem}
+      .revgrid,.bgrid{grid-template-columns:1fr}
+    }
+  </style>
+  <meta name="google-site-verification" content="4ju6m4kzoaqEmCNj3W7_K6Apb5VkmkwToQKe4-aiDSs" />
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container nav">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <h1>Doudone</h1>
+      </div>
+      <nav class="navlinks">
+        <a class="pill" href="#offres">Offres</a>
+        <a class="pill" href="#avantages">Avantages</a>
+        <a class="pill" href="#avis">Avis</a>
+        <a class="cta-mini" href="#bundle">Bundle - Economisez</a>
+      </nav>
+    </div>
+    <div class="benefit-bar">
+      <div class="container wrap">
+        <div class="benefit"><span class="dot"></span>Expédition 48h</div>
+        <div class="benefit"><span class="dot"></span>Retours 30 jours</div>
+        <div class="benefit"><span class="dot"></span>Paiement sécurisé</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- HERO editorial -->
+    <section class="container hero" id="offres">
+      <div class="hero-grid">
+        <figure class="poster">
+          <img src="https://images.unsplash.com/photo-1541099649105-f69ad21f3246?q=80&w=1600&auto=format&fit=crop" alt="Deux jaquettes Doudone sur fond urbain">
+          <figcaption class="cap">
+            <div class="stars">★★★★★</div>
+            <small>4,8/5 basé sur 512 avis vérifiés</small>
+          </figcaption>
+        </figure>
+
+        <div class="hero-card">
+          <div class="eyebrow">Nouvelles Offres</div>
+          <h2 class="title-xl">Deux jaquettes. Trois façons d’économiser.</h2>
+          <p class="subtitle">Thermo Boreal pour la chaleur technique, Bomber Aero pour la silhouette urbaine. Prenez celle qui vous ressemble — ou les deux, au meilleur prix.</p>
+
+          <div class="kpis">
+            <div class="kpi"><strong>48h</strong> expédition</div>
+            <div class="kpi"><strong>30 jours</strong> retours</div>
+            <div class="kpi"><strong>+1 200</strong> clients ravis</div>
+          </div>
+
+          <div class="price-row">
+            <div class="price">Bundle dès 89,90 €</div>
+            <div class="old">au lieu de 109,80 €</div>
+          </div>
+
+          <div class="cta-row">
+            <a class="btn primary" href="#bundle">Voir le bundle</a>
+            <a class="btn ghost" href="#cartes">Voir les 2 offres</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- OFFERS -->
+    <section class="container section offers" id="cartes">
+      <div class="grid">
+        <!-- Offer 1 -->
+        <article class="card" id="boreal">
+          <div class="media">
+            <img src="https://images.unsplash.com/photo-1564468781192-5d7a4e9f1e23?q=80&w=1400&auto=format&fit=crop" alt="Jaquette Thermo Boreal">
+            <span class="flag">-20%</span>
+          </div>
+          <div class="body">
+            <h3 class="h3">Thermo Boreal — Chaleur & légèreté</h3>
+            <p class="muted">Isolation respirante, traitement déperlant et coupe moderne pour un confort tout-terrain.</p>
+
+            <div class="row">
+              <strong>Taille :</strong>
+              <span class="chip active" data-group="size-boreal" data-value="S">S</span>
+              <span class="chip" data-group="size-boreal" data-value="M">M</span>
+              <span class="chip" data-group="size-boreal" data-value="L">L</span>
+              <span class="chip" data-group="size-boreal" data-value="XL">XL</span>
+              <span class="chip" data-group="size-boreal" data-value="XXL">XXL</span>
+            </div>
+            <div class="row">
+              <strong>Couleur :</strong>
+              <span class="swatch active" title="Noir" data-group="color-boreal" data-color="Noir" style="background:#101215"></span>
+              <span class="swatch" title="Marine" data-group="color-boreal" data-color="Marine" style="background:#1e3552"></span>
+              <span class="swatch" title="Vert" data-group="color-boreal" data-color="Vert" style="background:#2f5d46"></span>
+            </div>
+
+            <div class="row">
+              <div class="price-sm">59,90 €</div>
+              <div class="old">74,90 €</div>
+              <span class="badge">Économie 15 €</span>
+            </div>
+
+            <div class="row">
+              <a class="btn primary" id="cta-boreal" href="#">Ajouter Thermo Boreal</a>
+              <a class="btn ghost" href="#bundle">Prendre le bundle</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Offer 2 -->
+        <article class="card" id="aero">
+          <div class="media">
+            <img src="https://images.unsplash.com/photo-1517760444937-f6397edcbbcd?q=80&w=1400&auto=format&fit=crop" alt="Jaquette Bomber Aero">
+            <span class="flag">Top Vente</span>
+          </div>
+          <div class="body">
+            <h3 class="h3">Bomber Aero — Urbain & polyvalent</h3>
+            <p class="muted">Coupe-vent, poches zippées et col côtelé. Minimaliste et efficace pour la mi-saison.</p>
+
+            <div class="row">
+              <strong>Taille :</strong>
+              <span class="chip active" data-group="size-aero" data-value="S">S</span>
+              <span class="chip" data-group="size-aero" data-value="M">M</span>
+              <span class="chip" data-group="size-aero" data-value="L">L</span>
+              <span class="chip" data-group="size-aero" data-value="XL">XL</span>
+              <span class="chip" data-group="size-aero" data-value="XXL">XXL</span>
+            </div>
+            <div class="row">
+              <strong>Couleur :</strong>
+              <span class="swatch active" title="Noir" data-group="color-aero" data-color="Noir" style="background:#101215"></span>
+              <span class="swatch" title="Gris" data-group="color-aero" data-color="Gris" style="background:#9da8b2"></span>
+              <span class="swatch" title="Beige" data-group="color-aero" data-color="Beige" style="background:#d6c6ab"></span>
+            </div>
+
+            <div class="row">
+              <div class="price-sm">49,90 €</div>
+              <div class="old">59,90 €</div>
+              <span class="badge">Économie 10 €</span>
+            </div>
+
+            <div class="row">
+              <a class="btn primary" id="cta-aero" href="#">Ajouter Bomber Aero</a>
+              <a class="btn ghost" href="#bundle">Prendre le bundle</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- Bundle -->
+        <article class="bundle" id="bundle">
+          <div>
+            <h3>Les 2 ensemble : Thermo Boreal + Bomber Aero</h3>
+            <p class="muted">Choisissez tailles/couleurs pour chaque jaquette et profitez du meilleur prix.</p>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <div class="price-sm" style="font-size:1.15rem">89,90 €</div>
+            <div class="old">109,80 €</div>
+            <span class="badge">Économisez 19,90 €</span>
+            <a class="btn primary" id="cta-bundle" href="#">Ajouter le bundle</a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Avantages -->
+    <section class="container section" id="avantages">
+      <div class="bgrid">
+        <div class="bcard">
+          <div class="btitle">Isolation intelligente</div>
+          <p class="muted">Chaud sans surchauffe grâce aux couches techniques respirantes.</p>
+        </div>
+        <div class="bcard">
+          <div class="btitle">Coupe flatteuse</div>
+          <p class="muted">Lignes modernes pensées pour la silhouette.</p>
+        </div>
+        <div class="bcard">
+          <div class="btitle">Durabilité</div>
+          <p class="muted">Tissus résistants, coutures renforcées et finitions soignées.</p>
+        </div>
+        <div class="bcard">
+          <div class="btitle">Garantie 30 jours</div>
+          <p class="muted">Essayez sans risque : retours faciles selon notre politique.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Avis -->
+    <section class="container section" id="avis">
+      <h3 class="h3" style="margin-bottom:8px">Ce que disent nos clients</h3>
+      <div class="revgrid">
+        <div class="rev">“Le bundle vaut vraiment le coup. Boreal est chaud et léger, Aero parfait en ville.” — <strong>Adrien D.</strong></div>
+        <div class="rev">“Qualité au top, taille fidèle. Livraison en 3 jours.” — <strong>Nina P.</strong></div>
+        <div class="rev">“Je ne quitte plus la Boreal pour mes trajets matinaux.” — <strong>Lucas M.</strong></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Sticky buy bar -->
+  <div class="sticky">
+    <div class="container wrap">
+      <div class="mini">
+        <div style="width:38px;height:38px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#1d8c85)"></div>
+        <div>
+          <strong>Bundle Doudone</strong>
+          <small id="miniSel">Sélectionnez tailles et couleurs</small>
+        </div>
+      </div>
+      <a class="btn primary" href="#bundle">Ajouter au panier</a>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container fgrid">
+      <div class="fcol">
+        <h4>Informations</h4>
+        <a onclick="openModal('privacyModal')">Politique de confidentialité</a>
+        <a onclick="openModal('termsModal')">Conditions générales</a>
+        <a onclick="openModal('refundModal')">Politique de remboursement</a>
+      </div>
+      <div class="fcol">
+        <h4>Contact</h4>
+        <a onclick="openModal('contactModal')">support@elanurbain.fr</a>
+      </div>
+    </div>
+    <div class="copy">© 2025 Doudone — Tous droits réservés.</div>
+  </footer>
+
+  <!-- Modals (POLÍTICAS PRESERVADAS) -->
+  <div id="privacyModal" class="modal"><div class="modal-content"><span class="close" onclick="closeModal('privacyModal')">&times;</span>
+    <h2>Politique de confidentialité</h2>
+    <p>
+    Chez Doudone, nous accordons une grande importance à la confidentialité de vos données. Cette politique explique comment nous collectons, utilisons et protégeons vos informations personnelles.
+    </p>
+    <h3>1. Données collectées</h3>
+    <p>
+    Nous collectons vos données personnelles lorsque vous effectuez une commande, vous inscrivez à notre newsletter ou remplissez un formulaire de contact. Les données incluent : nom, adresse, e-mail, numéro de téléphone, adresse IP, historique de navigation sur notre site.
+    </p>
+    <h3>2. Utilisation des données</h3>
+    <p>
+    Vos données sont utilisées uniquement pour :
+    <ul>
+      <li>Traiter vos commandes</li>
+      <li>Gérer le service client</li>
+      <li>Vous envoyer des informations commerciales (avec consentement)</li>
+      <li>Améliorer votre expérience utilisateur</li>
+    </ul>
+    </p>
+    <h3>3. Partage des données</h3>
+    <p>
+    Nous ne vendons ni ne louons vos données. Certaines informations peuvent être partagées avec des prestataires (ex : transporteurs, prestataires de paiement) pour assurer la livraison et le paiement.
+    </p>
+    <h3>4. Sécurité</h3>
+    <p>
+    Nous utilisons des protocoles sécurisés (HTTPS, SSL) pour protéger vos données. L’accès aux données est restreint aux membres autorisés.
+    </p>
+    <h3>5. Vos droits</h3>
+    <p>
+    Conformément au RGPD, vous disposez des droits d’accès, de rectification, d’opposition et de suppression de vos données. Contactez-nous à : <strong>privacy@elanurbain.fr</strong>
+    </p>
+  </div></div>
+
+  <div id="termsModal" class="modal"><div class="modal-content"><span class="close" onclick="closeModal('termsModal')">&times;</span>
+    <h2>Conditions Générales d'Utilisation & de Vente</h2>
+    <h3>1. Présentation</h3>
+    <p>
+    Le site Doudone est exploité par la société Doudone SARL. En passant commande sur notre site, vous acceptez sans réserve les présentes conditions.
+    </p>
+    <h3>2. Produits</h3>
+    <p>
+    Les produits proposés sont décrits avec la plus grande exactitude. Les photos sont non contractuelles. En cas d’erreur, Doudone ne saurait être tenu responsable.
+    </p>
+    <h3>3. Prix</h3>
+    <p>
+    Les prix sont indiqués en euros TTC (toutes taxes comprises). Les frais de livraison sont précisés avant validation de la commande.
+    </p>
+    <h3>4. Commande & Paiement</h3>
+    <p>
+    Le client passe sa commande via le site. Le paiement est sécurisé via Stripe ou Paypal. Un e-mail de confirmation est envoyé une fois la commande validée.
+    </p>
+    <h3>5. Livraison</h3>
+    <p>
+    Nous livrons en France et dans l’Union Européenne sous 3 à 7 jours ouvrés selon la destination. Les délais peuvent varier selon la période.
+    </p>
+    <h3>6. Propriété intellectuelle</h3>
+    <p>
+    Tous les contenus du site (textes, images, logos) sont protégés. Toute reproduction sans autorisation est interdite.
+    </p>
+  </div></div>
+
+  <div id="refundModal" class="modal"><div class="modal-content"><span class="close" onclick="closeModal('refundModal')">&times;</span>
+    <h2>Politique de retour & remboursement</h2>
+    <h3>1. Droit de rétractation</h3>
+    <p>
+    Conformément à la loi française, vous disposez d’un délai de 14 jours à compter de la réception du produit pour exercer votre droit de rétractation sans avoir à justifier de motifs ni à payer de pénalités.
+    </p>
+    <h3>2. Conditions de retour</h3>
+    <p>
+    Les articles doivent être retournés dans leur état d’origine, non portés, dans l’emballage d’origine. Les frais de retour sont à la charge du client.
+    </p>
+    <h3>3. Remboursement</h3>
+    <p>
+    Une fois le produit reçu et inspecté, le remboursement sera effectué sous 5 à 10 jours ouvrés, via le moyen de paiement utilisé lors de l’achat.
+    </p>
+    <h3>4. Article défectueux</h3>
+    <p>
+    Si vous recevez un produit défectueux ou endommagé, contactez notre service client dans les 48h avec photos à l’appui à : <strong>support@elanurbain.fr</strong>
+    </p>
+  </div></div>
+
+  <!-- Contact -->
+  <div id="contactModal" class="modal"><div class="modal-content"><span class="close" onclick="closeModal('contactModal')">&times;</span>
+    <h2>Contactez-nous</h2>
+    <p>Notre équipe est disponible pour toute question avant ou après votre commande.</p>
+    <ul>
+      <li>Email : <strong>support@elanurbain.fr</strong></li>
+      <li>Adresse : 15 Rue du Commerce, 75015 Paris, France</li>
+      <li>Horaires : Lundi à Vendredi, 9h–18h</li>
+    </ul>
+    <p>Nous répondons sous 24h ouvrées maximum.</p>
+  </div></div>
+
+  <script>
+    // Modals
+    function openModal(id){document.getElementById(id).style.display='block'}
+    function closeModal(id){document.getElementById(id).style.display='none'}
+    window.addEventListener('click',(e)=>{
+      document.querySelectorAll('.modal').forEach(m=>{ if(e.target===m) m.style.display='none' })
+    });
+
+    // Chips & swatches
+    function setActive(group, el){
+      document.querySelectorAll('[data-group="'+group+'"]').forEach(n=>n.classList.remove('active'));
+      el.classList.add('active'); updateLinks();
+    }
+    document.querySelectorAll('.chip').forEach(o=>o.addEventListener('click',()=>setActive(o.dataset.group,o)));
+    document.querySelectorAll('.swatch').forEach(s=>{
+      s.addEventListener('click',()=>setActive(s.dataset.group,s));
+      // compat: use dataset.value as color value for uniform access
+      s.dataset.value = s.dataset.color || s.dataset.value;
+    });
+
+    function sel(group, def){
+      const el = document.querySelector('[data-group="'+group+'"].active');
+      return el?.dataset.value || el?.dataset.color || def || '';
+    }
+
+    function updateLinks(){
+      const borealSize = sel('size-boreal','M');
+      const borealColor = sel('color-boreal','Noir');
+      const aeroSize   = sel('size-aero','M');
+      const aeroColor  = sel('color-aero','Noir');
+
+      const borealLink = `#?product=boreal&size=${encodeURIComponent(borealSize)}&color=${encodeURIComponent(borealColor)}&price=59.90`;
+      const aeroLink   = `#?product=aero&size=${encodeURIComponent(aeroSize)}&color=${encodeURIComponent(aeroColor)}&price=49.90`;
+      const bundleLink = `#?bundle=1&boreal_size=${encodeURIComponent(borealSize)}&boreal_color=${encodeURIComponent(borealColor)}&aero_size=${encodeURIComponent(aeroSize)}&aero_color=${encodeURIComponent(aeroColor)}&price=89.90`;
+
+      document.getElementById('cta-boreal')?.setAttribute('href', borealLink);
+      document.getElementById('cta-aero')?.setAttribute('href', aeroLink);
+      document.getElementById('cta-bundle')?.setAttribute('href', bundleLink);
+
+      document.getElementById('miniSel').textContent =
+        `Boreal ${borealSize}/${borealColor} + Aero ${aeroSize}/${aeroColor}`;
+    }
+    updateLinks();
+  </script>
+</body>
+</html>

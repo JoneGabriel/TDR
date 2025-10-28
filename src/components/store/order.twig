@@ -1,0 +1,209 @@
+{# order-summary.twig — Admin API avec messages conditionnels #}
+
+{% set orderLabel = order.name|default('#' ~ order.legacyResourceId) %}
+{% set created = order.createdAt|date('U') %}
+{% set now_ts = now|date('U') %}
+{% set diff_hours = ((now_ts - created) / 3600)|round(0, 'floor') %}
+
+<section class="order-container">
+  <header class="order-header">
+    <h1 class="order-title">Détails de votre commande</h1>
+    <div class="order-meta">
+      <span class="order-number">
+        Commande {{ orderLabel }}
+      </span>
+      <span class="order-date">
+        Passée le {{ order.createdAt|date('d/m/Y à H:i') }}
+      </span>
+    </div>
+  </header>
+
+  <section class="order-items">
+    {% for edge in order.lineItems.edges %}
+      {% set item = edge.node %}
+      <div class="item-row">
+        {% if item.variant.image.url is defined %}
+          <div class="item-image">
+            <img src="{{ item.variant.image.url }}"
+                 alt="{{ item.variant.image.altText|default(item.title) }}">
+          </div>
+        {% endif %}
+        <div class="item-info">
+          <h3 class="item-title">{{ item.title }}</h3>
+
+          {% if item.sku %}
+            <p class="item-sku">Référence : {{ item.sku }}</p>
+          {% endif %}
+
+          <p class="item-qty">Quantité : {{ item.quantity }}</p>
+          <p class="item-price">
+            {{ item.originalUnitPriceSet.shopMoney.amount }}
+            {{ item.originalUnitPriceSet.shopMoney.currencyCode }}
+          </p>
+        </div>
+      </div>
+    {% endfor %}
+  </section>
+
+  <section class="order-summary">
+    <div class="summary-line">
+      <span>Sous-total</span>
+      <span>{{ order.totalPriceSet.shopMoney.amount }}
+            {{ order.totalPriceSet.shopMoney.currencyCode }}</span>
+    </div>
+
+    <div class="summary-line">
+      <span>Statut de paiement</span>
+      <span class="status status-{{ order.displayFinancialStatus|lower }}">
+        {{ order.displayFinancialStatus|capitalize }}
+      </span>
+    </div>
+
+    <div class="summary-line">
+      <span>Statut de livraison</span>
+      <span class="status status-{{ order.displayFulfillmentStatus|lower }}">
+        {{ order.displayFulfillmentStatus|replace({'_':' '})|capitalize }}
+      </span>
+    </div>
+  </section>
+
+  <section class="order-tracking">
+  <h2>Suivi de la commande</h2>
+
+  {% set anyTracking = false %}
+  {% for fulfillment in order.fulfillments %}
+    {% for track in fulfillment.trackingInfo %}
+      {% if track.url is defined and track.url %}
+        {% set anyTracking = true %}
+        <div class="tracking-card">
+          <div class="tracking-icon">📦</div>
+          <div class="tracking-content">
+            
+
+            <p class="tracking-label">Code de suivi :</p>
+            <p class="tracking-value">
+              <a href="{{ track.url }}" target="_blank">{{ track.number }}</a>
+            </p>
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+  {% endfor %}
+
+  {% if not anyTracking %}
+    <div class="tracking-card tracking-status">
+      <div class="tracking-icon">⌛</div>
+      <div class="tracking-content">
+        {% if diff_hours < 6 %}
+          <p class="tracking-message">Votre commande est en cours de traitement.</p>
+        {% elseif diff_hours < 24 %}
+          <p class="tracking-message">Votre commande a été envoyée au transporteur.</p>
+        {% else %}
+          <p class="tracking-message">Le suivi sera disponible sous peu.</p>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+</section>
+
+
+  <footer class="order-footer">
+    <div class="d-flex justify-content-around">
+      <a href="/" class="btn-return">← Retour à la boutique</a>
+      <button c-id="btn-problem-order" class="btn-problem-order">Problèmes avec ma commande</button>
+    </div>
+    
+  </footer>
+</section>
+
+
+<div c-id="modal-problem-order" class="modal fade" tabindex="-1" aria-labelledby="exampleModalFullscreenLabel"  aria-modal="true" role="dialog">
+  <div class="modal-dialog modal-fullscreen" >
+    <div class="modal-content" >
+      <div class="modal-header rm-border" >
+        <span class="order-number">
+        Commande {{ orderLabel }}
+      </span>
+        <button c-id="close-modal" class="btn-modal">fermer</button>
+      </div>
+      <div class="modal-body" >
+        <div class="container">
+
+            {% if charges == false  %}
+
+            <label>Dites-nous ce qui est arrivé à votre commande</label>
+            <select c-id="option-problem" class="select-problem mt-2">
+              <option value="1">Commande tardive</option>
+              <option value="2">Je n'ai pas reçu ma commande</option>
+              <option value="3">J'ai choisi la mauvaise taille</option>
+              <option value="4">Commande défectueuse</option>
+              <option value="5">Exercer le droit de retour</option>
+            </select>
+            
+            <div c-id="box-info">
+              <h5 class="mt-4" c-id="text-option"></h5>
+              <div class="d-flex justify-content-start">
+                <div c-id="spinner-option" class="spinner-grow text-secondary none me-2" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+                <div>
+                  <label c-id="text-loading" class=" none mt-2">Rechercher des informations</label>
+                </div>
+              </div>
+              
+             
+              <p class="mt-2" c-id="chat"></p>
+            </div>
+
+            <div style="margin-top: -2rem;" class="none" c-id="form">
+
+              <div>
+                <label>E-mail où vous recevrez des mises à jour:</label>
+                <input c-id="email" placeholder="jean@gmail.com" type="text" class="select-problem"/>
+              </div>
+              
+              <div class="mt-3">
+                <label>Images du produit:</label>
+                <input c-id="images" multiple="multiple" type="file" class="select-problem p-2"/>
+              </div>
+
+              <div class="mt-3">
+                <label>Détails</label>
+                <textarea c-id="justification" rows="5" class="form-control"></textarea>
+              </div>
+              <button c-id="save-form" class="btn-modal mt-4 float-end"> Envoyer</button>
+            </div>
+          {% endif %}
+          {% for charge in charges %}
+            <div class="card-status">
+              <small><b>• {{charge.date|date('d/m/Y') }}</b></small>
+              <h5 class="ms-3">{{charge.title}}</h5>
+              <p class="ms-3">{{charge.description}}</p>
+            </div>
+          {% endfor %}
+
+          {% if charges != false  %}
+            <div class="card-status">
+              <small><b>• {{now|date('d/m/Y') }}</b></small>
+              <div class="d-flex justify-content-start ms-2">
+                <div  class="spinner-grow text-secondary me-2" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+                <div>
+                  <label  class=" mt-2">En attente de mises à jour</label>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+
+        </div>
+
+      </div>
+      <div class="modal-footer">
+          {% if charges == false  %}
+          <button c-id="check" class="btn-modal mt-4 float-end">Vérifier</button>
+          {% endif %}
+      </div>
+    </div>
+  </div>
+</div>

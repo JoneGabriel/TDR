@@ -1,0 +1,33 @@
+<div style=" min-height: 100vh;" class="container mb-5 collection-page">
+
+    <h1 style="    margin-bottom: -2rem;" class="mt-4 colletion-title">{{collection.name}}</h1>
+    
+    <div class="all-products">
+            {% for produto in products %}
+                <div class="box-produtct">
+                    <a href="/products/{{produto._id}}">
+                        <div class="model-product-store">
+                            
+                              
+                            <i style="font-size:18px;" class="bi bi-heart"></i>
+
+                           
+                            <div class="d-flex justify-content-center">
+                                <img src="{{produto.images[0].base64 }}">
+                            </div>
+                            
+                            <p >{{produto.name}}</p>
+                            <span class="mt-2 d-flex justify-content-start">
+                                <div class="botoom-price">
+                                    <label class="last-price" c-id="last-price">{{produto.last_price}} {{moeda}}</label>
+                                    <label class="price ms-2" c-id="price">{{produto.price}} {{moeda}}</label>
+                                </div>
+                            </span>
+                            <br>
+                        </div>
+                    </a>
+                </div>
+                
+            {% endfor %}
+        </div>
+</div>

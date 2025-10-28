@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+{% include './head.twig'%} 
+<body>
+    {% if store == true %}
+        {% include './menu-store.twig'%}
+    {% endif %}
+
+     {% if admin == true %}
+   
+        {% include './menu-admin.twig'%}
+    {% endif %}
+
+    
+    {% include (template_from_string(template)) %}
+    {% if store == true %}
+        {% include './cart.twig'%}
+    {% endif %}
+
+    {% include './footer.twig'%}
+</body>
+</html>

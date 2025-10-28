@@ -1,0 +1,46 @@
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}}</title>
+    <link href="/assets/styles/bootstrap.min.css" rel="stylesheet" >
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+     {% if store == true %}
+     <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
+     <link href="/styles/styles.css" rel="stylesheet" >
+         <script
+          src="https://cdn.utmify.com.br/scripts/utms/latest.js"
+          data-utmify-prevent-xcod-sck
+          data-utmify-prevent-subids
+          async
+          defer
+        ></script>
+        <script>
+          window.pixelId = "68a5056df77bc5e0d301dfda";
+          var a = document.createElement("script");
+          a.setAttribute("async", "");
+          a.setAttribute("defer", "");
+          a.setAttribute("src", "https://cdn.utmify.com.br/scripts/pixel/pixel.js");
+          document.head.appendChild(a);
+        </script>
+        
+    {% endif %}
+    {% if admin == true %}
+
+      <link href="/styles/styles-admin.css" rel="stylesheet" >
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
+      <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+      
+
+    {% endif %}
+    {% if store == true %}
+      <style>
+      {{css}}
+      </style>
+    {% endif %}
+
+
+</head>
+
+

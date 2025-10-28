@@ -1,0 +1,26 @@
+<footer>
+
+    {% if store == true %}
+        {% include './footer-store.twig'%}
+    {% endif %}
+
+</footer>
+
+
+
+<script src="/assets/scripts/bootstrap.bundle.min.js"></script>
+<script src="/assets/scripts/jquery.min.js"></script>
+<script src="/assets/scripts/notify.min.js"></script>
+{% if admin == true %}
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
+
+{% endif %}
+
+<script src = "/scripts/statusHandler.js"></script>
+<script src = "/scripts/helpers.js"></script>
+{% if store == true %}
+    <script src = "/scripts/cart.js"></script>
+    <script src = "/scripts/menu.js"></script>
+
+{% endif %}
+<script src = "/scripts/{{script}}"></script>

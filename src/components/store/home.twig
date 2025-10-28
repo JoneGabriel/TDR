@@ -1,0 +1,110 @@
+
+
+<div class="container home">
+
+    <div class="main-banner mt-3">
+        <div class="info-banner-main text-center">
+            <label></label>
+            <h1 class="text-center"></h1>
+            <div class="me-5 ms-5">
+            <p class="text-center"></p>
+
+            </div>
+            <button class="none"></button>
+        </div>
+        <img src="{{banner_1}}">
+    </div>
+
+    <h1 class="mt-5 title-home-collection"><b>{{idioma.home.collection}}</b></h1>
+
+    <div class="all-collections">
+
+        {% for collection in collections %}
+                
+            {% if collection.image != null and collection.image != '' %}
+                <div class="home-collection ms-3">
+                    <a href="/collections/{{collection._id}}">
+                        <div class=" mt-1">
+                                <img class="img-fluid img-collection" src="{{collection.image}}">
+                        </div>
+                        
+                        <div class="mt-2">
+                            <div class="btn-collection text-center">
+                                <a><b>{{collection.name}}</b></a>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            {% endif %}
+        {% endfor %}
+    
+    </div>
+
+    <div class="main-banner mt-3">
+        <div class="info-banner-main text-center">
+            <h1 class="text-center"></h1>
+            <div class="me-5 ms-5">
+            <p class="text-center"></p>
+
+            </div>
+            <button class="none">  </button>
+        </div>
+        <img src="{{banner_2}}">
+    </div>
+
+    <div class="main-collection mt-5">
+        <h2 style="margin-bottom: -2rem;">{{collection_name}}</h2>
+
+        <div class="all-products">
+            {% for produto in products %}
+               
+                <div class="box-produtct">
+                    <a href="/products/{{produto._id}}">
+                        <div class="model-product-store">
+                            
+                              
+                            <i style="font-size:18px;" class="bi bi-heart"></i>
+
+                           
+                            <div class="d-flex justify-content-center">
+                                <img src="{{produto.images[0].base64 }}">
+                            </div>
+                            <h4 class="model-brand mt-1">{{produto.brand}}</h4>
+                            <p >{{produto.name}}</p>
+                            <span class="mt-2 d-flex justify-content-start">
+                                <label class="last-price" c-id="last-price">{{produto.last_price}} {{moeda}}</label>
+                                <label class="price ms-2" c-id="price">{{produto.price}} {{moeda}}</label>
+                            </span>
+                        </div>
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+
+    </div>
+
+
+    <div class="main-banner mt-3">
+        <div class="info-banner-main text-center">
+            <h1 class="text-center"></h1>
+            <div class="me-5 ms-5">
+            <p class="text-center"></p>
+
+            </div>
+            <button class="none"></button>
+        </div>
+        <img src="{{banner_3}}">
+    </div>
+    
+
+    <br>
+
+
+    
+
+
+</div>
+
+
+
+<br>

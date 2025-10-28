@@ -1,0 +1,156 @@
+
+
+<div class="container">
+
+    <div class="product-carousel" id="productCarousel">
+        <div class="carousel-main mt-3">
+            <button style="display:none !important;" c-id="btn-prev" class="nav prev" aria-label="Previous image"></button>
+
+            {% if product.images is defined and product.images|length > 0 %}
+                {% for img in product.images %}
+                {# a primeira imagem (loop.first) recebe active #}
+                <img src="{{ img.base64 }}" class="carousel-img {% if loop.first %}active{% endif %}" alt="" />
+                {% endfor %}
+            {% endif %}
+
+            <button style="display:none !important;" class="nav next" aria-label="Next image"></button>
+        </div>
+        <div c-id="thumbnails" class="thumbnails mt-3">
+            {% if product.images is defined and product.images|length > 0 %}
+                {% for img in product.images %}
+                <img src="{{ img.base64 }}"
+                    data-index="{{ loop.index0 }}"
+                    class="thumb {% if loop.first %}active{% endif %}"
+                    alt="" />
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+
+    <p style="margin-bottom: 0.1rem !important;">{{product.name}}</p>
+    <div class="d-flex justify-content-start">
+        <h5 class="last-price-product mt-3"> {{product.last_price}} {{moeda}}</h5>
+        <h5 class="price-product mt-3 ms-2">{{product.price}} {{moeda}}</h5>
+        <div class="discount ms-2">{{product.discount}} %</div>
+    </div>
+    
+    {% for variant in variants %}
+
+        {% if variant.title == 'Couleur' %} 
+            <label style="color:#737373;" class="mt-3">{{variant.title}} <span class="ms-1"><b>{{variant.values[0].value}}</b></span> </label>
+                <div id="{{variant.title}}" class="d-flex justify-content-start mt-1">
+                    {% for value in variant.values %}
+                        
+                        {% if loop.first %}
+                            <div c-id="option-couleur" value="{{value.value}}" class="option-img-product option-selected">
+                                <img class="img-fluid" src="{{value.img}}">
+                            </div>
+                        {% else %}
+                            <div c-id="option-couleur" value="{{value.value}}" class="option-img-product ms-2">
+                                <img class="img-fluid" src="{{value.img}}">
+                            </div>
+                        {% endif %} 
+                        
+                    {% endfor %}
+                </div>
+            
+        
+        {% else %}
+            <label style="color:#737373;" class="mt-3">{{variant.title}} <span class="ms-1"><b>{{variant.values[0]}}</b></span> </label>
+            <select class="form-select col-12 mt-2" id="{{variant.title}}">
+                {% for value in variant.values %}
+                   
+                    <option value="{{value}}">{{value}}</option>
+                {% endfor %}
+            </select>
+
+        {% endif %}
+
+        
+    {% endfor %}
+    <label style="color:#737373;" class="mt-4">{{idioma.product_page.amount}}</label>
+    <div class="amount mt-2 mb-4">
+        <div class="d-flex justify-content-between">
+            <button c-id="sub"><i class="bi bi-dash"></i></button>
+            <input c-id="amount" class="col-2" value="1" type="number" readonly>
+            <button c-id="add"><i class="bi bi-plus"></i></button>
+        </div>
+    </div>
+    <div class="d-flex justify-content-center mt-4">
+        <div  class="spinner-border none" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <button style="color:{{color_btn_product}}; background-color:{{bk_btn_product}}; border-color:{{bk_btn_product}}" c-id="add-to-cart" class="btn col-12 btn-buy mt-3">{{idioma.product_page.btn}}</button>
+
+    <div class="infos-page-product mt-4">
+        <div>
+            <i style="color:green;font-size:11px;" class="bi bi-check-circle"></i>
+            <label class="ms-1"> {{idioma.product_page.shipping_1}} </label>
+            <p style="color:#737373;font-size: .875em;margin-top: -5px; margin-bottom: 0.3rem;margin-left: 1.1rem;">{{idioma.product_page.shipping_2}} 35,00 {{moeda}} <span style="font-weight:700;"> - {{idioma.product_page.shipping_3}} </span> </p>
+          
+        </div>
+        
+        <label class="mt-2">
+            <i class="bi bi-arrow-return-left"></i>
+           <span  class="ms-2">{{idioma.product_page.return}}</span>  
+        </label>
+
+
+    </div>
+
+
+    <div class="infos-page-product mt-4">
+        <label class="ms-2">{{idioma.product_page.payments}}:</label>
+        <div class="ms-2">
+            <img class="mt-1" src="/img/logo-payment-cb.svg">
+            <img class="ms-1 mt-1" src="/img/logo-payment-visa.svg">
+            <img class="ms-1 mt-1" src="/img/logo-payment-mastercard.svg">
+            <img class="ms-1 mt-1" src="/img/logo-payment-amex.svg">
+            <img class="ms-1 mt-1" src="/img/logo-payment-applePay.svg">
+            <img class="ms-1 mt-1" src="/img/logo-payment-paypal.svg">
+        </div>
+    </div>
+    
+    <div id="description">
+        {% if product.description != null %}
+             <h2 class="mt-3"><b>{{idioma.product_page.description}}</b></h2>
+        
+            {{product.description}}
+            {% endif %}
+
+    </div>
+
+    <h2 class="mt-5"><b>{{idioma.product_page.other_products}}</b></h2>
+    <div class="all-products">
+            {% for produto in ramdonProducts %}
+               <div class="box-produtct">
+                    <a href="/products/{{produto._id}}">
+                        <div class="model-product-store">
+                            
+                              
+                            <i style="font-size:18px;" class="bi bi-heart"></i>
+
+                           
+                            <div class="d-flex justify-content-center">
+                                <img src="{{produto.images[0].base64 }}">
+                            </div>
+                            <p >{{produto.name}}</p>
+                            <span class="mt-2 d-flex justify-content-start">
+                                <div class="botoom-price">
+                                    <label class="last-price" c-id="last-price">{{produto.last_price}} {{moeda}}</label>
+                                    <label class="price ms-2" c-id="price">{{produto.price}} {{moeda}}</label>
+                                </div>
+                            </span>
+                            <br>
+                        </div>
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+    
+</div>
+ 
+
+<br>

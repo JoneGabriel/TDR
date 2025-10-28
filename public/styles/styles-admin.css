@@ -1,0 +1,278 @@
+html{
+    height: 100%;
+}
+
+body{
+    background-color: rgba(241, 241, 241, 1);
+    font-family: 'Open Sans', sans-serif;
+}
+
+body::-webkit-scrollbar {
+  height: 6px;
+}
+
+
+body::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 9px;
+}
+
+
+.none{
+    display: none;
+}
+
+.model-img{
+ 
+}
+
+.model-img button {
+    display: none;
+    background-color: rgba(255, 0, 0, 0.585);
+    color: white;
+    position: absolute;
+    z-index: 3;
+    color: white;
+    border-radius: 8px;
+    border: solid 1px  transparent;
+    font-size:13px;
+    font-weight: 600;
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    margin-left: 1.7rem;
+    margin-top: -3.8rem;
+    
+}
+
+.model-img button:hover{
+    display: none;
+    cursor: pointer;
+}
+
+.model-img img:hover + button {
+  display: block;
+    cursor: pointer;
+
+}
+
+.model-img img{
+    width: 100%;
+    position: relative;
+    border-radius: 10px;
+    
+}
+
+
+.model-collection{
+    border: solid 1px grey;
+    border-radius: 8px;
+    padding: 8px;
+    width: fit-content;
+}
+
+.my-table{
+    background-color: white;
+    border: solid 1px rgba(241, 241, 241, 1);
+    border-radius:15px;
+}
+
+.model-table{
+    border: solid 1px rgba(241, 241, 241, 1);
+    cursor: pointer;
+}
+
+.model-table:hover{
+    background-color: rgba(241, 241, 241, 1);
+}
+
+.model-table img{
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+}
+
+
+.model-table a{
+    color: black;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.model-table label{
+    font-size: 14px;
+    margin-top: 0.9rem;
+}
+
+.model-table a:hover{
+    text-decoration: underline;
+}
+
+.btn-add-product{
+    background-color: rgba(0, 0, 0, 0.802);
+    color: white;
+    border-radius: 8px;
+    border: solid 1px  transparent;
+    font-size:13px;
+    font-weight: 600;
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+}
+
+.btn-add-product:hover{
+    background-color: black;
+    
+}
+
+.modal-product-style{
+    margin-top: 4.8rem;
+    height: 92%;
+}
+
+.bk-modal{
+    background-color: rgba(241, 241, 241, 1);
+}
+
+.modal-body::-webkit-scrollbar {
+  height: 6px;
+}
+
+
+.modal-body::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 9px;
+}
+
+.btn-modal{
+    background-color: rgba(26, 26, 26, 1);
+    color: white;
+    border-radius: 8px;
+    border: solid 1px  transparent;
+    font-size:13px;
+    font-weight: 600;
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+}
+
+.rm-border{
+    border: solid 1px transparent;
+}
+
+.form-label{
+    font-size: 14px;
+    margin-bottom: -1px;
+    font-weight: 400;
+}
+
+
+.form-default{
+  background-color: white;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.form-default input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.form-default select {
+  border-radius: 10px;
+  border: solid 1px rgba(0, 0, 0, 0.424);
+  height: 35px;
+  font-size: 14px;
+  font-family: 'Open Sans', sans-serif;
+}
+
+
+.form-default textarea {
+  border-radius: 10px;
+  border: solid 1px rgba(0, 0, 0, 0.424);
+  font-size: 14px;
+  font-family: 'Open Sans', sans-serif;
+  /* altura fica automática (cresce conforme conteúdo ou via rows) */
+}
+
+.z-index-spinner{
+    z-index: 10;
+}
+
+.style-spinner{
+    margin-top: -51rem;
+    width: 60px;
+    height: 60px;
+}
+
+
+
+.input-style {
+  border-radius: 10px;
+  border: solid 1px rgba(0, 0, 0, 0.424);
+  height: 35px;
+  font-size: 14px;
+  font-family: 'Open Sans', sans-serif;
+}
+
+.area-metric{
+    width: 100%;
+    height: 300px;
+    border-radius: 10px;
+    background-color: white;
+}
+
+.area-metric h4{
+    font-weight: 600;
+}
+
+.box-coversion{
+    height: 100%;
+    width: 100%;
+    border: solid 1px transparent;
+    border-right-color: rgba(241, 241, 241, 1);
+}
+
+.position-chart{
+    position: relative;
+    width: 100%;
+    height: 180px;
+    text-align: center;
+}
+
+.charts{
+    width: 90px;
+    background-color: blue;
+    position: absolute;       
+    bottom: 0;                
+    left: 0;
+    text-align: center;
+
+}
+
+.label-values{
+    font-weight: 600;
+}
+
+.ellipsis-label {
+ white-space: nowrap;
+  width: 100%;
+  overflow: hidden; /* "overflow" value must be different from "visible" */
+
+  text-overflow: ellipsis;
+}
+
+.model-link{
+
+}
+
+.model-link a{
+    background-color: rgba(241, 241, 241, 1);
+    color: black;
+    text-decoration: none;
+    padding: 8px;
+    border-radius: 9px;
+}
+
+.model-link a:hover{
+    text-decoration: underline;
+}

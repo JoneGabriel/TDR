@@ -1,0 +1,349 @@
+<br>
+<br>
+<div class="mx-5 mt-5 mb-4">
+    <div class="d-flex justify-content-between">
+        <h5>Lojas <i class="bi bi-tag"></i></h5>
+        <button c-id="new-store" class="btn-add-product">Adicionar loja</button>
+    </div>
+    
+    <div class="my-table mt-3">
+        <div class="row mx-1 p-1">
+            <div class="col-lg-3">
+                <label class="mt-1"><b>Loja</b></label>
+            </div>
+            
+            <div class="col-lg-2">
+                <label class="mt-1"><b>Idioma</b></label>
+            </div>
+            <div class="col-lg-2">
+                <label class="mt-1"><b>Moeda</b></label>
+            </div>
+            <div class="col-lg-2">
+                
+            </div>
+            <div class="col-lg-3">
+                <label class="mt-1"><b>Status</b></label>
+                
+            </div>
+        </div>
+
+        <div c-id="model-store" id="" class="col-lg-12 none">
+            <div  class="row model-table p-2">
+                <div class="col-lg-3">
+                    <img class="ms-2" src=""> 
+                    <a class="ms-2"></a>
+                </div>
+                <div class="col-lg-2">
+                    <label c-id="idioma" class="ms-2"></label>
+                </div>
+                <div class="col-lg-2">
+                    <label c-id="moeda" class="ms-2"></label>
+                </div>
+                <div class="col-lg-2">
+                    
+                </div>
+                <div class="col-lg-3">
+                    <div class="form-check form-switch">
+                        <input c-id="status" class="form-check-input" type="checkbox" role="switch" id="switchCheckChecked">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div c-id="all-stores" class="row">
+            {% for store in stores %}
+
+                <div c-id="model-store" id="{{store._id}}" class="col-lg-12">
+                    <div  class="row model-table p-2">
+                        <div class="col-lg-3">
+                            <img class="ms-2" src="{{store.logo |default('https://gravitec.net/pt/empty.jpg')}}"> 
+                            <a class="ms-2">{{store.name}}</a>
+                        </div>
+                        <div class="col-lg-2">
+                            <label c-id="idioma" class="ms-2">{{store.idioma}}</label>
+                        </div>
+                        <div class="col-lg-2">
+                            <label c-id="moeda" class="ms-2">{{store.moeda}}</label>
+                        </div>
+                        <div class="col-lg-2">
+                            
+                        </div>
+                        <div class="col-lg-3">
+                            <div class="form-check form-switch">
+                                <input c-id="status" class="form-check-input" type="checkbox" role="switch" id="switchCheckChecked" 
+                                {% if store.status == true %}
+                                    checked
+                                {% endif %}
+                                
+                                >
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+
+                            
+            {% endfor %}
+        </div>
+    </div>
+    
+</div>
+
+<div class="d-flex justify-content-center z-index-spinner">
+    <div c-id="loading-center" class="spinner-border style-spinner none" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>
+
+<div c-id="modal-store" class="modal fade modal-product-style" tabindex="-1" aria-labelledby="exampleModalFullscreenLabel"  aria-modal="true" role="dialog">
+  <div class="modal-dialog modal-fullscreen" >
+    <div c-id="form" class="modal-content bk-modal" >
+      <div class="modal-header rm-border" >
+        <div class="container">
+            <h1 class="modal-title fs-5 ms-3" >
+                <b c-id="name-store"></b>
+                
+            </h1>
+        </div>
+        <button c-id="close-modal" class="btn-modal">Fechar</button>
+      </div>
+      <div class="modal-body" >
+        <div class="container">
+            <div class="row form-default">
+
+                <div class="col-lg-6">
+                    <div class="mb-3">
+                        <label class="form-label">Logo</label>
+                        <input c-id="logo" type="file" class="form-control">
+                        <div class="row">
+                            <div class="col-lg-6">
+                                <div class="model-img none mt-4 ms-2">
+                                    <img style="width: 120px;" c-id="img-logo">
+                                    <button  c-id="remove-img">Remover</button>
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <div c-id="position-logo" class="mb-3 mt-4">
+                                    <label class="form-label">Posição logo</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="position" value="left">
+                                        <label class="form-check-label">
+                                            Esquerda
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="position" value="center">
+                                        <label class="form-check-label">
+                                            Centralizado
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-lg-6">
+                            <div class="mb-3">
+                                <label>Banner 1</label>
+                                <input c-id="banner_1" type="file" class="form-control">
+                                <div class="model-img none mt-4 ms-2">
+                                    <img class="img-fluid" c-id="banner-1">
+                                    <button style="margin-left: 6.5rem;"  c-id="remove-img">Remover</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="mb-3">
+                                <label>Banner 2</label>
+                                <input c-id="banner_2" type="file" class="form-control">
+                                <div class="model-img none mt-4 ms-2">
+                                    <img class="img-fluid" c-id="banner-2">
+                                    <button style="margin-left: 6.5rem;" c-id="remove-img">Remover</button>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label>Banner 3</label>
+                                <input c-id="banner_3" type="file" class="form-control">
+                                <div class="model-img none mt-4 ms-2">
+                                    <img class="img-fluid" c-id="banner-3">
+                                    <button style="margin-left: 6.5rem;" c-id="remove-img">Remover</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                   
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="mb-3">
+                        <label class="form-label">Nome</label>
+                        <input c-id="name" type="text" class="form-control"  placeholder="Galeries Lafayette">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Idioma</label>
+                        <select c-id="idioma" class="form-control">
+                            {% for idi_ in options_idioma %}
+                                <option value="{{idi_.value}}">{{idi_.key}}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Moeda</label>
+                        <select c-id="moeda" class="form-control">
+                            {% for moeda_ in options_moeda %}
+                                <option value="{{moeda_.value}}">{{moeda_.key}}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div c-id="country" class="mb-3">
+                        <label class="form-label">Paises</label>
+                        {% for country_ in options_country %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="{{country_.value}}" >
+                                <label class="form-check-label" for="checkDefault">
+                                    {{country_.key}}
+                                </label>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                </div>
+                
+                <div class="col-lg-6">
+                    <div class="mb-3">
+                        <h6 class="mt-4">Mensagem no topo da pagina</h6>
+                        <input c-id="message_top" class="form-control" >
+                        <div class="d-flex justify-content-start">
+                            <div>
+                                <label class="form-label mt-3">Cor texto</label>
+                                <input type="color" c-id="color_message" class="form-control" style="width:50px">
+                            </div>
+                            <div class="ms-4">
+                                <label class="form-label mt-3">Cor background</label>
+                                <input type="color" c-id="bk_message" class="form-control" style="width:50px">
+                            </div>
+                        </div>
+                        
+                    </div>
+
+                    <div class="mb-3">
+                        <h6 class="mt-4">Botão Adicionar mais itens (carrinho)</h6>
+                        <div class="d-flex justify-content-start">
+                            <div>
+                                <label class="form-label">Cor texto </label>
+                                <input type="color" c-id="color_btn_add_items" class="form-control"  style="width:50px">
+                            </div>
+
+
+                            <div class="ms-3">
+                                <label class="form-label">Cor background</label>
+                                <input type="color" c-id="bk_btn_add_items" class="form-control"  style="width:50px">
+                            </div>
+
+                        </div>
+                    
+                    </div>
+
+                    <div class="mb-3 ">
+                        <h6 class="mt-4">Rodape</h6>
+                        <div class="d-flex justify-content-start">
+                            <div>
+                                <label class="form-label">Cor texto </label>
+                                <input type="color" c-id="color_footer" class="form-control"  style="width:50px">
+                            </div>
+
+
+                            <div class="ms-3">
+                                <label class="form-label">Cor background</label>
+                                <input type="color" c-id="bk_footer" class="form-control"  style="width:50px">
+                            </div>
+
+                        </div>
+                    
+                    </div>
+
+                </div>
+
+
+                <div class="col-lg-6">
+
+                    <div class="mb-3 ">
+                        <h6 class="mt-4">Botão pagina do produto</h6>
+                        <div class="d-flex justify-content-start">
+                            <div>
+                                <label class="form-label">Cor texto </label>
+                                <input type="color" c-id="color_btn_product" class="form-control"  style="width:50px">
+                            </div>
+
+
+                            <div class="ms-3">
+                                <label class="form-label">Cor background</label>
+                                <input type="color" c-id="bk_btn_product" class="form-control"  style="width:50px">
+                            </div>
+
+                        </div>
+                    
+                    </div>
+
+                    <div class="mb-3">
+                        <h6 class="mt-4">Botão checkout (carrinho)</h6>
+                        <div class="d-flex justify-content-start">
+                            <div>
+                                <label class="form-label">Cor texto </label>
+                                <input type="color" c-id="color_btn_checkout" class="form-control"  style="width:50px">
+                            </div>
+
+
+                            <div class="ms-3">
+                                <label class="form-label">Cor background</label>
+                                <input type="color" c-id="bk_btn_checkout" class="form-control"  style="width:50px">
+                            </div>
+
+                        </div>
+                    
+                    </div>
+
+                    <div class="mb-3 ">
+                        <h6 class="mt-4">Icones</h6>
+                        <div class="d-flex justify-content-start">
+                            <div>
+                                <label class="form-label">Cor Icones </label>
+                                <input type="color" c-id="color_icons" class="form-control"  style="width:50px">
+                            </div>
+
+
+                            <div class="ms-3">
+                                <label class="form-label">Cor background numero de itens carrinho</label>
+                                <input type="color" c-id="color_n_items_cart" class="form-control"  style="width:50px">
+                            </div>
+
+                        </div>
+                    
+                    </div>
+                    <h6 class="mt-4">Css</h6>
+                    <div style="min-height:420px;">
+                        <div id="editor" style="width:100%;height:400px;"></div>
+                    </div>
+                </div>
+
+            </div>
+            <button c-id="save-store" class="btn-modal mt-4 float-end">Salvar</button>
+            <div class="clearfix">
+                <div c-id="loading-btn" class="spinner-border float-end mt-4 none" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+            <br>
+            <br>
+            <br>
+
+        </div>
+
+      </div>
+    
+    </div>
+  </div>
+</div>
+
+

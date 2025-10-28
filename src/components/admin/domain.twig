@@ -1,0 +1,113 @@
+<br>
+<br>
+<div class="mx-5 mt-5 mb-4">
+    <div class="d-flex justify-content-between">
+        <h5>Dominios <i class="bi bi-globe"></i></h5>
+        <button c-id="new-domain" class="btn-add-product">Adicionar dominio</button>
+    </div>
+    
+    <div class="my-table mt-3">
+        <div class="row mx-1 p-1">
+            <div class="col-lg-4">
+                <label class="mt-1"><b>Dominio</b></label>
+            </div>
+            <div class="col-lg-4">
+                <label class="mt-1"><b>Loja</b></label>
+            </div>
+            <div class="col-lg-4">
+                <label class="mt-1"><b>Status</b></label>
+            </div>
+        </div>
+
+        <div c-id="model-domain" id="" class="col-lg-12 none">
+            <div  class="row model-table p-2">
+                <div class="col-lg-4">
+                    <a c-id="domain" class="ms-2"></a>
+                </div>
+                <div class="col-lg-4">  
+                    <label c-id="name-store"></label>
+                </div>
+                <div class="col-lg-4">
+                    <div class="form-check form-switch">
+                        <input c-id="status" class="form-check-input" type="checkbox" role="switch" id="switchCheckChecked">
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+
+        <div c-id="all-domain" class="row">
+            {% for domain in domains %}
+
+                <div c-id="model-domain" id="{{domain._id}}" class="col-lg-12">
+                    <div  class="row model-table p-2">
+                        <div class="col-lg-4">
+                            <a class="ms-2">{{domain.domain}}</a>
+                        </div>
+                        <div class="col-lg-4">
+                        <a>{{domain.store.name}}</a>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="form-check form-switch">
+                                <input c-id="status" class="form-check-input" type="checkbox" role="switch" id="switchCheckChecked" 
+                                {% if domain.status == true %}
+                                    checked
+                                {% endif %}
+                                
+                                >
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+
+                            
+            {% endfor %}
+        </div>
+    </div>
+    
+</div>
+
+
+<div c-id="modal-domain" class="modal fade modal-product-style"  tabindex="-1"   aria-modal="true" role="dialog">
+  <div class="modal-dialog">
+    <div c-id="form" class="modal-content bk-modal">
+      <div class="modal-header rm-border">
+         <button c-id="close-modal" class="btn-modal">Fechar</button>
+      </div>
+      <div class="modal-body">
+        <div class="container">
+            <div class="row form-default">
+                <div class="col-lg-6">
+                    <div class="mb-3">
+                        <label class="form-label">Dominio</label>
+                        <input c-id="domain" type="text" class="form-control"  placeholder="exemplo.com">
+                    </div>
+                   
+                </div>
+                <div class="col-lg-6">
+                     <div class="mb-3">
+                        <label class="form-label">Loja</label>
+                        <select c-id="store-config" class="form-select"></select>
+                    </div>
+                </div>
+
+            
+
+            </div>
+            <button c-id="save-domain" class="btn-modal mt-4 float-end">Salvar</button>
+            <div class="clearfix">
+                <div c-id="loading-btn" class="spinner-border float-end mt-4 none" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+            <br>
+            <br>
+            <br>
+
+        </div>
+      </div>
+      
+    </div>
+  </div>
+</div>

@@ -1,0 +1,125 @@
+
+
+<br>
+<br>
+<div class="mx-5 mt-5 mb-4">
+    <div class="d-flex justify-content-between">
+        <h5>Shopifys <i class="bi bi-shop"></i></i></h5>
+        <button c-id="new-store" class="btn-add-product">Adicionar shopify</button>
+    </div>
+    
+    <div class="my-table mt-3">
+        <div class="row mx-1 p-1">
+            <div class="col-lg-4">
+                <label class="mt-1"><b>Shopify</b></label>
+            </div>
+            <div class="col-lg-4">
+                <label class="mt-1"><b>Token Storefront</b></label>
+            </div>
+            <div class="col-lg-4">
+                <label class="mt-1"><b>Token Admin</b></label>
+            </div>
+        </div>
+
+        <div c-id="model-store" id="" class="col-lg-12 none">
+            <div  class="row model-table p-2">
+                <div class="col-lg-4"> 
+                    <a class="ms-2"></a>
+                </div>
+                <div class="col-lg-4">
+                    <label c-id="storefront" class="ms-2"></label>
+                </div>
+                <div class="col-lg-4">
+                    <label c-id="admin" class="ms-2"></label>
+                </div>
+            </div>
+        </div>
+
+        <div c-id="all-store" class="row">
+            {% for loja in shopifys %}
+
+                <div c-id="model-store" id="{{loja._id}}" class="col-lg-12">
+                    <div  class="row model-table p-2">
+                        <div class="col-lg-4">
+                            <a class="ms-2">{{loja.url}}</a>
+                        </div>
+                        <div class="col-lg-4">
+                            <label class="ms-2">{{loja.token_storefront}}</label>
+                        </div>
+                        <div class="col-lg-4">
+                            <label class="ms-2">{{loja.token_admin}}</label>
+                        </div>
+                    </div>
+                </div>
+
+                            
+            {% endfor %}
+        </div>
+    </div>
+    
+</div>
+
+<div c-id="modal-store" class="modal fade modal-product-style" tabindex="-1" aria-labelledby="exampleModalFullscreenLabel"  aria-modal="true" role="dialog">
+  <div class="modal-dialog modal-fullscreen" >
+    <div c-id="form" class="modal-content bk-modal" >
+      <div class="modal-header rm-border" >
+        <div class="container">
+            <h1 class="modal-title fs-5 ms-3" >
+                <b c-id="name-store"></b>
+                
+            </h1>
+        </div>
+        <button c-id="close-modal" class="btn-modal">Fechar</button>
+      </div>
+      <div class="modal-body" >
+        <div class="container">
+            <div class="row form-default">
+
+                <div class="col-lg-4">
+                    <div class="mb-3">
+                        <label class="form-label">Url</label>
+                        <input c-id="url" type="text" class="form-control"  placeholder="hjauds-08.myshopify.com">
+                    </div>
+                   <div class="mb-3">
+                        <label class="form-label">Loja</label>
+                        <select c-id="store-config" class="form-select"></select>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="mb-3">
+                        <label class="form-label">Token Storefront</label>
+                        <input c-id="token_storefront" type="text" class="form-control"  ">
+                    </div>
+                   
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="mb-3">
+                        <label class="form-label">Token Admin</label>
+                        <input c-id="token_admin" type="text" class="form-control" >
+                    </div>
+                   
+                </div>
+
+               
+
+
+            </div>
+            <button c-id="save-store" class="btn-modal mt-4 float-end">Salvar</button>
+            <div class="clearfix">
+                <div c-id="loading-btn" class="spinner-border float-end mt-4 none" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+            <br>
+            <br>
+            <br>
+
+        </div>
+
+      </div>
+    
+    </div>
+  </div>
+</div>

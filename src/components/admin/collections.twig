@@ -1,0 +1,179 @@
+
+<br>
+<br>
+<div class="mx-5 mt-5 mb-4">
+    <div class="d-flex justify-content-between">
+        <h5>Coleções <i class="bi bi-tags"></i></h5>
+        <button c-id="new-collection" class="btn-add-product">Adicionar coleção</button>
+    </div>
+    
+    <div class="my-table mt-3">
+        <div class="row mx-1 p-1">
+            <div class="col-lg-3">
+                <label class="mt-1"><b>Titulo</b></label>
+            </div>
+            <div class="col-lg-3">
+                <label class="mt-1"><b>Produtos</b></label>
+            </div>
+            <div class="col-lg-3">
+                <label class="mt-1"><b>Status</b></label>
+            </div>
+            <div class="col-lg-3">
+                <label class="mt-1"><b>Link</b></label>
+            </div>
+        </div>
+
+        <div c-id="model-collection" id="" class="col-lg-12 none">
+            <div  class="row model-table p-2">
+                <div class="col-lg-3">
+                    <img class="ms-2" src=""> 
+                    <a class="ms-2"></a>
+                </div>
+                <div class="col-lg-3">
+                    <label c-id="collection-product" class="ms-2"></label>
+                </div>
+                <div class="col-lg-3">
+                    <div class="form-check form-switch">
+                        <input c-id="status" class="form-check-input" type="checkbox" role="switch" id="switchCheckChecked">
+                    </div>
+                </div>
+                <div class="col-lg-3">
+                    <button c-id="btn-link" class="btn-add-product">Copiar link</button>
+                </div>
+            </div>
+        </div>
+
+        <div c-id="all-collection" class="row">
+            {% for colecao in all_collections %}
+
+                <div c-id="model-collection" id="{{colecao._id}}" class="col-lg-12">
+                    <div  class="row model-table p-2">
+                        <div class="col-lg-3">
+                            <img class="ms-2" src="{{ colecao.image|default('https://gravitec.net/pt/empty.jpg') }}">
+                            <a class="ms-2">{{colecao.name}}</a>
+                        </div>
+                        <div class="col-lg-3">
+                            <label c-id="collection-product" class="ms-2">{{colecao.products}}</label>
+                        </div>
+                        <div class="col-lg-3">
+                            <div class="form-check form-switch">
+                                <input c-id="status" class="form-check-input" type="checkbox" role="switch" id="switchCheckChecked" 
+                                {% if colecao.status == true %}
+                                    checked
+                                {% endif %}
+                                >
+                            </div>
+                        </div>
+                        <div class="col-lg-3">
+                            <button c-id="btn-link" class="btn-add-product">Copiar link</button>
+                        </div>
+                    </div>
+                </div>
+
+                            
+            {% endfor %}
+        </div>
+    </div>
+    
+</div>
+
+<div c-id="modal-collection" class="modal fade modal-product-style" tabindex="-1" aria-labelledby="exampleModalFullscreenLabel"  aria-modal="true" role="dialog">
+  <div class="modal-dialog modal-fullscreen" >
+    <div c-id="form" class="modal-content bk-modal" >
+      <div class="modal-header rm-border" >
+        <div class="container">
+            <h1 class="modal-title fs-5 ms-3" >
+                <b c-id="name-collection"></b>
+                
+            </h1>
+        </div>
+        <button c-id="close-modal" class="btn-modal">Fechar</button>
+      </div>
+      <div class="modal-body" >
+        <div class="container">
+            <div class="row form-default">
+                <div class="col-lg-6">
+                    <div class="mb-3">
+                        <label class="form-label">Título</label>
+                        <input c-id="name" type="text" class="form-control"  placeholder="Coleção de verão">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Loja</label>
+                        <select c-id="store-config" class="form-select"></select>
+                    </div>
+                   
+                </div>
+
+               
+
+
+                 <div class="col-lg-6">
+                    <div class="mb-3">
+
+                        <label class="form-label">Mídia</label>
+                        <input c-id="images" type="file" class="form-control">
+
+                        <div class="model-img none mt-2 col-lg-3" c-id="model-img">
+                            <img>
+                            <button c-id="remove-img">Remover</button>
+                                
+                            
+                            
+                        </div>            
+                        
+                        <div c-id="image-list" class="row mt-2"></div> 
+                    
+                    </div>
+                    
+                </div>
+
+            </div>
+            <button c-id="save-collection" class="btn-modal mt-4 float-end">Salvar</button>
+            <div class="clearfix">
+                <div c-id="loading-btn" class="spinner-border float-end mt-4 none" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+            <br>
+            <br>
+            <br>
+
+        </div>
+
+      </div>
+    
+    </div>
+  </div>
+</div>
+
+
+
+<div c-id="modal-link" class="modal fade modal-product-style"  tabindex="-1"   aria-modal="true" role="dialog">
+  <div class="modal-dialog modal-lg">
+    <div c-id="form" class="modal-content bk-modal">
+      <div class="modal-header rm-border">
+         <button c-id="close-modal-link" class="btn-modal">Fechar</button>
+      </div>
+      <div class="modal-body">
+        <div class="container">
+            <div c-id="model-link" class="col-lg-12 none model-link mt-2">
+                <div class="d-flex justify-content-start">
+                    <a target="_blank"></a>
+                    <button c-id="copy" class="btn-modal ms-2">Copiar</button>
+                </div>
+            </div>  
+
+            <div c-id="all-links" class="row form-default">
+                
+            </div>
+
+            <br>
+            <br>
+            <br>
+
+        </div>
+      </div>
+      
+    </div>
+  </div>
+</div>

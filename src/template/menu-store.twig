@@ -1,0 +1,85 @@
+
+
+{% if message_top != '' %}
+  <div style="background-color:{{bk_message_top}}" class="first-info">
+    <label style="color:{{color_message_top}}" >{{message_top}}</label>
+  </div>
+{% endif %}
+
+
+<div class="menu mx-2">
+  <div class="row ">
+      <div class="col-4 mt-2">
+          <div class="d-flex justify-content-start ">
+              <i style="color:{{color_icons}};" class="bi bi-list" c-id="open-menu"></i>
+              <i style="font-size:16px;margin-top:0.25rem; color:{{color_icons}}" c-id="close-menu" class="bi bi-x-lg none"></i>
+              {% if position_logo == 'left' %}
+                <a class="ms-3" href="/">
+                  <img width="80"  src="{{logo}}">
+                </a>
+              {% endif %}
+          </div>
+      </div>
+      <div class="col-3 mt-2">
+          <div class="d-flex justify-content-center mt-1">  
+              {% if position_logo == 'center' %}
+                <a class="ms-3" href="/">
+                  <img width="80"  src="{{logo}}">
+                </a>
+              {% endif %}
+          </div>
+      </div>
+      <div class="col-5 mt-2">
+     
+        <div class="float-end">
+        
+          <div style="background-color:{{color_n_items_cart}};" c-id="span-items" class="span-items">
+            <label>0</label>
+          </div>
+          <i style="color:{{color_icons}};" c-id="open-cart" class="bi bi-bag me-2 icon-cart"></i>
+        </div>
+        
+      </div>
+      <div class="col-12">
+        
+      </div>
+  </div>
+  <div class="search-container mt-3">
+  <input type="text" class="search-input" />
+  <span class="search-icon">
+    <i style="color:black;" class="bi bi-search"></i>
+  </span>
+</div>
+</div>
+
+
+
+<div id="modal-menu" style="margin-top: 5.9rem;" c-id="modal-menu" class="modal fade" >
+  <div class="modal-dialog modal-fullscreen">
+    <div class="modal-content">
+      
+      
+        <div class="row ">
+              
+              
+              {% for collection in all_collections %}
+                
+                    <div class="col-12">
+                      <div class="item-menu">
+                        <a class="collection-menu" href="/collections/{{collection._id}}">{{collection.name}}</a>
+                        <a href="/collections/{{collection._id}}">
+                          <i  class="bi bi-caret-right-fill float-end"></i>
+                        </a>
+                      </div>
+                      
+                    </div>
+                
+              {% endfor %}
+              
+          </div>
+     
+      
+    </div>
+  </div>
+</div>
+
