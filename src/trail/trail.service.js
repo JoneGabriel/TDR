@@ -62,10 +62,8 @@ const checkSession = async(ip)=>{
     }
 };
 
-const getCountry = async(req)=>{
+const getCountry = async(ip)=>{
     try{    
-
-        const ip = req.ip || req.connection.remoteAddress;
 
         const {country_code} = await getInfosAboutIp(ip)
 

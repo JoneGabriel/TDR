@@ -350,8 +350,9 @@ router.get("/order/:id", async(req, res)=>{
 
 router.get("/privacy-policy", async(req, res)=>{
     try{
-    
-        const countrCode = "US"//await getCountry(req);
+        
+        const ip_ = req.ip || req.connection.remoteAddress
+        const countrCode = "US"//await getCountry(ip_);
         const config = await getConfigStore(req.get('host'), 'domain');
         const isSecure = await saveSession(req, config.country);
 
@@ -384,7 +385,8 @@ router.get("/privacy-policy", async(req, res)=>{
 router.get("/shipping-policy", async(req, res)=>{
     try{
     
-        const countrCode = "US"//await getCountry(req);
+         const ip_ = req.ip || req.connection.remoteAddress
+        const countrCode = "US"//await getCountry(ip_);
         const config = await getConfigStore(req.get('host'), 'domain');
         const isSecure = await saveSession(req, config.country);
 
@@ -417,7 +419,8 @@ router.get("/shipping-policy", async(req, res)=>{
 router.get("/return-refund", async(req, res)=>{
     try{
     
-        const countrCode = "US"//await getCountry(req);
+         const ip_ = req.ip || req.connection.remoteAddress
+        const countrCode = "US"//await getCountry(ip_);
         const config = await getConfigStore(req.get('host'), 'domain');
         const isSecure = await saveSession(req, config.country);
 
@@ -450,7 +453,8 @@ router.get("/return-refund", async(req, res)=>{
 router.get("/terms-of-service", async(req, res)=>{
     try{
     
-        const countrCode = "US"//await getCountry(req);
+        const ip_ = req.ip || req.connection.remoteAddress
+        const countrCode = "US"//await getCountry(ip_);
         const config = await getConfigStore(req.get('host'), 'domain');
         const isSecure = await saveSession(req, config.country);
 
