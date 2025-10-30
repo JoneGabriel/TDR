@@ -163,7 +163,7 @@ const idioma = {
                         Informations concernant les échanges de taille ou de couleur
 
                         Toutes les demandes liées à un changement de taille ou de couleur doivent être traitées directement par e-mail.
-                        Merci d’envoyer un message à l’adresse suivante : service@galerieslaclub.com
+                
 
                         Important :
                         Veuillez indiquer le numéro de votre commande dans l’objet de l’e-mail et préciser le motif de votre demande.
@@ -286,8 +286,7 @@ const idioma = {
                         Information regarding size or color exchanges
 
                         All requests related to a change of size or color must be handled directly by email.
-                        Please send a message to the following address: service@galerieslaclub.com
-
+                
                         Important:
                         Please include your order number in the subject line of the email and specify the reason for your request.
 
