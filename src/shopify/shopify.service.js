@@ -44,10 +44,10 @@ const getShopifyById = async({id})=>{
     }
 };
 
-const changeShopify = async({id}, Shopify)=>{
+const changeShopify = async({id}, shopify)=>{
     try{
 
-        await updateById(Shopify, id, Shopify);
+        await updateById(Shopify, id, shopify);
 
         return statusHandler.newResponse(200, "ok");
     }catch(error){
