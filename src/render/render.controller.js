@@ -322,7 +322,6 @@ router.get("/order/:id", async(req, res)=>{
         //const isSecure = await saveSession(req);
 
         const config = await getConfigStore(req.get('host'), 'domain');
-        const ip_ = req.ip || req.connection.remoteAddress
         const country =config.country[0];
 
         const {id} = req.params;
@@ -350,10 +349,10 @@ router.get("/order/:id", async(req, res)=>{
 
 router.get("/privacy-policy", async(req, res)=>{
     try{
+    
         
-        const ip_ = req.ip || req.connection.remoteAddress
-        const countrCode = config.country[0];
         const config = await getConfigStore(req.get('host'), 'domain');
+        const countrCode = config.country[0];
         const isSecure = await saveSession(req, config.country);
 
         if(!isSecure){                
@@ -385,9 +384,8 @@ router.get("/privacy-policy", async(req, res)=>{
 router.get("/shipping-policy", async(req, res)=>{
     try{
     
-         const ip_ = req.ip || req.connection.remoteAddress
-        const countrCode = config.country[0];
         const config = await getConfigStore(req.get('host'), 'domain');
+        const countrCode = config.country[0];
         const isSecure = await saveSession(req, config.country);
 
         if(!isSecure){                
@@ -419,9 +417,8 @@ router.get("/shipping-policy", async(req, res)=>{
 router.get("/return-refund", async(req, res)=>{
     try{
     
-         const ip_ = req.ip || req.connection.remoteAddress
-        const countrCode = config.country[0];
         const config = await getConfigStore(req.get('host'), 'domain');
+        const countrCode = config.country[0];
         const isSecure = await saveSession(req, config.country);
 
         if(!isSecure){                
@@ -453,9 +450,8 @@ router.get("/return-refund", async(req, res)=>{
 router.get("/terms-of-service", async(req, res)=>{
     try{
     
-        const ip_ = req.ip || req.connection.remoteAddress
-        const countrCode = config.country[0];
         const config = await getConfigStore(req.get('host'), 'domain');
+        const countrCode = config.country[0];
         const isSecure = await saveSession(req, config.country);
 
         if(!isSecure){                
