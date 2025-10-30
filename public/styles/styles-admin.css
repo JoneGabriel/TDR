@@ -276,3 +276,14 @@ body::-webkit-scrollbar-thumb {
 .model-link a:hover{
     text-decoration: underline;
 }
+
+.div-file{
+    color: black;
+    border-radius: 8px;
+}
+
+
+
+.div-file:hover{
+    background-color: white;
+}

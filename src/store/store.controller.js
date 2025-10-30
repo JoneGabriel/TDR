@@ -3,7 +3,9 @@ const {
     createStore,
     getAllStores,
     getStoreById,
-    changeStore
+    changeStore,
+    getFile,
+    changeFile
 } = require("./store.service");
 const router = require("express").Router();
 const statusHandler = require("../helpers/helpers.statusHandler");
@@ -55,5 +57,30 @@ router.get("/store-config/:id", async({params}, res)=>{
         return statusHandler.responseError(error, res);
     }
 });
+
+router.get("/store-config/:idStore/:idFile", async({params}, res)=>{
+    try{    
+
+        const response = await getFile(params);
+
+        return res.status(response.status).send(response);
+    }catch(error){
+
+        return statusHandler.responseError(error, res);
+    }
+});
+
+router.put("/store-config/:idStore/:idFile", async({params, body}, res)=>{
+    try{    
+
+        const response = await changeFile(params, body);
+
+        return res.status(response.status).send(response);
+    }catch(error){
+
+        return statusHandler.responseError(error, res);
+    }
+});
+
 
 module.exports = router;

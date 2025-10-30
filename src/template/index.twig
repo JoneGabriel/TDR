@@ -3,7 +3,7 @@
 {% include './head.twig'%} 
 <body>
     {% if store == true %}
-        {% include './menu-store.twig'%}
+        {{ menu_store}}
     {% endif %}
 
      {% if admin == true %}
@@ -11,10 +11,15 @@
         {% include './menu-admin.twig'%}
     {% endif %}
 
-    
-    {% include (template_from_string(template)) %}
+        {% if store == true %}
+            {{ template}}
+        {% endif %}
+    {% if admin == true %}
+        {% include (template_from_string(template)) %}
+    {% endif %}
+     
     {% if store == true %}
-        {% include './cart.twig'%}
+        {{cart_template}}
     {% endif %}
 
     {% include './footer.twig'%}

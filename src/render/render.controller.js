@@ -42,8 +42,10 @@ const {
     options_country,
     options_moeda,
     options_idioma,
-    policies
+    policies,
+    files
 } = require("../store/store.service");
+const Twig = require('twig');
 
 //rotas admin
 
@@ -149,7 +151,8 @@ router.get("/admin/stores", async(req, res)=>{
             stores:stores.content,
             options_country,
             options_moeda,
-            options_idioma
+            options_idioma,
+            files
         });
         
     }catch(error){
@@ -215,14 +218,40 @@ router.get("/", async(req, res)=>{
         const firstCollection = await getFirtsCollection(config._id);
         const all_collections =  await getAllCollections(false, config._id);
 
-        
-        return res.render(index, {
-            template:'{% include "' + relativePath + '/components/store/home.twig" %}',
-            script:"home.js",
+        let {header_template, menu_store, cart_template, footer_template, home_template} = config;
+
+        header_template = Twig.twig({data:header_template}).render({
+            store:true,
+            ...config
+        });
+        menu_store = Twig.twig({data:menu_store}).render({
             store:true,
             all_collections:all_collections.content,
-           ...firstCollection,
             ...config
+        });
+        cart_template = Twig.twig({data:cart_template}).render({
+            ...config
+        });
+        footer_template = Twig.twig({data:footer_template}).render({
+            ...config
+        });
+
+
+        home_template = Twig.twig({data:home_template}).render({
+            store:true,
+            all_collections:all_collections.content,
+            ...firstCollection,
+            ...config
+        });
+        
+        return res.render(index, {
+            template:home_template,
+            script:"home.js",
+            store:true,
+            header_template,
+            menu_store,
+            cart_template,
+            footer_template
         });
 
     }catch(error){
@@ -252,18 +281,36 @@ router.get("/collections/:id", async(req , res)=>{
         const info = await getInfoCollection(id);
         const all_collections =  await getAllCollections(false, config._id);
 
+        let {header_template, menu_store, cart_template, footer_template, collection_template} = config;
 
-        console.log("END", new Date(Date.now()))
-
+        header_template = Twig.twig({data:header_template}).render({
+            store:true,
+            ...config
+        });
+        menu_store = Twig.twig({data:menu_store}).render({
+            store:true,
+            all_collections:all_collections.content,
+            ...config
+        });
+        cart_template = Twig.twig({data:cart_template}).render({
+            ...config
+        });
+        footer_template = Twig.twig({data:footer_template}).render({
+            ...config
+        });
+       
+        collection_template = Twig.twig({data:collection_template}).render({
+            ...info
+        });
 
         return res.render(index, {
-            template:'{% include "' + relativePath + '/components/store/collection.twig" %}',
+            template:collection_template,
             script:"collection.js",
             store:true,
-            title:info.collection.name,
-            all_collections:all_collections.content,
-            ...info,
-            ...config
+            header_template,
+            menu_store,
+            cart_template,
+            footer_template
         });
 
     }catch(error){
@@ -296,16 +343,40 @@ router.get("/products/:id", async(req, res)=>{
         const all_collections =  await getAllCollections(false, config._id);
         const ramdonProducts = await getProductsRamdon(product.collection_);
 
-        return res.render(index, {
-            template:'{% include "' + relativePath + '/components/store/product.twig" %}',
-            script:"product.js",
+        let {header_template, menu_store, cart_template, footer_template, product_template} = config;
+
+        header_template = Twig.twig({data:header_template}).render({
             store:true,
-            product,
-            variants:arrangeVariants(product),
-            all_collections:all_collections.content,
-            ramdonProducts,
             ...config,
             title:product.name,
+        });
+        menu_store = Twig.twig({data:menu_store}).render({
+            store:true,
+            all_collections:all_collections.content,
+            ...config
+        });
+        cart_template = Twig.twig({data:cart_template}).render({
+            ...config
+        });
+        footer_template = Twig.twig({data:footer_template}).render({
+            ...config
+        });
+        product_template = Twig.twig({data:product_template}).render({
+            product,
+            variants:arrangeVariants(product),
+            ramdonProducts,
+            ...config
+        });
+
+        return res.render(index, {
+            template:product_template,
+            script:"product.js",
+            store:true,
+            ...config,
+            header_template,
+            menu_store,
+            cart_template,
+            footer_template
         });
 
     }catch(error){
@@ -329,15 +400,44 @@ router.get("/order/:id", async(req, res)=>{
         const charges = await getCharges(id, country)
         const all_collections =  await getAllCollections(false);
 
-        return res.render(index, {
-            template:'{% include "' + relativePath + '/components/store/order.twig" %}',
-            script:"order.js",
+        const timeZoneCountry = {
+            "GB":"Europe/London",
+            "US":"America/New_York",
+            "FR":"Europe/Paris"
+        };
+
+        let {header_template, menu_store, cart_template, footer_template, order_template} = config;
+
+        header_template = Twig.twig({data:header_template}).render({
             store:true,
-            order,
-            now: new Date().toLocaleString("en-US", { timeZone: "Europe/Paris" }),
-            charges,
+            ...config
+        });
+        menu_store = Twig.twig({data:menu_store}).render({
+            store:true,
             all_collections:all_collections.content,
             ...config
+        });
+        cart_template = Twig.twig({data:cart_template}).render({
+            ...config
+        });
+        footer_template = Twig.twig({data:footer_template}).render({
+            ...config
+        });
+        order_template = Twig.twig({data:order_template}).render({
+            order,
+            now: new Date().toLocaleString("en-US", { timeZone: timeZoneCountry[country] }),
+            charges,
+            ...config
+        });
+
+        return res.render(index, {
+            template:order_template,
+            script:"order.js",
+            store:true,
+            header_template,
+            menu_store,
+            cart_template,
+            footer_template
         });
 
     }catch(error){

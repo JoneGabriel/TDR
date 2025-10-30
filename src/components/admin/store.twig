@@ -104,7 +104,9 @@
                 <b c-id="name-store"></b>
                 
             </h1>
+            
         </div>
+        <button c-id="open-template" class="btn-modal me-3 none">Editar template</button>
         <button c-id="close-modal" class="btn-modal">Fechar</button>
       </div>
       <div class="modal-body" >
@@ -347,3 +349,40 @@
 </div>
 
 
+
+<div c-id="modal-template" class="modal fade modal-product-style" tabindex="-2" aria-labelledby="exampleModalFullscreenLabel"  aria-modal="true" role="dialog">
+  <div class="modal-dialog modal-fullscreen" >
+    <div class="modal-content bk-modal" >
+      <div class="modal-header rm-border" >
+       
+        <button c-id="close-modal-template" class="btn-modal">Fechar</button>
+      </div>
+      <div class="modal-body" >
+        <div style="height: 94%;">
+            <div style="height: 94%;" class="row mx-2">
+                <div class="col-lg-2">
+                    <h5><b>Arquivos</b></h5>
+                    {% for file in files %}
+                        <div id="{{file.id}}" c-id="model-file" class="div-file">
+                            <p class="p-2">{{file.name}}</p>
+                        </div>
+                    {% endfor %}
+                    
+                </div>
+                <div class="col-lg-10">
+                    <div id="edit-twig" style="width:100%;height:100%;"></div>
+                </div>
+            </div>
+        </div>
+        <button c-id="save-template" class="btn-modal mt-4 float-end">Salvar</button>
+        <div class="clearfix">
+            <div c-id="loading-btn" class="spinner-border float-end mt-4 none" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+        
+      </div>
+    
+    </div>
+  </div>
+</div>

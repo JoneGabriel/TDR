@@ -1,4 +1,6 @@
 let editor;
+let edit_twig;
+
 
 const cleanStoreFilds = ()=>{
     try{
@@ -18,7 +20,8 @@ const cleanStoreFilds = ()=>{
         .closest("div").addClass("none")
         $("[c-id=form]").find("[c-id=save-store]").removeAttr("id");
         $("[c-id=form]").find("[c-id=name-store]").text("");
-
+        $("[c-id=form]").find("img").attr("src", "")
+        $("[c-id=modal-store]").find("[c-id=open-template]").addClass("none");
 
     }catch(error){
         throw(statusHandler.messageError(error));
@@ -306,7 +309,54 @@ const listBanner = (img, banner)=>{
     }
 };
 
+const getTemplate = async(idStore, id)=>{
+    try{
+
+        const response = await request("GET", `/store-config/${idStore}/${id}`);
+        
+        if(response.status == 200){
+            const twig = response.content[id];
+            edit_twig.setValue(twig);
+
+            $("[c-id=save-template]").attr("id", id);
+        }
+
+    }catch(error){
+        throw(statusHandler.messageError(error))
+    }
+};
+
+const saveTemplate = async(idStore, id)=>{
+    try{
+
+        const file = edit_twig.getValue();
+        const response = await request("PUT", `/store-config/${idStore}/${id}`, {file});
+
+        if(response.status != 200){
+            throw(statusHandler.messageError("Erro ao salvar, verifique o arquivo", true));
+        }
+
+        statusHandler.newMessage("Arquivo salvo");
+
+    }catch(error){
+        throw(statusHandler.messageError(error));
+    }
+}
+
 $(document).ready(function(){
+
+    $("[c-id=model-file]").on("click", async(e)=>{
+        try{
+
+            const idStore = $("[c-id=modal-store]").find("[c-id=save-store]").attr("id")
+            const idFile = $(e.currentTarget).attr("id");
+
+            await getTemplate(idStore, idFile)
+
+        }catch(error){
+            statusHandler.messageError(error);
+        }
+    });
 
     $("body").on("click", "[c-id=model-store]", async(e)=>{
         try{
@@ -332,7 +382,7 @@ $(document).ready(function(){
                         automaticLayout: true
                 });
             });
-            await delay(500);
+            $("[c-id=modal-store]").find("[c-id=open-template]").removeClass("none");
             
         }catch(error){
             statusHandler.messageError(error);
@@ -362,6 +412,7 @@ $(document).ready(function(){
 
     $("[c-id=new-store]").on("click", ()=>{
         $("[c-id=modal-store]").modal("show");
+        cleanStoreFilds();
 
         $("#editor").html("");
         require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' }});
@@ -426,5 +477,43 @@ $(document).ready(function(){
         .addClass("none")
         .find("img").attr("src", "");
     });
+
+    $("[c-id=open-template]").on("click", ()=>{
+        try{
+
+        $("[c-id=modal-template]").modal("show");
+        $("#edit-twig").html("");
+        require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' }});
+            require(['vs/editor/editor.main'], function () {
+                edit_twig = monaco.editor.create(document.getElementById('edit-twig'), {
+                value: '',
+                language: 'html',
+                theme: 'vs-dark',
+                automaticLayout: true
+            });
+        });
+
+        }catch(error){
+            statusHandler.messageError(error);
+        }
+    });
+
+    $("[c-id=close-modal-template]").on("click", ()=>{
+        $("[c-id=modal-template]").modal("hide");
+        $("[c-id=save-template]").removeAttr("id");
+    });
+
+    $("[c-id=save-template]").on("click", async(e)=>{
+        try{
+
+            const idStore = $("[c-id=modal-store]").find("[c-id=save-store]").attr("id")
+            const idFile = $(e.currentTarget).attr("id");
+
+            await saveTemplate(idStore, idFile)
+
+        }catch(error){
+            statusHandler.messageError(error);
+        }
+    })
 
 });

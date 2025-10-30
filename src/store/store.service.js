@@ -3,6 +3,7 @@ const statusHandler = require("../helpers/helpers.statusHandler");
 const { Product, Collection } = require("../product/product.schema");
 const { findAll, findById, save, findOne, updateById } = require("../query");
 const { Store } = require("./store.schema");
+const Twig = require('twig');
 
 
 const createStore = async(store)=>{
@@ -371,6 +372,8 @@ const moeda = {
     'libra':'£'
 };
 
+
+
 const getConfigStore = async(id, type)=>{
     try{
 
@@ -408,6 +411,33 @@ const getConfigStore = async(id, type)=>{
     }catch(error){
         throw(statusHandler.serviceError(error));
     }
+}
+
+const getFile = async({idStore, idFile})=>{
+  try{  
+
+    const file = await findById(Store, idStore, `${idFile}`); 
+
+    return statusHandler.newResponse(200, file)
+
+  }catch(error){
+    throw(statusHandler.serviceError(error));
+  }
+};
+
+const changeFile = async({idStore, idFile}, {file})=>{
+  try{
+
+      Twig.twig({data:file}).render({store:true});
+      let update = {};
+      update[idFile] = file;
+      await updateById(Store, idStore, update);
+
+      return statusHandler.newResponse(200, "ok");
+
+  }catch(error){
+    throw(statusHandler.serviceError(error))
+  }
 }
 
 
@@ -1610,14 +1640,29 @@ const policies = {
 
 };
 
+
+const files = [
+  {name:"Header", id:"header_template"},
+  {name:"Menu", id:"menu_store"},
+  {name:"Cart", id:"cart_template"},
+  {name:"Footer", id:"footer_template"},
+  {name:"Home", id:"home_template"},
+  {name:"Collection", id:"collection_template"},
+  {name:"Product", id:"product_template"},
+  {name:"Order", id:"order_template"},
+]
+
 module.exports = {
     createStore,
     getAllStores,
     getStoreById,
     getConfigStore,
     changeStore,
+    getFile,
+    changeFile,
     options_country,
     options_moeda,
     options_idioma,
-    policies
+    policies,
+    files
 };
