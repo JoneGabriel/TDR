@@ -323,7 +323,7 @@ router.get("/order/:id", async(req, res)=>{
 
         const config = await getConfigStore(req.get('host'), 'domain');
         const ip_ = req.ip || req.connection.remoteAddress
-        const country = await getCountry(ip_);
+        const country =config.country[0];
 
         const {id} = req.params;
         const order = await getOrderShopify(id, req.query, country);
@@ -352,7 +352,7 @@ router.get("/privacy-policy", async(req, res)=>{
     try{
         
         const ip_ = req.ip || req.connection.remoteAddress
-        const countrCode = "US"//await getCountry(ip_);
+        const countrCode = config.country[0];
         const config = await getConfigStore(req.get('host'), 'domain');
         const isSecure = await saveSession(req, config.country);
 
@@ -386,7 +386,7 @@ router.get("/shipping-policy", async(req, res)=>{
     try{
     
          const ip_ = req.ip || req.connection.remoteAddress
-        const countrCode = "US"//await getCountry(ip_);
+        const countrCode = config.country[0];
         const config = await getConfigStore(req.get('host'), 'domain');
         const isSecure = await saveSession(req, config.country);
 
@@ -420,7 +420,7 @@ router.get("/return-refund", async(req, res)=>{
     try{
     
          const ip_ = req.ip || req.connection.remoteAddress
-        const countrCode = "US"//await getCountry(ip_);
+        const countrCode = config.country[0];
         const config = await getConfigStore(req.get('host'), 'domain');
         const isSecure = await saveSession(req, config.country);
 
@@ -454,7 +454,7 @@ router.get("/terms-of-service", async(req, res)=>{
     try{
     
         const ip_ = req.ip || req.connection.remoteAddress
-        const countrCode = "US"//await getCountry(ip_);
+        const countrCode = config.country[0];
         const config = await getConfigStore(req.get('host'), 'domain');
         const isSecure = await saveSession(req, config.country);
 
