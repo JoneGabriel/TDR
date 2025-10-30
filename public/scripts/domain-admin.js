@@ -10,6 +10,8 @@ const cleanDomainFilds = ()=>{
             $(this).val("");
         });
 
+        $("[c-id=form]").find("[c-id=save-domain]").removeAttr("id");
+
     }catch(error){
         throw(statusHandler.messageError(error));
     }
@@ -32,10 +34,12 @@ const listAllDomains = async()=>{
                 $(ctx).html("");
 
                 content.forEach(info=>{
-                    const {domain, _id, status} = info;
+                    const {domain, _id, status, store} = info;
                     const model = $("[c-id=model-domain]").clone()[0];
 
                     $(model).find("[c-id=domain]").text(domain);
+                    $(model).find("[c-id=name-store]").text(store.name);
+
                     $(model).find("[c-id=status]").prop('checked', status);
                     $(model).attr("id", _id);
                     
@@ -131,6 +135,42 @@ const listStores = async()=>{
     }
 };
 
+
+const listDomainInForm = (filds)=>{
+    try{
+        
+        cleanDomainFilds();
+        
+        let { domain, _id, store} = filds;
+        
+        const ctx = "[c-id=modal-domain]";
+
+        $(ctx).find("[c-id=domain]").val(domain);
+        $(ctx).find("[c-id=store-config]").val(store);
+
+
+        $(ctx).find("[c-id=save-domain]").attr("id", _id);
+
+    }catch(error){
+        throw(statusHandler.messageError(error));
+    }
+}
+
+const getDomainById = async(id)=>{
+    try{
+
+        const response = await request("GET", `/domain/${id}`);
+
+        if(response.status == 200){
+
+            listDomainInForm(response.content);
+        }
+
+    }catch(error){
+        throw(statusHandler.messageError(error));
+    }
+};
+
 $(document).ready(function(){
 
     listStores();
@@ -145,6 +185,9 @@ $(document).ready(function(){
                 const checked = $(e.target).prop("checked");
                 return await changeStatusDomain(id, checked);
             }
+
+            await getDomainById(id);
+            $("[c-id=modal-domain]").modal("show");
 
         }catch(error){
             statusHandler.messageError(error);
@@ -172,6 +215,7 @@ $(document).ready(function(){
 
 
     $("[c-id=new-domain]").on("click", ()=>{
+        cleanDomainFilds();
         $("[c-id=modal-domain]").modal("show");
     });
 

@@ -7,13 +7,13 @@
 
 <section class="order-container">
   <header class="order-header">
-    <h1 class="order-title">Détails de votre commande</h1>
+    <h1 class="order-title">{{idioma.order.title}}</h1>
     <div class="order-meta">
       <span class="order-number">
-        Commande {{ orderLabel }}
+        {{idioma.order.order}} {{ orderLabel }}
       </span>
       <span class="order-date">
-        Passée le {{ order.createdAt|date('d/m/Y à H:i') }}
+        {{idioma.order.approved}} {{ order.createdAt|date('d/m/Y à H:i') }}
       </span>
     </div>
   </header>
@@ -31,11 +31,7 @@
         <div class="item-info">
           <h3 class="item-title">{{ item.title }}</h3>
 
-          {% if item.sku %}
-            <p class="item-sku">Référence : {{ item.sku }}</p>
-          {% endif %}
-
-          <p class="item-qty">Quantité : {{ item.quantity }}</p>
+          <p class="item-qty">{{idioma.order.quantity}} : {{ item.quantity }}</p>
           <p class="item-price">
             {{ item.originalUnitPriceSet.shopMoney.amount }}
             {{ item.originalUnitPriceSet.shopMoney.currencyCode }}
@@ -47,20 +43,20 @@
 
   <section class="order-summary">
     <div class="summary-line">
-      <span>Sous-total</span>
+      <span>{{idioma.order.total}}</span>
       <span>{{ order.totalPriceSet.shopMoney.amount }}
             {{ order.totalPriceSet.shopMoney.currencyCode }}</span>
     </div>
 
     <div class="summary-line">
-      <span>Statut de paiement</span>
+      <span>{{idioma.order.payment_status}}</span>
       <span class="status status-{{ order.displayFinancialStatus|lower }}">
         {{ order.displayFinancialStatus|capitalize }}
       </span>
     </div>
 
     <div class="summary-line">
-      <span>Statut de livraison</span>
+      <span>{{idioma.order.shipping_status}}</span>
       <span class="status status-{{ order.displayFulfillmentStatus|lower }}">
         {{ order.displayFulfillmentStatus|replace({'_':' '})|capitalize }}
       </span>
@@ -68,7 +64,7 @@
   </section>
 
   <section class="order-tracking">
-  <h2>Suivi de la commande</h2>
+  <h2>{{idioma.order.tracking}}</h2>
 
   {% set anyTracking = false %}
   {% for fulfillment in order.fulfillments %}
@@ -80,7 +76,7 @@
           <div class="tracking-content">
             
 
-            <p class="tracking-label">Code de suivi :</p>
+            <p class="tracking-label">{{idioma.order.tracking_code}} :</p>
             <p class="tracking-value">
               <a href="{{ track.url }}" target="_blank">{{ track.number }}</a>
             </p>
@@ -95,11 +91,11 @@
       <div class="tracking-icon">⌛</div>
       <div class="tracking-content">
         {% if diff_hours < 6 %}
-          <p class="tracking-message">Votre commande est en cours de traitement.</p>
+          <p class="tracking-message">{{idioma.order.tracking_message_1}}</p>
         {% elseif diff_hours < 24 %}
-          <p class="tracking-message">Votre commande a été envoyée au transporteur.</p>
+          <p class="tracking-message">{{idioma.order.tracking_message_2}}</p>
         {% else %}
-          <p class="tracking-message">Le suivi sera disponible sous peu.</p>
+          <p class="tracking-message">{{idioma.order.tracking_message_3}}</p>
         {% endif %}
       </div>
     </div>
@@ -109,8 +105,8 @@
 
   <footer class="order-footer">
     <div class="d-flex justify-content-around">
-      <a href="/" class="btn-return">← Retour à la boutique</a>
-      <button c-id="btn-problem-order" class="btn-problem-order">Problèmes avec ma commande</button>
+      <a href="/" class="btn-return">← {{idioma.order.return_store}}</a>
+      <button c-id="btn-problem-order" class="btn-problem-order">{{idioma.order.order_problems}}</button>
     </div>
     
   </footer>
@@ -122,22 +118,20 @@
     <div class="modal-content" >
       <div class="modal-header rm-border" >
         <span class="order-number">
-        Commande {{ orderLabel }}
+        {{idioma.order.order}} {{ orderLabel }}
       </span>
-        <button c-id="close-modal" class="btn-modal">fermer</button>
+        <button c-id="close-modal" class="btn-modal">{{idioma.order.close}}</button>
       </div>
       <div class="modal-body" >
         <div class="container">
 
             {% if charges == false  %}
 
-            <label>Dites-nous ce qui est arrivé à votre commande</label>
+            <label>{{idioma.order.title_options_problem}}</label>
             <select c-id="option-problem" class="select-problem mt-2">
-              <option value="1">Commande tardive</option>
-              <option value="2">Je n'ai pas reçu ma commande</option>
-              <option value="3">J'ai choisi la mauvaise taille</option>
-              <option value="4">Commande défectueuse</option>
-              <option value="5">Exercer le droit de retour</option>
+              {% for option in idioma.order.options_problem %}
+                    <option value="{{option.value}}">{{option.title}}</option>
+              {% endfor %}
             </select>
             
             <div c-id="box-info">
@@ -158,20 +152,20 @@
             <div style="margin-top: -2rem;" class="none" c-id="form">
 
               <div>
-                <label>E-mail où vous recevrez des mises à jour:</label>
+                <label>{{idioma.order.label_email}}:</label>
                 <input c-id="email" placeholder="jean@gmail.com" type="text" class="select-problem"/>
               </div>
               
               <div class="mt-3">
-                <label>Images du produit:</label>
+                <label>{{idioma.order.label_image}}:</label>
                 <input c-id="images" multiple="multiple" type="file" class="select-problem p-2"/>
               </div>
 
               <div class="mt-3">
-                <label>Détails</label>
+                <label>{{idioma.order.label_details}}</label>
                 <textarea c-id="justification" rows="5" class="form-control"></textarea>
               </div>
-              <button c-id="save-form" class="btn-modal mt-4 float-end"> Envoyer</button>
+              <button c-id="save-form" class="btn-modal mt-4 float-end"> {{idioma.order.btn_form}}</button>
             </div>
           {% endif %}
           {% for charge in charges %}
@@ -190,7 +184,7 @@
                   <span class="visually-hidden">Loading...</span>
                 </div>
                 <div>
-                  <label  class=" mt-2">En attente de mises à jour</label>
+                  <label  class=" mt-2">{{idioma.order.await_update}}</label>
                 </div>
               </div>
             </div>
@@ -201,9 +195,27 @@
       </div>
       <div class="modal-footer">
           {% if charges == false  %}
-          <button c-id="check" class="btn-modal mt-4 float-end">Vérifier</button>
+          <button c-id="check" class="btn-modal mt-4 float-end">{{idioma.order.btn_modal}}</button>
           {% endif %}
       </div>
     </div>
   </div>
 </div>
+
+
+<script>
+  {% for txt in idioma.order.scripts_var.texts %}
+
+        const {{txt.name}} = [
+            {% for vl in txt.values %}
+                "{{vl}}",
+            {% endfor %}
+        ]
+          
+  {% endfor %}
+
+  const {{idioma.order.scripts_var.default_text.name}} = `{{idioma.order.scripts_var.default_text.value}}`;
+  const attendant = '{{idioma.order.scripts_var.attendant}}';
+  const default_message = '{{idioma.order.scripts_var.default_message}}';
+
+</script>

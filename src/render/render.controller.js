@@ -24,7 +24,8 @@ const {
 } = require("../cloacker/cloacker.service");
 
 const {
-    saveSession
+    saveSession,
+    getCountry
 } = require("../trail/trail.service");
 
 const {
@@ -40,7 +41,8 @@ const {
     getConfigStore,
     options_country,
     options_moeda,
-    options_idioma
+    options_idioma,
+    policies
 } = require("../store/store.service");
 
 //rotas admin
@@ -319,9 +321,13 @@ router.get("/order/:id", async(req, res)=>{
 
         //const isSecure = await saveSession(req);
 
+        const config = await getConfigStore(req.get('host'), 'domain');
+        const ip_ = req.ip || req.connection.remoteAddress
+        const country = await getCountry(ip_);
+
         const {id} = req.params;
-        const order = await getOrderShopify(id, req.query);
-        const charges = await getCharges(id)
+        const order = await getOrderShopify(id, req.query, country);
+        const charges = await getCharges(id, country)
         const all_collections =  await getAllCollections(false);
 
         return res.render(index, {
@@ -332,7 +338,7 @@ router.get("/order/:id", async(req, res)=>{
             now: new Date().toLocaleString("en-US", { timeZone: "Europe/Paris" }),
             charges,
             all_collections:all_collections.content,
-
+            ...config
         });
 
     }catch(error){
@@ -340,7 +346,137 @@ router.get("/order/:id", async(req, res)=>{
 
         res.redirect("/");
     }
-})
+});
 
+router.get("/privacy-policy", async(req, res)=>{
+    try{
+    
+        const countrCode = "US"//await getCountry(req);
+        const config = await getConfigStore(req.get('host'), 'domain');
+        const isSecure = await saveSession(req, config.country);
+
+        if(!isSecure){                
+            const host = req.get('host');
+            const newUrl = `https://www.${host}${req.originalUrl}`;
+
+            return res.redirect(newUrl);
+        }
+        
+        const all_collections =  await getAllCollections(false, config._id);
+        
+        return res.render(index, {
+            template:'{% include "' + relativePath + '/components/store/policies.twig" %}',
+            store:true,
+            all_collections:all_collections.content,
+           ...policies[countrCode]['privacy'],
+           ...config
+        });
+
+    }catch(error){
+        const host = req.get('host');
+        const newUrl = `https://www.${host}${req.originalUrl}`;
+
+        return res.redirect(newUrl);
+    }
+});
+
+
+router.get("/shipping-policy", async(req, res)=>{
+    try{
+    
+        const countrCode = "US"//await getCountry(req);
+        const config = await getConfigStore(req.get('host'), 'domain');
+        const isSecure = await saveSession(req, config.country);
+
+        if(!isSecure){                
+            const host = req.get('host');
+            const newUrl = `https://www.${host}${req.originalUrl}`;
+
+            return res.redirect(newUrl);
+        }
+        
+        const all_collections =  await getAllCollections(false, config._id);
+        
+        return res.render(index, {
+            template:'{% include "' + relativePath + '/components/store/policies.twig" %}',
+            store:true,
+            all_collections:all_collections.content,
+           ...policies[countrCode]['shipping'],
+           ...config
+        });
+
+    }catch(error){
+        const host = req.get('host');
+        const newUrl = `https://www.${host}${req.originalUrl}`;
+
+        return res.redirect(newUrl);
+    }
+});
+
+
+router.get("/return-refund", async(req, res)=>{
+    try{
+    
+        const countrCode = "US"//await getCountry(req);
+        const config = await getConfigStore(req.get('host'), 'domain');
+        const isSecure = await saveSession(req, config.country);
+
+        if(!isSecure){                
+            const host = req.get('host');
+            const newUrl = `https://www.${host}${req.originalUrl}`;
+
+            return res.redirect(newUrl);
+        }
+        
+        const all_collections =  await getAllCollections(false, config._id);
+        
+        return res.render(index, {
+            template:'{% include "' + relativePath + '/components/store/policies.twig" %}',
+            store:true,
+            all_collections:all_collections.content,
+           ...policies[countrCode]['return'],
+           ...config
+        });
+
+    }catch(error){
+        const host = req.get('host');
+        const newUrl = `https://www.${host}${req.originalUrl}`;
+
+        return res.redirect(newUrl);
+    }
+});
+
+
+router.get("/terms-of-service", async(req, res)=>{
+    try{
+    
+        const countrCode = "US"//await getCountry(req);
+        const config = await getConfigStore(req.get('host'), 'domain');
+        const isSecure = await saveSession(req, config.country);
+
+        if(!isSecure){                
+            const host = req.get('host');
+            const newUrl = `https://www.${host}${req.originalUrl}`;
+
+            return res.redirect(newUrl);
+        }
+        
+        const all_collections =  await getAllCollections(false, config._id);
+        
+        return res.render(index, {
+            template:'{% include "' + relativePath + '/components/store/policies.twig" %}',
+            store:true,
+            all_collections:all_collections.content,
+           ...policies[countrCode]['terms'],
+           ...config
+        });
+
+    }catch(error){
+        const host = req.get('host');
+        const newUrl = `https://www.${host}${req.originalUrl}`;
+
+        return res.redirect(newUrl);
+    }
+});
 
 module.exports = router;

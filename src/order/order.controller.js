@@ -1,14 +1,17 @@
 const router = require("express").Router();
 const statusHandler = require("../helpers/helpers.statusHandler");
+const { getCountry } = require("../trail/trail.service");
 const {
     createTextGpt,
     saveChange
 } = require("./order.service");
 
-router.get("/order/support/:idOrder", async({params}, res)=>{
+router.get("/order/support/:idOrder", async({params, query, ip, connection}, res)=>{
     try{
-
-        const response = await createTextGpt(params.idOrder, {});
+        
+        const ip_ = ip || connection.remoteAddress
+        const country = await getCountry(ip_);
+        const response = await createTextGpt(params.idOrder, query, country);
 
         return res.status(response.status).send(response);
 
@@ -18,10 +21,12 @@ router.get("/order/support/:idOrder", async({params}, res)=>{
     }
 });
 
-router.post("/order/charge", async({body}, res)=>{
+router.post("/order/charge", async({body, ip, connection}, res)=>{
     try{
 
-        const response = await saveChange(body);
+        const ip_ = ip || connection.remoteAddress
+        const country = await getCountry(ip_)
+        const response = await saveChange(body, country);
 
         return res.status(response.status).send(response);
 

@@ -27,7 +27,7 @@ const getAllDomains = async(status)=>{
 
         let domains = await findAll(Domain, query);
         domains = await populate(Domain, domains, 'store');
-        console.log(domains)
+        
 
         return statusHandler.newResponse(200, domains);
 
@@ -66,8 +66,34 @@ const changeStatusDomain = async({id}, {status})=>{
     }
 };
 
+const getDomainById = async({id})=>{
+    try{
+
+        const domain = await findById(Domain, id);
+
+        return statusHandler.newResponse(200, domain);
+
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
+
+const changeDomain = async({id}, domain)=>{
+    try{    
+
+        await updateById(Domain, id, domain);
+
+        return statusHandler.newResponse(200, "ok");
+
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+}
+
 module.exports = {
     getAllDomains,
     createDomain,
-    changeStatusDomain
+    changeStatusDomain,
+    getDomainById,
+    changeDomain
 };

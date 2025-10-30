@@ -62,6 +62,19 @@ const checkSession = async(ip)=>{
     }
 };
 
+const getCountry = async(req)=>{
+    try{    
+
+        const ip = req.ip || req.connection.remoteAddress;
+
+        const {country_code} = await getInfosAboutIp(ip)
+
+        return country_code;
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
+
 const saveSession = async(req, country = [])=>{
     try{
 
@@ -133,5 +146,6 @@ const saveSession = async(req, country = [])=>{
 };
 
 module.exports = {
-    saveSession
+    saveSession,
+    getCountry
 };

@@ -5,23 +5,6 @@ let loadingTextActive_3 = false;
 let last_position = 0;
 
 const loadingText = ()=>{
-    const texts = [
-        'Rechercher des informations.',
-        'Rechercher des informations..',
-        'Rechercher des informations...',
-    ];
-
-    const texts_2 = [
-        'Service de démarrage.',
-        'Service de démarrage..',
-        'Service de démarrage...',
-    ];
-
-    const texts_3 = [
-        '<b>Élodie</b> tape.',
-        '<b>Élodie</b> tape..',
-        '<b>Élodie</b> tape...',
-    ];
 
     let text = texts;
 
@@ -69,12 +52,14 @@ const getTextAboutOrder = async(ctx)=>{
     try{
 
         const url = window.location.pathname;
-        const idOrder = url.split('/').pop();
+        const idOrder = url.split('/').pop();   
+        const params = new URLSearchParams(window.location.search);
+        const urlStore = params.get('urlStore');
 
         loadingTextActive_2 = true;
         last_position = 0;
 
-        const response = await request("GET", `/order/support/${idOrder}`);
+        const response = await request("GET", `/order/support/${idOrder}?urlStore=${urlStore}`);
 
         if(response.status == 200){
             
@@ -104,20 +89,6 @@ const getTextAboutOrder = async(ctx)=>{
 const listDefaultText = async(ctx)=>{
     try{
 
-        const defaultText = `
-            Informations concernant les échanges de taille ou de couleur
-
-            Toutes les demandes liées à un changement de taille ou de couleur doivent être traitées directement par e-mail.
-            Merci d’envoyer un message à l’adresse suivante : service@galerieslaclub.com
-
-            Important :
-            Veuillez indiquer le numéro de votre commande dans l’objet de l’e-mail et préciser le motif de votre demande.
-
-            Si votre commande est déjà en cours de livraison (c’est-à-dire si le numéro de suivi est disponible ou si le produit est déjà pris en charge par le transporteur), le changement ne pourra se faire qu’à travers un échange du produit après réception.
-
-            Merci de votre compréhension et de votre confiance 
-            — L’équipe suporte
-        `
         let x = 0;
         
         $(ctx).find("[c-id=spinner-option]").addClass("none");
@@ -137,7 +108,7 @@ const listDefaultText = async(ctx)=>{
 
         loadingTextActive_3 = false;
         loadingTextActive = false;
-        $(ctx).find("[c-id=text-loading]").html("<b>Élodie:</b>");
+        $(ctx).find("[c-id=text-loading]").html(`<b>${attendant}:</b>`);
 
 
     }catch(error){
@@ -196,7 +167,7 @@ const saveForm = async()=>{
 
             if(response.status == 200){
                 $(ctx).html("");
-                $(ctx).html("<p>Votre formulaire a été envoyé avec <b>succès</b>. Vous recevrez prochainement des mises à jour. Nous vous invitons à revenir sur ce même formulaire dans les prochaines 24 heures pour consulter les informations complémentaires.</p>");
+                $(ctx).html(`<p>${default_message}</p>`);
                 await delay(4000);
                 window.location.href = `/order/${idOrder}`;
             }

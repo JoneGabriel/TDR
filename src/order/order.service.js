@@ -3,7 +3,7 @@ const {
     request,
     isEmpty
 } = require("../helpers/helpers.global");
-const { Store } = require("../shopify/shopify.schema");
+const { Shopify } = require("../shopify/shopify.schema");
 const { findOne, save, findAll } = require("../query");
 
 const {
@@ -13,10 +13,12 @@ const {
 const getDomainAndToken = async(urlStore)=>{
   try{
 
-    const storeInfo = await findOne(Store, {url:urlStore});
+    urlStore = `${urlStore}.myshopify.com`
+
+    const storeInfo = await findOne(Shopify, {url:urlStore});
     
     if(!isEmpty(storeInfo)){
-
+      
       return {domain:urlStore, token:storeInfo.token_admin};
     }
 
@@ -26,7 +28,13 @@ const getDomainAndToken = async(urlStore)=>{
   }
 };
 
-const getOrderShopify = async (orderId, {urlStore}) => {
+const timeZoneCountry = {
+  "GB":"Europe/London",
+  "US":"America/New_York",
+  "FR":"Europe/Paris"
+};
+
+const getOrderShopify = async (orderId, {urlStore}, country) => {
     try {
 
       const gid = `gid://shopify/Order/${orderId}`;
@@ -83,6 +91,7 @@ const getOrderShopify = async (orderId, {urlStore}) => {
           }
         }
       `;
+      
       const {domain, token} = await getDomainAndToken(urlStore);
       const response = await request(
         "POST",
@@ -92,23 +101,26 @@ const getOrderShopify = async (orderId, {urlStore}) => {
           "X-Shopify-Access-Token": token
         }
       );
-     
+      
+      const timeZone = timeZoneCountry[country];
+
       let res = typeof response === "string" ? JSON.parse(response) : response;
       const formatterParis = new Intl.DateTimeFormat("en-US", {
-        timeZone: "Europe/Paris",
+        timeZone,
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
         hour: "2-digit",
         minute: "2-digit",
       });
-     
+
       if(!isEmpty(res?.data?.order?.createdAt)){
           let newDate = formatterParis.format(new Date(res?.data?.order?.createdAt));
+      
 
           res.data.order.createdAt = newDate
       }
-      
+    
       return res.data.order;
   
     } catch (error) {
@@ -116,64 +128,192 @@ const getOrderShopify = async (orderId, {urlStore}) => {
     }
 };
 
-const createTextGpt = async(idOrder, {urlStore})=>{
+const getPromptByIdioma = (country, variables)=>{
   try{
 
-    let {name, fulfillments, createdAt} = await getOrderShopify(idOrder, {urlStore});
+    const {
+      name,
+      createdAt,
+      trackingCode
+    } = variables;
+   
+    const countrys = {
+  FR: {
+    prompt_1: [
+      {
+        role: "system",
+        content:
+          "Tu es une assistante du service client d'une boutique en ligne française. Ton prénom est 'Élodie'. Tu dois toujours écrire en français, avec un ton chaleureux, empathique et professionnel. Le texte doit ressembler à une vraie conversation de chat entre Élodie et un client."
+      },
+      {
+        role: "user",
+        content: `Crée un message de chat où Élodie répond à un client inquiet concernant sa commande. Voici les informations de la commande :
+
+- ID de commande : ${name}
+- Date de commande : ${createdAt} mm/dd/yyyy
+
+Utilise ces informations pour :
+1. Rassurer le client en expliquant que le transporteur a eu un léger retard dans le traitement de sa commande, mais que le colis est maintenant en route et devrait arriver dans les prochains jours.
+2. Mentionner qu’il est actuellement dans un centre logistique situé dans une ville crédible en France (choisie au hasard pour rendre la réponse naturelle, par exemple : 'le centre logistique de Lille' ou 'de Lyon').
+3. Terminer le message avec une formule aimable et offrir un code de réduction 'FIDELITE' pour la prochaine commande.
+4. Le message doit ressembler à une vraie conversation de chat, avec une salutation, un ton rassurant et une signature '— Élodie'.`
+      }
+    ],
+    prompt_2: [
+      {
+        role: "system",
+        content:
+          "Tu es une assistante du service client d'une boutique en ligne française. Ton prénom est 'Élodie'. Tu dois toujours écrire en français, avec un ton chaleureux, empathique et professionnel. Le texte doit ressembler à une vraie conversation de chat entre Élodie et un client."
+      },
+      {
+        role: "user",
+        content: `Crée un message de chat où Élodie répond à un client concernant sa commande déjà expédiée. Voici les informations de la commande :
+
+- ID de commande : ${name}
+- Date de commande : ${createdAt} mm/dd/yyyy
+- Code de suivi : ${trackingCode}
+
+Utilise ces informations pour :
+1. Informer le client que le colis est déjà en route vers son domicile.
+2. Mentionner qu’il vient de passer par le centre de distribution d’une ville française crédible et aléatoire (par exemple : Lyon, Bordeaux, Nantes, Toulouse, Lille...).
+3. Rassurer le client que le colis ne devrait plus tarder à arriver.
+4. Inclure le code de suivi dans le message (ex: 'Voici votre code de suivi : ${trackingCode}').
+5. Terminer avec une formule aimable et offrir le code de réduction 'FIDELITE'.
+6. Le message doit ressembler à une vraie conversation de chat, avec une salutation initiale et une signature '— Élodie'.`
+      }
+    ]
+  },
+
+  GB: {
+    prompt_1: [
+      {
+        role: "system",
+        content:
+          "You are a customer service assistant for a British online store. Your name is 'Emily'. You must always write in polite, friendly, empathetic and professional British English. The message should feel like a real chat conversation between Emily and a customer."
+      },
+      {
+        role: "user",
+        content: `Create a chat message where Emily responds to a concerned customer about their order. Here are the order details:
+
+- Order ID: ${name}
+- Order date: ${createdAt} (mm/dd/yyyy)
+
+Use this information to:
+1. Reassure the customer by explaining that the courier experienced a slight delay in processing their order, but the parcel is now on its way and should arrive within the next few days.
+2. Mention that it is currently at a logistics centre located in a believable UK city (randomly chosen to sound natural, for example: 'the logistics centre in Luton' or 'in Birmingham').
+3. End the message kindly and offer a discount code 'LOYALTY' for their next order.
+4. The message should sound like a real chat conversation, with a greeting, a reassuring tone, and end with a signature '– Emily'.`
+      }
+    ],
+    prompt_2: [
+      {
+        role: "system",
+        content: `You are a customer service assistant for a British online store. Your name is 'Emily'. You must always write in polite, friendly, empathetic and professional British English. The message should feel like a real chat conversation between Emily and a customer.`
+      },
+      {
+        role: "user",
+        content: `Create a chat message where Emily responds to a customer about their already shipped order. Here are the order details:
+- Order ID: ${name}
+- Order date: ${createdAt} (mm/dd/yyyy)
+- Tracking code: ${trackingCode}
+
+Use this information to:
+1. Inform the customer that their parcel is already on its way to their address.
+2. Mention that it has just passed through the distribution centre of a believable UK city (for example: Luton, Birmingham, Manchester, Bristol, or Leeds).
+3. Reassure the customer that their parcel should arrive very soon.
+4. Include the tracking code in the message (e.g., 'Here is your tracking code: ${trackingCode}').
+5. End with a kind note and offer the discount code 'LOYALTY'.
+6. The message should sound like a genuine chat conversation, with a warm greeting and a closing signature '– Emily'.`
+      }
+    ]
+  },
+
+  US: {
+    prompt_1: [
+      {
+        role: "system",
+        content:
+          "You are a customer service assistant for an American online store. Your name is 'Emily'. You must always write in polite, friendly, empathetic and professional American English. The message should feel like a real chat conversation between Emily and a customer."
+      },
+      {
+        role: "user",
+        content: `Create a chat message where Emily responds to a concerned customer about their order. Here are the order details:
+- Order ID: ${name}
+- Order date: ${createdAt} (mm/dd/yyyy)
+
+Use this information to:
+1. Reassure the customer by explaining that the shipping carrier experienced a slight delay while processing their order, but the package is now on its way and should arrive within the next few days.
+2. Mention that it is currently at a logistics facility located in a believable U.S. city (randomly chosen to sound natural, for example: 'the distribution center in Dallas' or 'in Chicago').
+3. End the message kindly and offer a discount code 'LOYALTY' for their next order.
+4. The message should sound like a real chat conversation, with a friendly greeting, a reassuring tone, and end with a signature '– Emily'.`
+      }
+    ],
+    prompt_2: [
+      {
+        role: "system",
+        content:
+          "You are a customer service assistant for an American online store. Your name is 'Emily'. You must always write in polite, friendly, empathetic and professional American English. The message should feel like a real chat conversation between Emily and a customer."
+      },
+      {
+        role: "user",
+        content: `Create a chat message where Emily responds to a customer about their already shipped order. Here are the order details:
+- Order ID: ${name}
+- Order date: ${createdAt} (mm/dd/yyyy)
+- Tracking code: ${trackingCode}
+
+Use this information to:
+1. Inform the customer that their package is already on its way to their home.
+2. Mention that it has just passed through a logistics facility located in a believable U.S. city (for example: Dallas, Chicago, Atlanta, Phoenix, or Denver).
+3. Reassure the customer that their package should arrive very soon.
+4. Include the tracking code in the message (e.g., 'Here is your tracking code: ${trackingCode}').
+5. End with a friendly closing and offer the discount code 'LOYALTY' for their next purchase.
+6. The message should sound like a genuine chat conversation, with a warm greeting, a reassuring tone, and a closing signature '– Emily'.`
+      }
+    ]
+  }
+    };
+
+    
+    return countrys[country];
+
+  }catch(error){
+    throw(statusHandler.serviceError(error));
+  }
+}
+
+const createTextGpt = async(idOrder, {urlStore}, country)=>{
+  try{
+
+    let {name, fulfillments, createdAt} = await getOrderShopify(idOrder, {urlStore}, country);
     const apiKey = process.env.API_GPT;
-  
+
+    let variables = {
+      name,
+      createdAt,
+      trackingCode:""
+    }
+
+    const {prompt_1} = getPromptByIdioma(country, variables);
+    
     let payload = { 
       model: "gpt-5",
       temperature: 1,
-      messages: [
-        {
-          role: "system",
-          content:
-            "Tu es une assistante du service client d'une boutique en ligne française. Ton prénom est 'Élodie'. Tu dois toujours écrire en français, avec un ton chaleureux, empathique et professionnel. Le texte doit ressembler à une vraie conversation de chat entre Élodie et un client."
-        },
-        {
-          role: "user",
-          content: `Crée un message de chat où Élodie répond à un client inquiet concernant sa commande. Voici les informations de la commande :
-
-      - ID de commande : ${name}
-      - Date de commande : ${createdAt} mm/dd/yyyy
-
-        Utilise ces informations pour :
-        1. Rassurer le client en expliquant que le transporteur a eu un léger retard dans le traitement de sa commande, mais que le colis est maintenant en route et devrait arriver dans les prochains jours.
-        2. Mentionner qu’il est actuellement dans un centre logistique situé dans une ville crédible en France (choisie au hasard pour rendre la réponse naturelle, par exemple : 'le centre logistique de Lille' ou 'de Lyon').
-        3. Terminer le message avec une formule aimable et offrir un code de réduction 'FIDELITE' pour la prochaine commande.
-        4. Le message doit ressembler à une vraie conversation de chat, avec une salutation, un ton rassurant et une signature '— Élodie'.`
-            }
-      ]
+      messages:prompt_1
     };
 
     if(fulfillments.length){
       
       const {number:trackingCode } = fulfillments?.[0]?.trackingInfo?.[0];
 
-      payload['messages'] = [
-        {
-          role: "system",
-          content:
-            "Tu es une assistante du service client d'une boutique en ligne française. Ton prénom est 'Élodie'. Tu dois toujours écrire en français, avec un ton chaleureux, empathique et professionnel. Le texte doit ressembler à une vraie conversation de chat entre Élodie et un client."
-        },
-        {
-          role: "user",
-          content: `Crée un message de chat où Élodie répond à un client concernant sa commande déjà expédiée. Voici les informations de la commande :
+      variables = {
+        name,
+        createdAt,
+        trackingCode
+      };
 
-        - ID de commande : ${name}
-        - Date de commande : ${createdAt} mm/dd/yyyy
-        - Code de suivi : ${trackingCode}
-
-        Utilise ces informations pour :
-        1. Informer le client que le colis est déjà en route vers son domicile.
-        2. Mentionner qu’il vient de passer par le centre de distribution d’une ville française crédible et aléatoire (par exemple : Lyon, Bordeaux, Nantes, Toulouse, Lille...).
-        3. Rassurer le client que le colis ne devrait plus tarder à arriver.
-        4. Inclure le code de suivi dans le message (ex: 'Voici votre code de suivi : ${trackingCode}').
-        5. Terminer avec une formule aimable et offrir le code de réduction 'FIDELITE'.
-        6. Le message doit ressembler à une vraie conversation de chat, avec une salutation initiale et une signature '— Élodie'.`
-        }
-      ]
+      const {prompt_2} = getPromptByIdioma(country, variables);
+   
+      payload['messages'] = prompt_2;
     }
 
     const response = await request("POST","https://api.openai.com/v1/chat/completions", 
@@ -192,10 +332,11 @@ const createTextGpt = async(idOrder, {urlStore})=>{
   }
 }
 
-const saveChange = async(charge)=>{
+const saveChange = async(charge, country)=>{
   try{
 
-    const dateParis = (new Date(Date.now())).toLocaleString("en-US", { timeZone: "Europe/Paris" });
+    const timeZone = timeZoneCountry[country]
+    const dateParis = (new Date(Date.now())).toLocaleString("en-US", {timeZone});
     charge['createdAt'] = dateParis;
     const {idOrder} = charge;
     const exist = await findOne(Charge, {idOrder});
@@ -211,17 +352,18 @@ const saveChange = async(charge)=>{
   }
 };
 
-const getDiffInDays = (createdAt) => {
+const getDiffInDays = (createdAt, country) => {
   try {
     
-    const nowParis = new Date(
-      new Date().toLocaleString("en-US", { timeZone: "Europe/Paris" })
+    const timeZone = timeZoneCountry[country]
+    const now = new Date(
+      new Date().toLocaleString("en-US", { timeZone})
     );
 
     const created = new Date(createdAt);
 
   
-    const diffMs = nowParis - created;
+    const diffMs = now - created;
 
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
@@ -231,7 +373,7 @@ const getDiffInDays = (createdAt) => {
   }
 };
 
-const getCharges = async(idOrder)=>{
+const getCharges = async(idOrder, country)=>{
   try{
     
     const charge = await findOne(Charge, {idOrder});
@@ -279,7 +421,7 @@ const getCharges = async(idOrder)=>{
       let response = [];
 
       const {createdAt} = charge;
-      const diff = getDiffInDays(createdAt);
+      const diff = getDiffInDays(createdAt, country);
       
       labels.forEach(value=>{
         const {days} = value;
