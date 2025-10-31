@@ -248,6 +248,7 @@ router.get("/", async(req, res)=>{
             template:home_template,
             script:"home.js",
             store:true,
+            ...config,
             header_template,
             menu_store,
             cart_template,
