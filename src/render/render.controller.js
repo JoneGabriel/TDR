@@ -342,7 +342,7 @@ router.get("/products/:id", async(req, res)=>{
         const product = await getProductById(id);
      
         const all_collections =  await getAllCollections(false, config._id);
-        const ramdonProducts = await getProductsRamdon(product.collection_);
+        const ramdonProducts = await getProductsRamdon(product.collection_, config._id);
 
         let {header_template, menu_store, cart_template, footer_template, product_template} = config;
 
@@ -368,6 +368,7 @@ router.get("/products/:id", async(req, res)=>{
             ramdonProducts,
             ...config
         });
+
 
         return res.render(index, {
             template:product_template,

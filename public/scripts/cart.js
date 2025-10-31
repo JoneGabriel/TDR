@@ -1,3 +1,28 @@
+const checkColor = ()=>{
+    try{
+
+        const values = ["Couleur", "Color"];
+        
+        let return_ = {};
+
+        values.forEach(val=>{
+
+            const exist = $(`#${val}`).find("[c-id=option-couleur]");
+
+            if(exist.length){
+                return_['key'] =val;
+                return_['values'] = exist;
+            }
+
+        });
+
+        return return_;
+
+    }catch(error){
+        throw(statusHandler.messageError(error));
+    }
+}
+
 const getVariants = ()=>{
     try{
 
@@ -10,13 +35,13 @@ const getVariants = ()=>{
             variants.push(object);
         });
 
-        const color = $("#Couleur").find("[c-id=option-couleur]");
+        const {key, values} = checkColor();
   
-        if(color.length){
-           $(color).each(function(){
+        if(key && values){
+           $(values).each(function(){
                 if($(this).hasClass("option-selected")){
                     let object = {};
-                    object["title"] = 'Couleur';
+                    object["title"] = key;
                     object["value"] = $(this).attr('value');
                     variants.push(object);
                 }

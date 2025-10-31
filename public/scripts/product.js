@@ -132,10 +132,11 @@ $(document).ready(function(){
     }
   });
 
-  $("#Couleur").on("click", "[c-id=option-couleur]", (e)=>{
+  $("#Couleur,#Color").on("click", "[c-id=option-couleur]", (e)=>{
     try{
 
-      const allOptions = $("#Couleur").find("[c-id=option-couleur]");
+      const id = $(e.delegateTarget).attr("id");
+      const allOptions = $(`#${id}`).find("[c-id=option-couleur]");
       const value = $(e.currentTarget).attr("value")
 
       $(allOptions).each(function(){

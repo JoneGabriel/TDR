@@ -247,6 +247,7 @@ const createOtherVariants = async(otherShopify, idProduct)=>{
 
             let otherVariants = {};
             otherVariants["variants"] = await getVariants(id_shopify_store, url, token_storefront);
+            
             otherVariants["store"] = store;
             otherVariants["id_shopify"] = id_shopify_store;
             otherVariants["product"] = idProduct;
@@ -257,7 +258,7 @@ const createOtherVariants = async(otherShopify, idProduct)=>{
                 await updateById(OtherVariants, exist._id, otherVariants);
                 continue;
             }
-
+            
             await save(OtherVariants, otherVariants);
         }
 
@@ -321,7 +322,7 @@ const arrangeVariants = (product)=>{
 
                     const exist =  object["values"].find(val=>val.value == value[`value_${numberKey}`]) || object["values"].find(val=>val == value[`value_${numberKey}`]);
                     
-                    if(object["title"] == 'Couleur'){
+                    if(object["title"] == 'Couleur' || object["title"] == 'Color'){
                         !exist && object["values"].push({value:value[`value_${numberKey}`], img:value.img});
                         
                         return;
@@ -389,10 +390,10 @@ const getProductByIdForCart = async({id}, {cart})=>{
     }
 };
 
-const getProductsRamdon = async(collection_)=>{
+const getProductsRamdon = async(collection_, store)=>{
     try{
 
-        let products = await findAll(Product, {collection_, status:true});
+        let products = await findAll(Product, {collection_, status:true, store});
         
         return products.slice(0,6);
 
