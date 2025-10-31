@@ -301,7 +301,8 @@ router.get("/collections/:id", async(req , res)=>{
         });
        
         collection_template = Twig.twig({data:collection_template}).render({
-            ...info
+            ...info,
+            ...config,
         });
 
         return res.render(index, {
