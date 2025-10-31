@@ -287,3 +287,11 @@ body::-webkit-scrollbar-thumb {
 .div-file:hover{
     background-color: white;
 }
+
+.modal {
+  overflow: visible !important;
+}
+
+.tox-promotion, .tox-statusbar__right-container{
+    display: none !important;
+}

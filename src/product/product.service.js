@@ -89,7 +89,7 @@ const getFirtsCollection = async(store)=>{
         const collections = await findAll(Collection, {status:true, store});
         const position = collections.length-1;
         const products = await findAll(Product, {
-            collection_:collections[position]?._id, status:true
+            collection_:collections[position]?._id, status:true, store
         }, {name:1, last_price:1, price:1, brand:1,images:{
             $slice:1
         }});

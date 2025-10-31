@@ -58,7 +58,7 @@ const getBodyProduct = async()=>{
         const store = $("[c-id=store-config]").val();
 
         
-        const description = $("[c-id=description]").val();
+        const description = tinymce.get('description').getContent()
         const other_shopify = getStores();
 
         other_shopify.length && (body["other_shopify"]= other_shopify);
@@ -309,6 +309,7 @@ const getProductById = async(id)=>{
 
         loadingAfterOpenModal(false);
 
+        return response.content.description;
 
     }catch(error){
         loadingAfterOpenModal(false);
@@ -489,15 +490,32 @@ const listStores = async()=>{
     }
 };
 
+document.addEventListener('focusin', function (e) { 
+  if (e.target.closest('.tox-tinymce-aux, .moxman-window, .tam-assetmanager-root') !== null) { 
+    e.stopImmediatePropagation();
+  } 
+});
+
 $(document).ready(function(){
 
  
     listCollections();
     listShopifys();
     listStores();
-
+    
     $("[c-id=new-product]").on("click", ()=>{
         $("[c-id=modal-product]").modal("show");
+        tinymce.init({
+            selector: 'textarea',  
+            menu: {
+                happy: { title: 'HTML', items: 'code' }
+            },
+            plugins: 'code',  
+            menubar: 'happy' ,
+            
+        });
+        tinymce.get('description').setContent('');
+
     });
 
     $("[c-id=close-modal]").on("click", ()=>{
@@ -569,8 +587,19 @@ $(document).ready(function(){
                 return await listAllDomains(id); 
             }
 
-            await getProductById(id);
-            $("[c-id=modal-product]").modal("show")
+            const description = await getProductById(id);
+            $("[c-id=modal-product]").modal("show");
+            tinymce.init({
+                selector: 'textarea',  
+                menu: {
+                    happy: { title: 'HTML', items: 'code' }
+                },
+                plugins: 'code',  
+                menubar: 'happy' ,
+                
+            });
+            tinymce.get('description').setContent(description);
+
 
         }catch(error){
             statusHandler.messageError(error);
