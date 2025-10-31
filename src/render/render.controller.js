@@ -307,6 +307,7 @@ router.get("/collections/:id", async(req , res)=>{
             template:collection_template,
             script:"collection.js",
             store:true,
+            ...config,
             header_template,
             menu_store,
             cart_template,

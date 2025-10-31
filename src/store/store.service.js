@@ -428,7 +428,12 @@ const getFile = async({idStore, idFile})=>{
 const changeFile = async({idStore, idFile}, {file})=>{
   try{
 
-      Twig.twig({data:file}).render({store:true});
+      const render = Twig.twig({ data: file });
+      
+      if(!render.tokens.length){
+        throw(statusHandler.newResponse(400, "Error"))
+      }
+      
       let update = {};
       update[idFile] = file;
       await updateById(Store, idStore, update);
