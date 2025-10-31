@@ -11,10 +11,10 @@
         {% include './menu-admin.twig'%}
     {% endif %}
 
-        {% if store == true %}
+        {% if store == true and policy !=true %}
             {{ template}}
         {% endif %}
-    {% if admin == true %}
+    {% if admin == true or policy == true %}
         {% include (template_from_string(template)) %}
     {% endif %}
      

@@ -435,6 +435,7 @@ router.get("/order/:id", async(req, res)=>{
             template:order_template,
             script:"order.js",
             store:true,
+            ...config,
             header_template,
             menu_store,
             cart_template,
@@ -465,12 +466,35 @@ router.get("/privacy-policy", async(req, res)=>{
         
         const all_collections =  await getAllCollections(false, config._id);
         
+        let {header_template, menu_store, cart_template, footer_template} = config;
+
+        header_template = Twig.twig({data:header_template}).render({
+            store:true,
+            ...config
+        });
+        menu_store = Twig.twig({data:menu_store}).render({
+            store:true,
+            all_collections:all_collections.content,
+            ...config
+        });
+        cart_template = Twig.twig({data:cart_template}).render({
+            ...config
+        });
+        footer_template = Twig.twig({data:footer_template}).render({
+            ...config
+        });
+        
         return res.render(index, {
             template:'{% include "' + relativePath + '/components/store/policies.twig" %}',
             store:true,
             all_collections:all_collections.content,
            ...policies[countrCode]['privacy'],
-           ...config
+           ...config,
+           policy:true,
+           header_template,
+            menu_store,
+            cart_template,
+            footer_template
         });
 
     }catch(error){
@@ -498,12 +522,35 @@ router.get("/shipping-policy", async(req, res)=>{
         
         const all_collections =  await getAllCollections(false, config._id);
         
+        let {header_template, menu_store, cart_template, footer_template} = config;
+
+        header_template = Twig.twig({data:header_template}).render({
+            store:true,
+            ...config
+        });
+        menu_store = Twig.twig({data:menu_store}).render({
+            store:true,
+            all_collections:all_collections.content,
+            ...config
+        });
+        cart_template = Twig.twig({data:cart_template}).render({
+            ...config
+        });
+        footer_template = Twig.twig({data:footer_template}).render({
+            ...config
+        });
+
         return res.render(index, {
             template:'{% include "' + relativePath + '/components/store/policies.twig" %}',
             store:true,
             all_collections:all_collections.content,
            ...policies[countrCode]['shipping'],
-           ...config
+           ...config,
+           policy:true,
+           header_template,
+            menu_store,
+            cart_template,
+            footer_template
         });
 
     }catch(error){
@@ -530,13 +577,36 @@ router.get("/return-refund", async(req, res)=>{
         }
         
         const all_collections =  await getAllCollections(false, config._id);
-        
+
+        let {header_template, menu_store, cart_template, footer_template} = config;
+
+        header_template = Twig.twig({data:header_template}).render({
+            store:true,
+            ...config
+        });
+        menu_store = Twig.twig({data:menu_store}).render({
+            store:true,
+            all_collections:all_collections.content,
+            ...config
+        });
+        cart_template = Twig.twig({data:cart_template}).render({
+            ...config
+        });
+        footer_template = Twig.twig({data:footer_template}).render({
+            ...config
+        });
+
         return res.render(index, {
             template:'{% include "' + relativePath + '/components/store/policies.twig" %}',
             store:true,
             all_collections:all_collections.content,
            ...policies[countrCode]['return'],
-           ...config
+           ...config,
+            policy:true,
+           header_template,
+            menu_store,
+            cart_template,
+            footer_template
         });
 
     }catch(error){
@@ -564,12 +634,35 @@ router.get("/terms-of-service", async(req, res)=>{
         
         const all_collections =  await getAllCollections(false, config._id);
         
+        let {header_template, menu_store, cart_template, footer_template} = config;
+
+        header_template = Twig.twig({data:header_template}).render({
+            store:true,
+            ...config
+        });
+        menu_store = Twig.twig({data:menu_store}).render({
+            store:true,
+            all_collections:all_collections.content,
+            ...config
+        });
+        cart_template = Twig.twig({data:cart_template}).render({
+            ...config
+        });
+        footer_template = Twig.twig({data:footer_template}).render({
+            ...config
+        });
+
         return res.render(index, {
             template:'{% include "' + relativePath + '/components/store/policies.twig" %}',
             store:true,
             all_collections:all_collections.content,
            ...policies[countrCode]['terms'],
-           ...config
+           ...config,
+           policy:true,
+           header_template,
+            menu_store,
+            cart_template,
+            footer_template
         });
 
     }catch(error){
