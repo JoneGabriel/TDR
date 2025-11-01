@@ -1,7 +1,7 @@
 const checkColor = ()=>{
     try{
 
-        const values = ["Couleur", "Color", "Color Harness 1", "Color Harness 2"];
+        const values = ["Couleur", "Color", "Color-Harness-1", "Color-Harness-2"];
         
         let return_ = {};
 
@@ -30,7 +30,7 @@ const getVariants = ()=>{
 
         $("select").each(function(){
             let object = {};
-            object["title"] = $(this).attr("id");
+            object["title"] = ($(this).attr("id")).replace("-", " ");
             object["value"] = $(this).val();
             variants.push(object);
         });
@@ -41,7 +41,7 @@ const getVariants = ()=>{
            $(values).each(function(){
                 if($(this).hasClass("option-selected")){
                     let object = {};
-                    object["title"] = key;
+                    object["title"] = key.replace("-", " ");
                     object["value"] = $(this).attr('value');
                     variants.push(object);
                 }

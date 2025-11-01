@@ -315,13 +315,13 @@ const arrangeVariants = (product)=>{
 
                 let numberKey = key.split("title_")[1]
                 let object = {};
-                object["title"] = variants[key];
+                object["title"] = variants[key].replace(" ", "-");
                 object["values"] = [];
 
                 variants.variant_values.forEach(value=>{
 
                     const exist =  object["values"].find(val=>val.value == value[`value_${numberKey}`]) || object["values"].find(val=>val == value[`value_${numberKey}`]);
-                    const condition = object["title"] == 'Couleur' || object["title"] == 'Color' || object["title"] == 'Color Harness 1' || object["title"] == 'Color Harness 2'
+                    const condition = object["title"] == 'Couleur' || object["title"] == 'Color' || object["title"] == 'Color-Harness-1' || object["title"] == 'Color-Harness-2'
 
                     if(condition){
                         !exist && object["values"].push({value:value[`value_${numberKey}`], img:value.img});
