@@ -30,7 +30,7 @@ const getVariants = ()=>{
 
         $("select").each(function(){
             let object = {};
-            object["title"] = ($(this).attr("id")).replace("-", " ");
+            object["title"] = ($(this).attr("id")).replaceAll("-", " ");
             object["value"] = $(this).val();
             variants.push(object);
         });
@@ -41,7 +41,7 @@ const getVariants = ()=>{
            $(values).each(function(){
                 if($(this).hasClass("option-selected")){
                     let object = {};
-                    object["title"] = key.replace("-", " ");
+                    object["title"] = key.replaceAll("-", " ");
                     object["value"] = $(this).attr('value');
                     variants.push(object);
                 }
