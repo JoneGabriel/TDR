@@ -407,7 +407,7 @@ const defaultProduct = `
     {% for variant in variants %}
 
         {% if variant.title == 'Couleur' %} 
-            <label style="color:#737373;" class="mt-3">{{variant.title}} <span class="ms-1"><b>{{variant.values[0].value}}</b></span> </label>
+            <label style="color:#737373;" class="mt-3">{{variant.title_label}} <span class="ms-1"><b>{{variant.values[0].value}}</b></span> </label>
                 <div id="{{variant.title}}" class="d-flex justify-content-start mt-1">
                     {% for value in variant.values %}
                         
