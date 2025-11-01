@@ -1,7 +1,7 @@
 const checkColor = ()=>{
     try{
 
-        const values = ["Couleur", "Color"];
+        const values = ["Couleur", "Color", "Color Harness 1", "Color Harness 2"];
         
         let return_ = {};
 

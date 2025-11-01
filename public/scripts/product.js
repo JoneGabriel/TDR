@@ -132,7 +132,7 @@ $(document).ready(function(){
     }
   });
 
-  $("#Couleur,#Color").on("click", "[c-id=option-couleur]", (e)=>{
+  $("#Couleur,#Color,#Color Harness 1,#Color Harness 2").on("click", "[c-id=option-couleur]", (e)=>{
     try{
 
       const id = $(e.delegateTarget).attr("id");
