@@ -3,7 +3,7 @@ const checkColor = ()=>{
 
         const values = ["Couleur", "Color", "Color-Harness-1", "Color-Harness-2"];
         
-        let return_ = {};
+        let return_ = [];
 
         values.forEach(val=>{
 
@@ -12,6 +12,11 @@ const checkColor = ()=>{
             if(exist.length){
                 return_['key'] =val;
                 return_['values'] = exist;
+
+                return_.push({
+                    key:val,
+                    values:exist
+                })
             }
 
         });
@@ -35,17 +40,19 @@ const getVariants = ()=>{
             variants.push(object);
         });
 
-        const {key, values} = checkColor();
+        const return_ = checkColor();
   
-        if(key && values){
-           $(values).each(function(){
-                if($(this).hasClass("option-selected")){
-                    let object = {};
-                    object["title"] = key.replaceAll("-", " ");
-                    object["value"] = $(this).attr('value');
-                    variants.push(object);
-                }
-           });
+        if(return_.length){
+            return_.forEach(({values, key})=>{
+                $(values).each(function(){
+                    if($(this).hasClass("option-selected")){
+                        let object = {};
+                        object["title"] = key.replaceAll("-", " ");
+                        object["value"] = $(this).attr('value');
+                        variants.push(object);
+                    }
+                });
+            })  
         }
         
         return variants;
