@@ -316,6 +316,8 @@ const arrangeVariants = (product)=>{
                 let numberKey = key.split("title_")[1]
                 let object = {};
                 object["title"] = variants[key].replaceAll(" ", "-");
+                object["title_label"] = variants[key];
+
                 object["values"] = [];
 
                 variants.variant_values.forEach(value=>{
