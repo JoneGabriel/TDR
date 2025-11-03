@@ -101,14 +101,28 @@ const getAllSessions = async(start , end, domain, api = false)=>{
             end = new Date(end);
             end.setUTCHours(23, 59, 0, 0);
             
+        }   
+
+        let country_code;
+
+        const getDomain = await findOne(Domain, {domain});
+
+        if(!isEmpty(getDomain)){
+            const {store} = getDomain;
+            const {country} = await findById(Store, store, "country");
+
+            country_code = {
+                $in:country
+            }
+            
         }
-        
+
         let query = [
             {
                 $match: {
                     createdAt: { $gte: start, $lte:end },
                     page: "black",
-                    country_code: "FR",
+                    country_code
                 }
             },
             {
@@ -174,7 +188,7 @@ const createNewEvent = async(client, event)=>{
     }
 };
 
-const getMetrics = async(start , end)=>{
+const getMetrics = async(start , end, domain)=>{
     try{
 
         start = new Date(start);
@@ -187,6 +201,7 @@ const getMetrics = async(start , end)=>{
             {
                 $match: {
                     createdAt: { $gte: start, $lte:end },
+                    domain
                 }
             },
         ];

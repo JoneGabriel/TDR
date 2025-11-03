@@ -39,11 +39,12 @@ const createGoogleChart = async(info = false)=>{
 const getMetrics = async(total)=>{
     try{
 
-        let date = $("[c-id=date]").val();
+        let date = $("[c-id=date]").val();  
+        let domain = $("[c-id=domain]").val();
 
         date ? ( date = new Date(date)) : (date = new Date(Date.now()))
         
-        const query = `?start=${date}&end=${date}`;
+        const query = `?start=${date}&end=${date}&domain=${domain}`;
         const response = await request("GET", `/metrics${query}`);
 
         if(response.status == 200){

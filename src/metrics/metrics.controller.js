@@ -62,7 +62,7 @@ router.post("/init-checkout", async({body}, res)=>{
 router.get("/metrics", async({query}, res)=>{
     try{
 
-        const response = await getMetrics(query.start, query.end);
+        const response = await getMetrics(query.start, query.end, query.domain);
 
         return res.status(response.status).send(response);
     }catch(error){  
