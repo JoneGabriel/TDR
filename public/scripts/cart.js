@@ -242,7 +242,7 @@ const saveAddCart = async()=>{
         if(!check){
             const idClient = localStorage.getItem("ID_TDR");
             
-            const response = await request("POST","/add-cart", {id:idClient});
+            const response = await request("POST","/add-cart", {id:idClient, domain:window.location.hostname});
 
             if(response.status == 200){
                 localStorage.setItem("ADD_TO_CART", true);
@@ -262,7 +262,7 @@ const saveInitCheckout = async()=>{
         if(!check){
             const idClient = localStorage.getItem("ID_TDR");
             
-            const response = await request("POST","/init-checkout", {id:idClient});
+            const response = await request("POST","/init-checkout", {id:idClient, domain:window.location.hostname});
 
             if(response.status == 200){
                 localStorage.setItem("INIT_CHECKOUT", true);
@@ -293,6 +293,7 @@ const addToCart = async()=>{
 
         $("[c-id=modal-cart]").modal("show");
         listNumberItemsCart();
+        
         saveAddCart();
     }catch(error){
         throw(statusHandler.messageError(error));

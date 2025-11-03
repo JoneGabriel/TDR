@@ -7,7 +7,8 @@ const Event = mongoose.model("event", {
     type_event:{
         type:String,
         enum:['add-to-cart', 'init-checkout']
-    }
+    }, 
+    domain:String
 })
 
 

@@ -53,13 +53,13 @@ const getMetrics = async(total)=>{
             const initCheckout = content.filter(value=> value.type_event == 'init-checkout');
 
             $("[c-id=add-value]").text(addCart.length);
-            $("[c-id=add-percentage]").text(`${parseFloat(addCart.length*100/total).toFixed(2)}%`);
+            $("[c-id=add-percentage]").text(`${parseFloat(addCart.length*100/total+1).toFixed(2)}%`);
 
             $("[c-id=chart-cart]").css('height', `${addCart.length/10}px`);
 
             $("[c-id=init-value]").text(initCheckout.length);
             $("[c-id=chart-init]").css('height', `${initCheckout.length/10}px`);
-            $("[c-id=init-percentage]").text(`${parseFloat(initCheckout.length*100/total).toFixed(2)}%`);
+            $("[c-id=init-percentage]").text(`${parseFloat(initCheckout.length*100/total+1).toFixed(2)}%`);
 
         }
 
@@ -103,8 +103,6 @@ $(document).ready(function(){
 
     google.charts.load('current', {'packages':['corechart']});
     
-    
-
     $("[c-id=filter]").on("click", async()=>{
         try{
 
@@ -114,6 +112,5 @@ $(document).ready(function(){
             throw(statusHandler.messageError(error));
         }
     });
-    $("[c-id=filter]").click();
     
 });

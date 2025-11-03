@@ -147,6 +147,7 @@ const getAllCollections = async(admin = true, store)=>{
 
 
 const formatVariants = (shopifyVariants) => {
+    
     const variant_values = shopifyVariants.map(variant => {
       const options = variant.selectedOptions;
   

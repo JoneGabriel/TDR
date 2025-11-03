@@ -1,11 +1,14 @@
+const { Domain } = require("../domain/domain.schema");
 const { isEmpty } = require("../helpers/helpers.global");
 const statusHandler = require("../helpers/helpers.statusHandler")
 
 const {
     aggregate,
     save,
-    findOne
+    findOne,
+    findById
 } = require("../query");
+const { Store } = require("../store/store.schema");
 
 const {
  Trail
@@ -25,7 +28,20 @@ const getSessionsInterval = async(start , end, domain)=>{
         let hours = [{start:0, end:3}, {start:4, end:7}, {start:8, end:11}, {start:12, end:15}, {start:16, end:19}, {start:20, end:23}, {start:23, end:23}];
 
         let response = []
-        
+        let country_code;
+
+        const getDomain = await findOne(Domain, {domain});
+
+        if(!isEmpty(getDomain)){
+            const {store} = getDomain;
+            const {country} = await findById(Store, store, "country");
+
+            country_code = {
+                $in:country
+            }
+            
+        }
+
         for(i in hours){
 
             const {start:startHour, end:endHour} = hours[i];
@@ -38,7 +54,7 @@ const getSessionsInterval = async(start , end, domain)=>{
                     $match: {
                         createdAt: { $gte: start, $lte:end },
                         page: "black",
-                        country_code: "FR",
+                        country_code,
                     }
                 },
                 {
