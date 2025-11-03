@@ -80,7 +80,9 @@ router.get("/admin/home", async(req, res)=>{
         month = now.getMonth()+1;
         date = now.getDate();
         now = `${now.getFullYear()}-${(month+"").length == 1 ? `0${month}` : month}-${(date+"").length == 1 ? `0${date}` : date}`
-    
+        
+        let domains = await getAllDomains(true);
+        domains = domains.content;
        
         return res.render(index, {
             template:'{% include "' + relativePath + '/components/admin/home.twig" %}',
@@ -89,7 +91,7 @@ router.get("/admin/home", async(req, res)=>{
             home:'active',
             max,
             now,
-            
+            domains
         });
         
     }catch(error){

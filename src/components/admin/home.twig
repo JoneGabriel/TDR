@@ -10,7 +10,12 @@
             <input c-id="date" value="{{now}}" type="date" class="form-control input-style" max="{{max}}">
         </div>
         <div class="col-lg-2">
-            <input c-id="domain" class="form-control input-style" type="text" placeholder="domain.com">
+            <select class="form-control input-style" c-id="domain">
+                {% for domain_ in domains %}
+                    <option value="{{domain_.domain}}">{{domain_.domain}}</option>
+                {% endfor %}
+            </select>
+            
         </div>
         <div class="col-lg-8">
             <button c-id="filter" class="btn-add-product">Atualizar</button>
