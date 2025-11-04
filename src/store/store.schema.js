@@ -243,7 +243,7 @@ const defaultCart = `
 
                         <div  c-id="model-cart" class="col-12 model-cart mt-1 none">
                             <div class="row">
-                                <div class="col-3">
+                                <div c-id="img-cart" class="col-3">
                                     <img class="img-fluid">
                                 </div>
                                 <div class="col-8">
@@ -454,9 +454,9 @@ const defaultProduct = `
     {% if is_bundle == true %}
         <div class="row mt-4">
             {% for bundle in bundles %}
-              <div class="col-12 mt-3">
+            <div class="col-12 mt-3">
                 
-                    <div id="{{bundle._id}}" c-id="model-bundle" class="model-bundle {% if bundle.default_bundle == true %} selected-bundle {% endif %}">
+                    <div amount="{{bundle.amount}}" id="{{bundle._id}}" c-id="model-bundle" class="model-bundle {% if bundle.default_bundle == true %} selected-bundle {% endif %}">
                         <div class="row mx-1 ">
                             {% if bundle.default_bundle == true %}
                                 <div style="position: absolute;" class="col-12">
@@ -487,17 +487,22 @@ const defaultProduct = `
 
                                 {% endif %}
                                 <div c-id="options" class="open-options {% if bundle.default_bundle != true %} none {% endif %}     ">
+                                    <label>
+                                    {% for variantTitle in bundle.variants|first %}
+                                        {{ variantTitle.title }}{% if not loop.last %}, {% endif %}
+                                    {% endfor %}
+                                    </label>
                                     {% for variant in bundle.variants %}
-                                        <div class="ms-1">
-                                            <label class="mt-1">
-                                                {{variant.title }}
-                                            </label>
-                                       
-                                            <select class="form-select " id="{{variant.title}}">
-                                                {% for value in variant.values %}
-                                                    <option value="{{value}}">{{value}}</option>
-                                                {% endfor %}
-                                            </select>
+                                        
+                                        <div c-id="bundle-option" class="ms-1 d-flex justify-content-start mt-1">
+                                            <label class="mt-1">#{{loop.index}}</label>
+                                            {% for var_ in variant %}
+                                                <select class="form-select ms-1" id="{{var_.title}}">
+                                                    {% for value in var_.values %}
+                                                        <option value="{{value}}">{{value}}</option>
+                                                    {% endfor %}
+                                                </select>   
+                                            {% endfor %}
 
                                         </div>
                                     {% endfor %}

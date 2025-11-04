@@ -104,6 +104,50 @@ const formatValue = (value = 0) =>{
 
 }
 
+const listCartBundle = (product, variants, id)=>{
+    try{
+
+        const ctx = "[c-id=all-items]";
+        const model = $("[c-id=modal-cart]").find("[c-id=model-cart]").clone()[0];
+
+        const imgs = product.variants.map(var_=>{
+            return var_[0].img;
+        });
+
+        $(model).find("[c-id=img-cart]").html("")
+
+        imgs.forEach(img=>{
+            $(model).find("[c-id=img-cart]")[0].innerHTML += `<img style="width:50px;" src="${img}" class="img-fluid mt-1">`;
+
+        })
+
+        $(model).attr("id", id);
+        $(model).find("img").attr("src", product.variants[0].img);
+        $(model).find("[c-id=title-item]").text(product.name);
+
+        if(variants?.length){
+            $(model).find("[c-id=variants-item-cart]").html("");
+            variants.forEach(optionBundle=>{
+                optionBundle.forEach(value=>{
+                $(model).find("[c-id=variants-item-cart]").append(`
+                    <p class="variants">${value.title}: ${value.value}</p>
+                `);
+            })
+            })
+            
+        }
+
+        $(model).find("[c-id=last-price-item]").text(`${(product.last_price || 0).toFixed(2)}`);
+        $(model).find("[c-id=price-item]").text(`${(product.price).toFixed(2)}`);
+        $(model).find("[c-id=save]").text(`(Save ${(((product.last_price|| product.price)-product.price)).toFixed(2)}`);
+        $(model).removeClass("none");
+        $(ctx).append(model);
+
+    }catch(error){
+        throw(statusHandler.messageError(error));
+    }
+}
+
 const listCart = async()=>{
     try{
 
@@ -126,6 +170,14 @@ const listCart = async()=>{
 
                 const {product:_id, variants, id, amount, is_bundle} = cart[i];
                 const product = await getProduct(_id, variants, is_bundle);
+
+                if(is_bundle){
+                    listCartBundle(product, variants, id);
+                    total+=(product.price);
+
+                    continue;
+                }
+
                 const model = $("[c-id=modal-cart]").find("[c-id=model-cart]").clone()[0];
 
                 $(model).attr("id", id);
@@ -197,7 +249,7 @@ const addLocalStorage = (objectCart)=>{
                             return;
                         }
 
-                        if( val.title == newVariant.title){
+                        if(val.title == newVariant.title){
                             equal = (val.value == newVariant.value);
                             !equal && (error = 0)
                         }
@@ -213,7 +265,7 @@ const addLocalStorage = (objectCart)=>{
             }
         });
         
-        if(!equal){
+        if(!equal || objectCart.is_bundle){
             cart.push(objectCart);
 
             localStorage.setItem("cart", JSON.stringify(cart));
@@ -286,7 +338,7 @@ const getBundle = ()=>{
     try{
 
         let variants = [];
-        let id;
+        let id, amount;
 
         let currentBundle; 
         $("[c-id=model-bundle]").each(function(){
@@ -298,16 +350,25 @@ const getBundle = ()=>{
         })
 
         id = $(currentBundle).attr("id");
+        amount = $(currentBundle).attr("amount");
 
-        $(currentBundle).find("select").each(function(){
-            let object = {};
-            object["title"] = ($(this).attr("id")).replaceAll("-", " ");
-            object["value"] = $(this).val();
 
-            variants.push(object);
+        $(currentBundle).find("[c-id=bundle-option]").each(function(){
+            let optionsBundle = [];
+
+            $(this).find('select').each(function(){
+                let object = {};
+                object["title"] = ($(this).attr("id")).replaceAll("-", " ");
+                object["value"] = $(this).val();
+                optionsBundle.push(object);
+
+            });
+            
+
+            variants.push(optionsBundle);
         });
 
-        return {variants, id};
+        return {variants, id, amount};
 
     }catch(error){
         throw(statusHandler.messageError(error));
@@ -319,14 +380,14 @@ const addToCartBundle = async()=>{
 
         const url = window.location.pathname;
         const product = url.split('/').pop();
-        const {id, variants} = getBundle();
+        const {id, variants, amount} = getBundle();
 
         let object = {};
         object["id"] = Date.now();
         object["product"] = product;
         object["is_bundle"] = id;
         object["variants"] = variants
-        object["amount"] = 1;
+        object["amount"] = amount;
 
         addLocalStorage(object);
         await listCart();   
@@ -419,7 +480,7 @@ const checkout = async()=>{
             const url = await getUrlCheckout(cart);
             const utm = (window.location.href).split("?")[1];
            
-           window.location.href = `${url}&discount=FRENCHDAYS10&${utm}`;
+           window.location.href = `${url}&${utm}`;
            saveInitCheckout();
         }
 

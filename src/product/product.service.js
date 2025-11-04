@@ -361,7 +361,7 @@ const getProductById = async(id, api = false)=>{
                 product["other_shopify"] = findStores;
             }
 
-            const bundles = await findAll(Bundle, {product:id}, {id_shopify_bundle:1, last_price_bundle:1, shopify:1, title_bundle:1, _id:1,price_bundle:1, default_bundle:1});
+            const bundles = await findAll(Bundle, {product:id}, { last_price_bundle:1,  title_bundle:1, _id:1,price_bundle:1, default_bundle:1, amount:1, cupom_code:1});
             product['bundles'] = bundles
              
         }
@@ -370,7 +370,7 @@ const getProductById = async(id, api = false)=>{
             const otherVariants = await findOne(OtherVariants, {product:id});
             const bundles = await findAll(Bundle, {product:id});
 
-            product['bundles'] = bundles
+            product['bundles'] = bundles;
             product['variants'] = otherVariants?.variants || {};
             product.discount = parseInt((product.price/(product.last_price)*100)-100);
         }
@@ -385,22 +385,42 @@ const getProductByIdForCart = async({id}, {cart, is_bundle})=>{
     try{
         
         let product =  await findById(Product,id, {name:1, last_price:1, price:1});
-        const otherVariants = !is_bundle ? await findOne(OtherVariants, {product:id}) : await findById(Bundle, is_bundle);
+
+        const otherVariants =  await findOne(OtherVariants, {product:id});
         
         product = product.toJSON();
         product['variants'] = otherVariants?.variants || {};
-
+        
         if(is_bundle){
-            product["price"] = otherVariants.price_bundle;
-            product["last_price"] = otherVariants.last_price_bundle;
-            product["name"] = otherVariants.title_bundle;
 
+            const bundle = await findById(Bundle, is_bundle);
+
+            product["price"] = bundle.price_bundle;
+            product["last_price"] = bundle.last_price_bundle;
+            product["name"] = bundle.title_bundle;
+
+            const variants = product["variants"];
+           
+            product["variants"] = []
+             
+            cart.forEach(bundleOption=>{  
+
+                const idShopify = compareVariants(bundleOption, variants);
+                const result = variants["variant_values"].filter(val=> val.id_shopify == idShopify);
+                
+                product["variants"].push(result);
+
+            });
+
+            return statusHandler.newResponse(200, product);
         }
 
         const idShopify = compareVariants(cart, product["variants"]);
+
         product["variants"] = product["variants"]["variant_values"].filter(val=> val.id_shopify == idShopify);
 
         return statusHandler.newResponse(200, product);
+
     }catch(error){  
         throw(statusHandler.serviceError(error));
     }
@@ -432,17 +452,11 @@ const createBundles = async(bundles, product)=>{
                     ...bundle,
                     product
                 };
-                
-                const {shopify, id_shopify_bundle} = bundle;
-                const {url, token_storefront} = await findById(Shopify, shopify);
 
-                newBundle["variants"] = await getVariants(id_shopify_bundle, url, token_storefront);
                 delete newBundle["id"];
 
                 bundle.id ? await updateById(Bundle, bundle.id, newBundle) : await save(Bundle, newBundle);
             }   
-
-            
 
         }
 

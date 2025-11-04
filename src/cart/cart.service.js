@@ -15,15 +15,16 @@ let cash_products = {};
 const compareVariants = (variantsCart, variantsProduct)=>{
     try{
        
+        let varProd = variantsProduct["variant_values"];
       
         variantsCart.forEach((val)=>{
             const {value, title} = val;
-            variantsProduct["variant_values"] = variantsProduct["variant_values"].filter(variant=> (variant.value_1 == value ||  variant.value_2 == value ||  variant.value_3 == value));
+            varProd = varProd.filter(variant=> (variant.value_1 == value ||  variant.value_2 == value ||  variant.value_3 == value));
 
         });
 
-        if(variantsProduct["variant_values"]?.length){
-            const {id_shopify} = variantsProduct["variant_values"][0];
+        if(varProd?.length){
+            const {id_shopify} = varProd[0];
 
             return  id_shopify;
         }
@@ -90,7 +91,7 @@ const checkOptionsStore = async(product, existStore)=>{
 
 const getInfoProducts = async(cart)=>{
     try{
-
+        
         if(cart?.length){
             const arrayShopify = [];
 
@@ -101,23 +102,39 @@ const getInfoProducts = async(cart)=>{
                 const {product, variants, amount, is_bundle} = cart[i];
                
 
-                let current_variants = !is_bundle ? await checkOptionsStore(product) : await findById(Bundle, is_bundle);
+                let current_variants =  await checkOptionsStore(product);
 
-                const variantsCompare = current_variants.store || is_bundle ? current_variants["variants"] : current_variants;
+                const variantsCompare = current_variants.store ? current_variants["variants"] : current_variants;
+
+                let objectShopify = {};
 
                 if(is_bundle){
-                    current_variants = current_variants.toJSON();
-                    current_variants['store'] = current_variants.shopify
+                    const {price_bundle, amount:amountBundle, cupom_code} = await findById(Bundle, is_bundle);
+                    let ids = [];
+
+                    variants.forEach(vari=>{
+                        
+                        const id_shopify = compareVariants(vari, variantsCompare);
+
+                        ids.push(id_shopify);
+
+                    }); 
+
+                    objectShopify['ids'] = ids;
+                    objectShopify['is_bundle'] = true;
+                    objectShopify['price_bundle'] = price_bundle;
+                    objectShopify['amount'] = amountBundle;
+                    objectShopify['cupom_code'] = cupom_code;
+                }else{
+
+                    const id_shopify = compareVariants(variants, variantsCompare);
+
+                    objectShopify = {
+                        id_shopify,
+                        amount
+                    };
+
                 }
-
-                console.log(current_variants)
-                
-                const id_shopify = compareVariants(variants, variantsCompare);
-
-                let objectShopify = {
-                    id_shopify,
-                    amount
-                };
 
                 existStore = 'not';
 
@@ -130,7 +147,6 @@ const getInfoProducts = async(cart)=>{
             }
 
             if(arrayShopify.length){
-                
                 return await createUrlCheckout(arrayShopify);
             }
         }
@@ -140,75 +156,137 @@ const getInfoProducts = async(cart)=>{
     }
 }
 
-const createLinesCheckout = (cart)=>{
-    try{
-
-        let lines = "";
-
-        cart.forEach((line, index) => {
-            const {id_shopify, amount} = line;
-            lines += `{merchandiseId:"gid://shopify/ProductVariant/${id_shopify}", quantity: ${amount}},\n`;
+const createLinesCheckout = (cart) => {
+  try {
+    let lines = "";
+    cart.forEach((line) => {
+      if (line.is_bundle && Array.isArray(line.ids) && line.ids.length) {
+        const qty = Number.parseInt(String(line.amount ?? 1), 10) || 1;
+        line.ids.forEach((variantId) => {
+          lines += `{merchandiseId:"gid://shopify/ProductVariant/${variantId}", quantity: ${qty/line.ids.length}},\n`;
         });
-
-        return lines;
-
-    }catch(error){
-        throw(statusHandler.serviceError(error));
-    }
-}
-
-const createUrlCheckout = async(cart)=>{
-    try{
-
-        if(!cart?.length){
-            throw(statusHandler.newResponse(400, "Invalid cart"))
-        }
-
-        const lines = createLinesCheckout(cart);
-        
-        const query = `
-            mutation {
-                cartCreate(input: {
-                    lines: [
-                        ${lines}
-                    ]
-                }) {
-                    cart {
-                    id
-                    checkoutUrl
-                    }
-                    userErrors {
-                    field
-                    message
-                    }
-                }
-                }
-        `;
-        
-
-        if(cart[0].store){
-
-            const {url, token_storefront} = await findById(Shopify, cart[0].store);
-
-            domain = url;
-            token = token_storefront;
-        }
-
-        const response = await request(
-            "POST", 
-            `https://${domain}/api/2023-10/graphql.json`,
-            {query},
-            {'X-Shopify-Storefront-Access-Token': token}
-        );
-       
-        const url = response?.data?.cartCreate?.cart?.checkoutUrl;
-        
-        return statusHandler.newResponse(200, {url});
-
-    }catch(error){
-        throw(statusHandler.serviceError(error));
-    }
+      } else {
+        const { id_shopify, amount } = line;
+        const qty = Number.parseInt(String(amount ?? 1), 10) || 1;
+        lines += `{merchandiseId:"gid://shopify/ProductVariant/${id_shopify}", quantity: ${qty}},\n`;
+      }
+    });
+    return lines;
+  } catch (error) {
+    throw (statusHandler.serviceError(error));
+  }
 };
+
+const createUrlCheckout = async (cart) => {
+  try {
+    if (!cart?.length) {
+      throw (statusHandler.newResponse(400, "Invalid cart"));
+    }
+
+    const lines = createLinesCheckout(cart);
+
+    const query = `
+      mutation {
+        cartCreate(input: {
+          lines: [
+            ${lines}
+          ]
+        }) {
+          cart {
+            id
+            checkoutUrl
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `;
+
+    let domain, token;
+
+    if (cart[0].store) {
+      const { url, token_storefront } = await findById(Shopify, cart[0].store);
+      domain = url;
+      token = token_storefront;
+    }
+
+    const response = await request(
+      "POST",
+      `https://${domain}/api/2023-10/graphql.json`,
+      { query },
+      { 'X-Shopify-Storefront-Access-Token': token }
+    );
+
+    let checkoutUrl = response?.data?.cartCreate?.cart?.checkoutUrl;
+    const cartId = response?.data?.cartCreate?.cart?.id;
+
+    const codes = Array.from(new Set(
+      cart
+        .map(l => l?.cupom_code)
+        .filter(Boolean)
+        .map(c => String(c).trim())
+    ));
+
+    const applyCodes = async (codesToApply) => {
+      const applyCouponQuery = `
+        mutation {
+          cartDiscountCodesUpdate(cartId: "${cartId}", discountCodes: [${codesToApply.map(c => `"${c}"`).join(", ")}]) {
+            cart { checkoutUrl }
+            userErrors { field message }
+          }
+        }
+      `;
+      const discountRes = await request(
+        "POST",
+        `https://${domain}/api/2023-10/graphql.json`,
+        { query: applyCouponQuery },
+        { 'X-Shopify-Storefront-Access-Token': token }
+      );
+      const dUpdate = discountRes?.data?.cartDiscountCodesUpdate;
+      const dErrors = dUpdate?.userErrors;
+      const ok = !Array.isArray(dErrors) || dErrors.length === 0;
+      return { ok, url: dUpdate?.cart?.checkoutUrl || checkoutUrl };
+    };
+
+    if (cartId && codes.length > 0) {
+      let res = await applyCodes(codes);
+      if (!res.ok) {
+        let applied = false;
+        for (let i = 0; i < codes.length && !applied; i++) {
+          for (let j = i + 1; j < codes.length && !applied; j++) {
+            const tryPair = await applyCodes([codes[i], codes[j]]);
+            if (tryPair.ok) {
+              checkoutUrl = tryPair.url;
+              applied = true;
+            }
+          }
+        }
+        if (!applied) {
+          for (let i = 0; i < codes.length && !applied; i++) {
+            const trySingle = await applyCodes([codes[i]]);
+            if (trySingle.ok) {
+              checkoutUrl = trySingle.url;
+              applied = true;
+            }
+          }
+        }
+        if (!applied) {
+          checkoutUrl = res.url || checkoutUrl;
+        }
+      } else {
+        checkoutUrl = res.url || checkoutUrl;
+      }
+    }
+
+    return statusHandler.newResponse(200, { url: checkoutUrl });
+
+  } catch (error) {
+    throw (statusHandler.serviceError(error));
+  }
+};
+
 
 module.exports = {
     createUrlCheckout,

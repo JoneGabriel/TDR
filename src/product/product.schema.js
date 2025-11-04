@@ -83,6 +83,7 @@ const OtherVariants = mongoose.model("OTHER_VARIANT", {
     ,
 });
 
+/*
 const Bundle = mongoose.model("BUNDLE", {
     product:{
         type: mongoose.Schema.Types.ObjectId, 
@@ -124,7 +125,26 @@ const Bundle = mongoose.model("BUNDLE", {
             
     
     }
-})
+});
+
+*/
+
+const Bundle = mongoose.model("BUNDLE", {
+    product:{
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'Product', 
+        required:true 
+    },
+    amount:Number,
+    price_bundle:Number,
+    last_price_bundle:Number,
+    title_bundle:String,
+    default_bundle:{
+        type:Boolean,
+        default:false
+    },
+    cupom_code:String
+});
 
 module.exports = {
     Product,

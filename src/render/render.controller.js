@@ -370,12 +370,20 @@ router.get("/products/:id", async(req, res)=>{
         });
 
         let bundles = product.bundles;
-
+        
         if(product.bundles.length > 1){
             
             bundles = bundles.map(bundle=>{
                 bundle = bundle.toJSON();
-                bundle['variants'] = arrangeVariants(bundle, true);
+                const variants = arrangeVariants(product, true);
+                bundle['variants'] = [];
+
+                let x = 0;
+
+                while(x < bundle.amount){
+                    bundle['variants'].push(variants);
+                    x++;
+                }
 
                 if(bundle.last_price_bundle){
                     bundle['save'] = (bundle.last_price_bundle - bundle.price_bundle).toFixed(2);
@@ -386,7 +394,6 @@ router.get("/products/:id", async(req, res)=>{
             
         }
         
-
         product_template = Twig.twig({data:product_template}).render({
             bundles,
             is_bundle:(product.bundles.length > 1),
@@ -411,6 +418,7 @@ router.get("/products/:id", async(req, res)=>{
         });
 
     }catch(error){
+        console.log(error)
         const host = req.get('host');
         const newUrl = `https://www.${host}${req.originalUrl}`;
 

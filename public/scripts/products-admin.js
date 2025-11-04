@@ -52,10 +52,10 @@ const getBundles = ()=>{
             object["title_bundle"] = $(this).find("[c-id=title_bundle]").val();
             object["last_price_bundle"] = $(this).find("[c-id=last_price_bundle]").val();
             object["price_bundle"] = $(this).find("[c-id=price_bundle]").val();
-            object["shopify"] = $(this).find("[c-id=stores]").val();
-            object["id_shopify_bundle"] = $(this).find("[c-id=id_shopify_bundle]").val();
+            object["amount"] = $(this).find("[c-id=amount]").val();
             object["default_bundle"] = $(this).find("[c-id=default_bundle]").prop("checked");
-
+            object["cupom_code"] = $(this).find("[c-id=cupom_code]").val();
+  
             const id = $(this).attr("id");
 
             if(id){
@@ -81,16 +81,17 @@ const listBundles = (bundles)=>{
         $(ctx).html("");
 
         bundles.forEach(bundle=>{
-            const {id_shopify_bundle, last_price_bundle, shopify, title_bundle, _id, price_bundle, default_bundle} = bundle;
+            const { last_price_bundle, title_bundle, _id, price_bundle, default_bundle, amount, cupom_code} = bundle;
 
             const model = $("[c-id=model-bundle]").clone()[0];
 
-            $(model).find("[c-id=id_shopify_bundle]").val(id_shopify_bundle);
+            
             $(model).find("[c-id=price_bundle]").val(price_bundle);
 
             default_bundle && $(model).find("[c-id=default_bundle]").prop("checked", true);
             $(model).find("[c-id=last_price_bundle]").val(last_price_bundle);
-            $(model).find("[c-id=stores]").val(shopify);
+            $(model).find("[c-id=amount]").val(amount);
+            $(model).find("[c-id=cupom_code]").val(cupom_code);
             $(model).find("[c-id=title_bundle]").val(title_bundle);
             $(model).attr("id", _id);
 
