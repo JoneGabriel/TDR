@@ -83,8 +83,52 @@ const OtherVariants = mongoose.model("OTHER_VARIANT", {
     ,
 });
 
+const Bundle = mongoose.model("BUNDLE", {
+    product:{
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'Product', 
+        required:true 
+    },
+    shopify:{ 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'Shopify', 
+        required:true 
+    },
+    id_shopify_bundle:String,
+    price_bundle:Number,
+    last_price_bundle:Number,
+    title_bundle:String,
+    default_bundle:{
+        type:Boolean,
+        default:false
+    },
+    variants:
+        {
+            title_1:String,
+            title_2:String,
+            title_3:String,
+            variant_values:[
+                {   
+                    value_1:String,
+                    value_2:String,
+                    value_3:String,
+                    id_shopify:{
+                        type:String, 
+                        
+                        required:true
+                    },
+                    img:String
+                }
+            ]
+            
+            
+    
+    }
+})
+
 module.exports = {
     Product,
     Collection,
-    OtherVariants
+    OtherVariants,
+    Bundle
 };

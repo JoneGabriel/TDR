@@ -75,10 +75,18 @@ const listNumberItemsCart = ()=>{
     }
 };
 
-const getProduct = async(id, cart)=>{
+const getProduct = async(id, cart, is_bundle)=>{
     try{
 
-        const {status, content} = await request("POST", `/product/cart/${id}`, {cart});
+        let body ={
+            cart
+        };
+
+        if(is_bundle){
+            body['is_bundle'] = is_bundle
+        }
+
+        const {status, content} = await request("POST", `/product/cart/${id}`, body);
 
         if(status == 200){
 
@@ -116,8 +124,8 @@ const listCart = async()=>{
 
             for(i in cart){
 
-                const {product:_id, variants, id, amount} = cart[i];
-                const product = await getProduct(_id, variants);
+                const {product:_id, variants, id, amount, is_bundle} = cart[i];
+                const product = await getProduct(_id, variants, is_bundle);
                 const model = $("[c-id=modal-cart]").find("[c-id=model-cart]").clone()[0];
 
                 $(model).attr("id", id);
@@ -143,7 +151,7 @@ const listCart = async()=>{
 
             }
 
-            $("[c-id=btn-checkout]").find("span").html(`<i class="bi bi-dot"></i>${total.toFixed(2)}`)
+            $("[c-id=btn-checkout]").find("span").html(`<i class="bi bi-dot"></i>${total.toFixed(2)}`);
         }
 
     }catch(error){
@@ -274,11 +282,76 @@ const saveInitCheckout = async()=>{
     }
 };
 
-const addToCart = async()=>{
+const getBundle = ()=>{
+    try{
+
+        let variants = [];
+        let id;
+
+        let currentBundle; 
+        $("[c-id=model-bundle]").each(function(){
+            const isChecked = $(this).find('input').prop("checked");
+
+            if(isChecked){
+                currentBundle = this;
+            }
+        })
+
+        id = $(currentBundle).attr("id");
+
+        $(currentBundle).find("select").each(function(){
+            let object = {};
+            object["title"] = ($(this).attr("id")).replaceAll("-", " ");
+            object["value"] = $(this).val();
+
+            variants.push(object);
+        });
+
+        return {variants, id};
+
+    }catch(error){
+        throw(statusHandler.messageError(error));
+    }
+}
+
+const addToCartBundle = async()=>{
     try{
 
         const url = window.location.pathname;
+        const product = url.split('/').pop();
+        const {id, variants} = getBundle();
+
+        let object = {};
+        object["id"] = Date.now();
+        object["product"] = product;
+        object["is_bundle"] = id;
+        object["variants"] = variants
+        object["amount"] = 1;
+
+        addLocalStorage(object);
+        await listCart();   
+
+        $("[c-id=modal-cart]").modal("show");
+        listNumberItemsCart();
         
+        saveAddCart();
+
+    }catch(error){
+        throw(statusHandler.messageError(error));
+    }
+}
+
+const addToCart = async()=>{
+    try{
+
+        const isBundles = $("[c-id=model-bundle]");
+
+        if(isBundles.length){
+
+            return await addToCartBundle();
+        }
+
+        const url = window.location.pathname;
         const product = url.split('/').pop();
 
         let object = {};

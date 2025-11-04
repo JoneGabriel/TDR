@@ -77,14 +77,43 @@ const createUniqeuId = ()=>{
 
 
 
-
-
-
-
-
 $(document).ready(function(){
 
   createUniqeuId();
+
+  $("[c-id=model-bundle]").on("click", (e)=>{
+    try{
+
+      const target = $(e.target)[0].tagName.toLowerCase();
+
+      if(target == 'select'){
+        return;
+      }
+
+    $("[c-id=model-bundle]").each(function(){
+        const exist = $(this).find("[c-id=options]").hasClass("none");
+        const classSelected = $(this).hasClass("selected-bundle");
+
+        if(classSelected){
+          $(this).removeClass("selected-bundle")
+        }
+
+        if(!exist){
+          $(this).find("[c-id=options]").addClass("none");
+        }
+
+        $(this).find("input").removeAttr("checked");
+    });
+
+      $(e.delegateTarget).find("[c-id=options]").removeClass("none");
+      $(e.delegateTarget).find("input").prop("checked", true);
+      $(e.delegateTarget).find("input").focus();
+      $(e.delegateTarget).addClass("selected-bundle")
+
+    }catch(error){
+      statusHandler.messageError(error);
+    }
+  })
 
   $("[c-id=open-info], [c-id=close-info]").on("click", (e)=>{
     try{

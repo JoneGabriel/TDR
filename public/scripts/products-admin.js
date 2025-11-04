@@ -8,6 +8,8 @@ const cleanProductFilds = ()=>{
         $("[c-id=form]").find("[c-id=image-list]").html("");
         $("[c-id=form]").find("[c-id=save-product]").removeAttr("id");
         $("[c-id=form]").find("[c-id=all-stores]").html("");
+        $("[c-id=form]").find("[c-id=all-bundles]").html("");
+
         $("[c-id=form]").find("[c-id=name-product]").text("");
 
 
@@ -39,6 +41,69 @@ const getStores = ()=>{
     }
 };
 
+const getBundles = ()=>{
+    try{
+
+        let arrayBundles = [];
+        const bundles = $("[c-id=all-bundles]").find("[c-id=model-bundle]");
+
+        $(bundles).each(function(){
+            let object = {};
+            object["title_bundle"] = $(this).find("[c-id=title_bundle]").val();
+            object["last_price_bundle"] = $(this).find("[c-id=last_price_bundle]").val();
+            object["price_bundle"] = $(this).find("[c-id=price_bundle]").val();
+            object["shopify"] = $(this).find("[c-id=stores]").val();
+            object["id_shopify_bundle"] = $(this).find("[c-id=id_shopify_bundle]").val();
+            object["default_bundle"] = $(this).find("[c-id=default_bundle]").prop("checked");
+
+            const id = $(this).attr("id");
+
+            if(id){
+                object["id"] = id;
+            }
+
+            arrayBundles.push(object);
+
+        });
+
+        return arrayBundles;
+
+    }catch(error){
+        throw(statusHandler.messageError(error));
+    }
+};
+
+const listBundles = (bundles)=>{
+    try{    
+
+        const ctx = "[c-id=all-bundles]";
+
+        $(ctx).html("");
+
+        bundles.forEach(bundle=>{
+            const {id_shopify_bundle, last_price_bundle, shopify, title_bundle, _id, price_bundle, default_bundle} = bundle;
+
+            const model = $("[c-id=model-bundle]").clone()[0];
+
+            $(model).find("[c-id=id_shopify_bundle]").val(id_shopify_bundle);
+            $(model).find("[c-id=price_bundle]").val(price_bundle);
+
+            default_bundle && $(model).find("[c-id=default_bundle]").prop("checked", true);
+            $(model).find("[c-id=last_price_bundle]").val(last_price_bundle);
+            $(model).find("[c-id=stores]").val(shopify);
+            $(model).find("[c-id=title_bundle]").val(title_bundle);
+            $(model).attr("id", _id);
+
+            $(ctx).append(model);
+            $(model).removeClass("none");
+
+        });
+
+    }catch(error){
+        throw(statusHandler.messageError(error));
+    }
+};
+
 const getBodyProduct = async()=>{
     try{
 
@@ -60,14 +125,16 @@ const getBodyProduct = async()=>{
         
         const description = tinymce.get('description').getContent()
         const other_shopify = getStores();
+        const bundles = getBundles();
 
         other_shopify.length && (body["other_shopify"]= other_shopify);
 
         description && (body["description"] = description);
         collection && (body["collection_"] = collection);
         store && (body["store"] = store);
-
-
+        
+        bundles.length && (body["bundle"]= bundles);
+        
         return body;
 
     }catch(error){
@@ -248,7 +315,7 @@ const listProductInForm = (product)=>{
         
         cleanProductFilds();
         
-        let {images, name, _id, last_price, price, description, collection_, other_shopify, brand, store} = product;
+        let {images, name, _id, last_price, price, description, collection_, other_shopify, brand, store, bundles} = product;
         images = images.map(img=> img.base64);
 
         other_shopify?.length && other_shopify.forEach(val=>{
@@ -257,6 +324,8 @@ const listProductInForm = (product)=>{
         });
 
         listImg(images);
+
+        listBundles(bundles);
         
         const ctx = "[c-id=form]";
 
@@ -332,7 +401,7 @@ const listShopifys = async()=>{
                 content.forEach((store, index)=>{
                     const {url, _id} = store;
 
-                    !index && $(ctx).append(`<option  selected disabled hidden>Escolha uma coleção</option>`)
+                    !index && $(ctx).append(`<option  selected disabled hidden>Escolha uma shopify</option>`)
 
                     
                     $(ctx).append(`<option value="${_id}">${url}</option>`);
@@ -503,6 +572,45 @@ $(document).ready(function(){
     listShopifys();
     listStores();
     
+    $("body").on("click", "[c-id=remove-bundle]", async(e)=>{
+        try{
+
+            const id = $(e.currentTarget).closest("[c-id=model-bundle]").attr("id");
+
+            if(!confirm("Deseja remover o bundle? Essa ação é irreversivel")){
+
+                return;
+            }
+
+            if(id){
+                const remove = await request("DELETE", `/product/bundle/${id}`);
+            
+                if(remove.status != 200){
+                    throw(statusHandler.messageError("Erro ao remover loja", true))
+                }
+            }
+
+            $(e.currentTarget).closest("[c-id=model-bundle]").remove();
+            statusHandler.newMessage("Bundle removido");
+
+        }catch(error){
+            statusHandler.messageError(error);
+        }
+    });
+
+    $("[c-id=new-bundle]").on("click", ()=>{
+        try{
+
+            const model = $("[c-id=model-bundle]").clone()[0];
+            
+            $(model).removeClass("none");
+            $("[c-id=all-bundles]").append(model);
+
+        }catch(error){
+            statusHandler.messageError(error);
+        }
+    });
+
     $("[c-id=new-product]").on("click", ()=>{
         $("[c-id=modal-product]").modal("show");
         tinymce.init({

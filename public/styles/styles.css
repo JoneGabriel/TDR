@@ -1047,3 +1047,97 @@ a{
 .card-status h5{
   font-weight: 600;
 }
+
+.model-bundle{
+  border: solid 1px rgb(215, 215, 215);
+  background-color: rgb(215, 215, 215);
+  border-radius: 8px;
+  height: fit-content;
+}
+
+.selected-bundle{
+  border:solid 1px black;
+}
+
+.model-bundle .form-check-input{
+  width: 1.5rem;
+  height: 1.5rem;
+ 
+}
+
+.model-bundle h2{
+  font-weight: bold;
+}
+
+.model-bundle s{
+      margin-top: -0.6rem;
+}
+
+.model-bundle .save-bundle{
+  background-color: rgb(179, 178, 178);
+  font-weight: 200;
+  padding: 5px;
+  border-radius: 8px;
+  width: fit-content;
+  color: black;
+  margin-left: 2rem;
+  margin-top: -0.4rem;
+  margin-bottom: 0.5rem;
+  font-size: 13px;
+}
+
+
+
+.open-options{
+  margin-bottom: 0.5rem;
+  width: 100%;
+  display: flex;
+}
+
+.open-options input{
+  width: fit-content !important;
+  
+}
+
+.form-check-input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #000;         
+  background-color: transparent; 
+  appearance: none;               
+  border-radius: 50%;            
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  outline: none;                  
+  box-shadow: none;               
+}
+
+
+.form-check-input[type="radio"]:checked {
+  background-color: #000;
+  box-shadow: none;
+  border-color: #000; 
+
+}
+
+
+.form-check-input[type="radio"]:focus {
+  outline: none;
+  box-shadow: none;
+  border-color: #000;             
+}
+.default-bundle{
+  background-color: black;
+  color: white;
+  padding: 4px;
+  border-radius: 4px;
+  position: relative;
+  z-index: 10;
+  margin-right: 2rem;
+  margin-top: -0.5rem;
+}
+
+.default-bundle p{
+  margin-bottom: 0px;
+}

@@ -3,7 +3,8 @@ const {request, isEmpty} = require("../helpers/helpers.global");
 
 const {
     Product,
-    OtherVariants
+    OtherVariants,
+    Bundle
 } =require("../product/product.schema");
 const { findById, findAll } = require("../query");
 const { Shopify } = require("../shopify/shopify.schema");
@@ -97,11 +98,19 @@ const getInfoProducts = async(cart)=>{
 
             for(i in cart){
 
-                const {product, variants, amount} = cart[i];
+                const {product, variants, amount, is_bundle} = cart[i];
                
 
-                const current_variants = await checkOptionsStore(product, existStore);
-                const variantsCompare = current_variants.store ? current_variants["variants"] : current_variants;
+                let current_variants = !is_bundle ? await checkOptionsStore(product) : await findById(Bundle, is_bundle);
+
+                const variantsCompare = current_variants.store || is_bundle ? current_variants["variants"] : current_variants;
+
+                if(is_bundle){
+                    current_variants = current_variants.toJSON();
+                    current_variants['store'] = current_variants.shopify
+                }
+
+                console.log(current_variants)
                 
                 const id_shopify = compareVariants(variants, variantsCompare);
 

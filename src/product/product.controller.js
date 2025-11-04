@@ -13,7 +13,8 @@ const {
     getCollectionById,
     changeCollection,
     changeStatusProduct,
-    changeStatusCollection
+    changeStatusCollection,
+    removeBundle
 } =require("./product.service");
 
 router.post("/collection", async({body}, res)=>{
@@ -153,6 +154,18 @@ router.put("/collection/status/:id", async({params, body}, res)=>{
     try{
 
         const response = await changeStatusCollection(params, body);
+
+        return res.status(response.status).send(response);
+    }catch(error){  
+
+        return statusHandler.responseError(error, res);
+    }
+});
+
+router.delete("/product/bundle/:id", async({params}, res)=>{
+    try{
+
+        const response = await removeBundle(params);
 
         return res.status(response.status).send(response);
     }catch(error){  

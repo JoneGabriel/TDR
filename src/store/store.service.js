@@ -65,8 +65,8 @@ const idioma = {
             shipping_2:"Offert à partir de",
             shipping_3:'entre 3 et 5 jours',
             return:'Retours sous 14 jours',
-            other_products:'Découvrez également'
-
+            other_products:'Découvrez également',
+            default_bundle:"Le plus populaire"
         },
         footer:{
             privacy_policy:'Politique de Confidentialité',
@@ -198,7 +198,8 @@ const idioma = {
             shipping_2: 'Free from ',
             shipping_3: 'between 3 and 5 days',
             return: 'Returns within 14 days',
-            other_products: 'You may also like'
+            other_products: 'You may also like',
+            default_bundle:"Most Popular"
         },
         cart: {
             title: 'Cart',
@@ -323,7 +324,8 @@ const idioma = {
             shipping_2: 'Kostenlos ab ',
             shipping_3: 'zwischen 3 und 5 Tagen',
             return: 'Rückgabe innerhalb von 14 Tagen',
-            other_products: 'Das könnte Ihnen auch gefallen'
+            other_products: 'Das könnte Ihnen auch gefallen',
+            default_bundle:"Am beliebtesten"
         },
         cart: {
             title: 'Warenkorb',
@@ -352,7 +354,8 @@ const idioma = {
             shipping_2: 'Gratis vanaf ',
             shipping_3: 'tussen 3 en 5 dagen',
             return: 'Retour binnen 14 dagen',
-            other_products: 'Misschien ook interessant voor jou'
+            other_products: 'Misschien ook interessant voor jou',
+            default_bundle:"Meest populair"
         },
         cart: {
             title: 'Winkelwagen',

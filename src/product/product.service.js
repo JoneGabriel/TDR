@@ -1,7 +1,8 @@
 const {
     Product,
     Collection,
-    OtherVariants
+    OtherVariants,
+    Bundle
 } = require("../product/product.schema");
 
 const {
@@ -272,6 +273,7 @@ const createProduct = async(product)=>{
     try{
         
         const shopify = product["other_shopify"];
+        const bundles = product["bundles"];
         const idProduct = await save(Product, product);
 
         if(!isEmpty(shopify)){
@@ -302,7 +304,7 @@ const getAllProducts = async()=>{
     }
 };
 
-const arrangeVariants = (product)=>{
+const arrangeVariants = (product, isBundle = false)=>{
     try{
 
         const {variants} = product;
@@ -319,13 +321,13 @@ const arrangeVariants = (product)=>{
                 object["title"] = variants[key].replaceAll(" ", "-");
                 object["title_label"] = variants[key];
                 object["values"] = [];
-
+              
                 variants.variant_values.forEach(value=>{
 
                     const exist =  object["values"].find(val=>val.value == value[`value_${numberKey}`]) || object["values"].find(val=>val == value[`value_${numberKey}`]);
                     const condition = object["title"] == 'Couleur' || object["title"] == 'Color' || object["title"] == 'Color-Harness-1' || object["title"] == 'Color-Harness-2'
 
-                    if(condition){
+                    if(condition && !isBundle){
                         !exist && object["values"].push({value:value[`value_${numberKey}`], img:value.img});
                         
                         return;
@@ -338,7 +340,6 @@ const arrangeVariants = (product)=>{
             }
 
         });
-
         return newVariants;
     }catch(error){
         throw(statusHandler.serviceError(error));
@@ -359,12 +360,17 @@ const getProductById = async(id, api = false)=>{
             if(findStores.length){
                 product["other_shopify"] = findStores;
             }
+
+            const bundles = await findAll(Bundle, {product:id}, {id_shopify_bundle:1, last_price_bundle:1, shopify:1, title_bundle:1, _id:1,price_bundle:1, default_bundle:1});
+            product['bundles'] = bundles
              
         }
 
         if(!api){
             const otherVariants = await findOne(OtherVariants, {product:id});
+            const bundles = await findAll(Bundle, {product:id});
 
+            product['bundles'] = bundles
             product['variants'] = otherVariants?.variants || {};
             product.discount = parseInt((product.price/(product.last_price)*100)-100);
         }
@@ -375,14 +381,21 @@ const getProductById = async(id, api = false)=>{
     }
 };
 
-const getProductByIdForCart = async({id}, {cart})=>{
+const getProductByIdForCart = async({id}, {cart, is_bundle})=>{
     try{
         
         let product =  await findById(Product,id, {name:1, last_price:1, price:1});
-        const otherVariants = await findOne(OtherVariants, {product:id});
+        const otherVariants = !is_bundle ? await findOne(OtherVariants, {product:id}) : await findById(Bundle, is_bundle);
         
         product = product.toJSON();
         product['variants'] = otherVariants?.variants || {};
+
+        if(is_bundle){
+            product["price"] = otherVariants.price_bundle;
+            product["last_price"] = otherVariants.last_price_bundle;
+            product["name"] = otherVariants.title_bundle;
+
+        }
 
         const idShopify = compareVariants(cart, product["variants"]);
         product["variants"] = product["variants"]["variant_values"].filter(val=> val.id_shopify == idShopify);
@@ -405,13 +418,62 @@ const getProductsRamdon = async(collection_, store)=>{
     }
 };
 
+
+const createBundles = async(bundles, product)=>{
+    try{
+
+        for(i in bundles){
+
+            const bundle = bundles[i];
+
+            if(!isEmpty(bundle)){
+
+                let newBundle = {
+                    ...bundle,
+                    product
+                };
+                
+                const {shopify, id_shopify_bundle} = bundle;
+                const {url, token_storefront} = await findById(Shopify, shopify);
+
+                newBundle["variants"] = await getVariants(id_shopify_bundle, url, token_storefront);
+                delete newBundle["id"];
+
+                bundle.id ? await updateById(Bundle, bundle.id, newBundle) : await save(Bundle, newBundle);
+            }   
+
+            
+
+        }
+
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
+
+const removeBundle = async({id})=>{
+    try{
+
+        await removeOne(Bundle, id);
+
+        return statusHandler.newResponse(200, "ok");
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
+
 const changeProduct = async({id}, product)=>{
     try{
         
         const otherShopify = product["other_shopify"];
-        
+        const bundles = product["bundle"];
+
         if(!isEmpty(otherShopify)){
             await createOtherVariants(otherShopify, id);
+        }
+
+        if(!isEmpty(bundles)){
+            await createBundles(bundles, id);
         }
 
         await updateById(Product, id, product)
@@ -496,5 +558,6 @@ module.exports = {
     getCollectionById,
     changeCollection,
     changeStatusProduct,
-    changeStatusCollection
+    changeStatusCollection,
+    removeBundle
 };

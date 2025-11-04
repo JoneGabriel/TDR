@@ -34,48 +34,105 @@
         <div class="discount ms-2">{{product.discount}} %</div>
     </div>
     
-    {% for variant in variants %}
+    {% if is_bundle == false %}
 
-        {% if variant.title == 'Couleur' %} 
-            <label style="color:#737373;" class="mt-3">{{variant.title}} <span class="ms-1"><b>{{variant.values[0].value}}</b></span> </label>
-                <div id="{{variant.title}}" class="d-flex justify-content-start mt-1">
-                    {% for value in variant.values %}
-                        
-                        {% if loop.first %}
-                            <div c-id="option-couleur" value="{{value.value}}" class="option-img-product option-selected">
-                                <img class="img-fluid" src="{{value.img}}">
-                            </div>
-                        {% else %}
-                            <div c-id="option-couleur" value="{{value.value}}" class="option-img-product ms-2">
-                                <img class="img-fluid" src="{{value.img}}">
-                            </div>
-                        {% endif %} 
-                        
-                    {% endfor %}
-                </div>
+        {% for variant in variants %}
+
+            {% if variant.title == 'Couleur' %} 
+                <label style="color:#737373;" class="mt-3">{{variant.title}} <span class="ms-1"><b>{{variant.values[0].value}}</b></span> </label>
+                    <div id="{{variant.title}}" class="d-flex justify-content-start mt-1">
+                        {% for value in variant.values %}
+                            
+                            {% if loop.first %}
+                                <div c-id="option-couleur" value="{{value.value}}" class="option-img-product option-selected">
+                                    <img class="img-fluid" src="{{value.img}}">
+                                </div>
+                            {% else %}
+                                <div c-id="option-couleur" value="{{value.value}}" class="option-img-product ms-2">
+                                    <img class="img-fluid" src="{{value.img}}">
+                                </div>
+                            {% endif %} 
+                            
+                        {% endfor %}
+                    </div>
+                
             
-        
-        {% else %}
-            <label style="color:#737373;" class="mt-3">{{variant.title}} <span class="ms-1"><b>{{variant.values[0]}}</b></span> </label>
-            <select class="form-select col-12 mt-2" id="{{variant.title}}">
-                {% for value in variant.values %}
-                   
-                    <option value="{{value}}">{{value}}</option>
-                {% endfor %}
-            </select>
+            {% else %}
+                <label style="color:#737373;" class="mt-3">{{variant.title}} <span class="ms-1"><b>{{variant.values[0]}}</b></span> </label>
+                <select class="form-select col-12 mt-2" id="{{variant.title}}">
+                    {% for value in variant.values %}
+                    
+                        <option value="{{value}}">{{value}}</option>
+                    {% endfor %}
+                </select>
 
-        {% endif %}
+            {% endif %}
 
-        
-    {% endfor %}
-    <label style="color:#737373;" class="mt-4">{{idioma.product_page.amount}}</label>
-    <div class="amount mt-2 mb-4">
-        <div class="d-flex justify-content-between">
-            <button c-id="sub"><i class="bi bi-dash"></i></button>
-            <input c-id="amount" class="col-2" value="1" type="number" readonly>
-            <button c-id="add"><i class="bi bi-plus"></i></button>
+            
+        {% endfor %}
+
+        <label style="color:#737373;" class="mt-4">{{idioma.product_page.amount}}</label>
+        <div class="amount mt-2 mb-4">
+            <div class="d-flex justify-content-between">
+                <button c-id="sub"><i class="bi bi-dash"></i></button>
+                <input c-id="amount" class="col-2" value="1" type="number" readonly>
+                <button c-id="add"><i class="bi bi-plus"></i></button>
+            </div>
         </div>
-    </div>
+    {% endif %}
+
+    {% if is_bundle == true %}
+        <div class="row mt-4">
+            {% for bundle in bundles %}
+            <div class="col-12 mt-3">
+                
+                    <div id="{{bundle._id}}" c-id="model-bundle" class="model-bundle">
+                        <div class="row mx-1">
+                            <div class="col-8">
+                                <div class="d-flex justify-content-start mt-4">
+                                    <input class="form-check-input" type="radio" name="bundle">
+                                    <h2 class="title-bundle  ms-3" >{{bundle.title_bundle}}</h2>
+                                </div>
+                                {% if bundle.save != null %}
+                                    <div class="save-bundle">
+                                        <label>SAVE {{moeda}}{{bundle.save}}</label>
+                                    </div>
+                                {% else %}
+
+                                <div style="padding-bottom: 1rem;"></div>    
+
+                                {% endif %}
+                                <div c-id="options" class="open-options none">
+                                    {% for variant in bundle.variants %}
+                                        <div class="ms-1">
+                                            <label class="mt-1">
+                                                {{variant.title }}
+                                            </label>
+                                       
+                                            <select class="form-select " id="{{variant.title}}">
+                                                {% for value in variant.values %}
+                                                    <option value="{{value}}">{{value}}</option>
+                                                {% endfor %}
+                                            </select>
+
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <h2 class="title-bundle mt-4 float-end" >{{moeda}}{{bundle.price_bundle}}</h2>
+                                {% if bundle.last_price_bundle != null %}
+                                    <s class="float-end">{{moeda}}{{bundle.last_price_bundle}}</s>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
     <div class="d-flex justify-content-center mt-4">
         <div  class="spinner-border none" role="status">
             <span class="visually-hidden">Loading...</span>

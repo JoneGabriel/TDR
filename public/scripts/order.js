@@ -70,7 +70,7 @@ const getTextAboutOrder = async(ctx)=>{
             await listText(ctx, response.content);
             loadingTextActive = false;
             loadingTextActive_3 = false;
-            $(ctx).find("[c-id=text-loading]").html("<b>Élodie:</b>");
+            $(ctx).find("[c-id=text-loading]").html(`<b>${attendant}:</b>`);
 
         }
 

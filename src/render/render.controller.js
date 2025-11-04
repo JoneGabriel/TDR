@@ -344,7 +344,9 @@ router.get("/products/:id", async(req, res)=>{
 
         const {id} = req.params;
         const product = await getProductById(id);
-     
+        
+        
+
         const all_collections =  await getAllCollections(false, config._id);
         const ramdonProducts = await getProductsRamdon(product.collection_, config._id);
 
@@ -366,12 +368,34 @@ router.get("/products/:id", async(req, res)=>{
         footer_template = Twig.twig({data:footer_template}).render({
             ...config
         });
+
+        let bundles = product.bundles;
+
+        if(product.bundles.length > 1){
+            
+            bundles = bundles.map(bundle=>{
+                bundle = bundle.toJSON();
+                bundle['variants'] = arrangeVariants(bundle, true);
+
+                if(bundle.last_price_bundle){
+                    bundle['save'] = (bundle.last_price_bundle - bundle.price_bundle).toFixed(2);
+                }
+
+                return bundle;
+            });
+            
+        }
+        
+
         product_template = Twig.twig({data:product_template}).render({
+            bundles,
+            is_bundle:(product.bundles.length > 1),
             product,
             variants:arrangeVariants(product),
             ramdonProducts,
             ...config
         });
+
 
 
         return res.render(index, {
@@ -382,7 +406,8 @@ router.get("/products/:id", async(req, res)=>{
             header_template,
             menu_store,
             cart_template,
-            footer_template
+            footer_template,
+            
         });
 
     }catch(error){
