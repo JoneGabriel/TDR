@@ -397,6 +397,10 @@ router.get("/products/:id", async(req, res)=>{
             });
             
         }
+
+        product.price = product.price?.toFixed(2);
+        product.last_price = product.last_price?.toFixed(2);
+
         
         product_template = Twig.twig({data:product_template}).render({
             bundles,
