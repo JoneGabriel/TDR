@@ -389,6 +389,10 @@ router.get("/products/:id", async(req, res)=>{
                     bundle['save'] = (bundle.last_price_bundle - bundle.price_bundle).toFixed(2);
                 }
 
+                bundle.last_price_bundle && ( bundle.last_price_bundle = bundle.last_price_bundle.toFixed(2));
+                bundle.price_bundle = bundle.price_bundle.toFixed(2);
+
+
                 return bundle;
             });
             
