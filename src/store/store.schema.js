@@ -809,21 +809,22 @@ const defaultOrder = `
 
 <script>
 
-  {% for txt in idioma.order.scripts_var.texts %}
+    {% for txt in idioma.order.scripts_var.texts %}
 
-        window{{txt.name}} = [
+        window.{{txt.name}} = [
             {% for vl in txt.values %}
                 "{{vl}}",
             {% endfor %}
         ];
 
-  {% endfor %}
+    {% endfor %}
 
   window.{{idioma.order.scripts_var.default_text.name}} = '{{idioma.order.scripts_var.default_text.value}}';
   window.attendant = '{{idioma.order.scripts_var.attendant}}';
   window.default_message = '{{idioma.order.scripts_var.default_message}}';
-
 </script>
+
+
 
 
 `

@@ -378,7 +378,8 @@ const getCharges = async(idOrder, country)=>{
     
     const charge = await findOne(Charge, {idOrder});
 
-    const labels = [
+    const AllLabels = {
+    "FR":[
       { 
         days:-1,
         title: "En cours de traitement interne",
@@ -415,7 +416,125 @@ const getCharges = async(idOrder, country)=>{
         description:
           "Le dossier reste sous suivi continu par notre équipe. Pour le moment, aucune nouvelle information n’est disponible, mais toute évolution sera reflétée en temps réel dans ce tableau."
       }
-    ];
+    ],
+
+    "GB":[
+      { 
+        days:-1,
+        title: "Under Internal Review",
+        description:
+          "The case is currently being evaluated by our internal teams and systems. Once relevant updates are available, the status will be automatically adjusted."
+      },
+      { 
+        days:2,
+        title: "Awaiting Institution Response",
+        description:
+          "The case has been forwarded to the card issuer and an official response is pending. This typically occurs within standard operational timelines."
+      },
+      { 
+        days:5,
+        title: "Technical Review in Progress",
+        description:
+          "We are conducting technical and documentation checks related to this transaction. The analysis follows our internal validation procedures."
+      },
+      {
+        days:9,
+        title: "Data Verification Phase",
+        description:
+          "The dispute request has entered the data validation stage with financial platforms. Timelines may vary depending on ongoing case volume."
+      },
+      { 
+        days:12,
+        title: "Awaiting Banking System Update",
+        description:
+          "We are awaiting an official update from the issuing institution. Once information syncs, the status will update automatically."
+      },
+      { 
+        days:15,
+        title: "Active Monitoring",
+        description:
+          "The case remains under continuous monitoring by our team. No new information is available at the moment, but any development will be reflected in real time."
+      }
+    ],
+
+    "US":[
+      { 
+        days:-1,
+        title: "Internal Review in Progress",
+        description:
+          "The case is currently being reviewed by our internal teams and automated systems. The status will be updated as soon as new information becomes available."
+      },
+      { 
+        days:2,
+        title: "Pending Issuer Response",
+        description:
+          "The case has been submitted to the card issuer, and we are awaiting their official response. This typically aligns with standard processing timelines."
+      },
+      { 
+        days:5,
+        title: "Technical Review",
+        description:
+          "A technical and documentation review is underway for this transaction. The process follows our established internal verification steps."
+      },
+      {
+        days:9,
+        title: "Validation Stage",
+        description:
+          "The dispute request is in the data validation stage with financial platforms. Response times may vary depending on case volume."
+      },
+      { 
+        days:12,
+        title: "Bank Update Pending",
+        description:
+          "We are waiting for the issuing bank’s system to provide an official update. The status will refresh automatically once updated."
+      },
+      { 
+        days:15,
+        title: "Ongoing Monitoring",
+        description:
+          "The case remains under active monitoring. No new updates are available at the moment, but changes will be reflected in real time."
+      }
+    ],
+
+    "DE":[
+      { 
+        days:-1,
+        title: "Interne Prüfung",
+        description:
+          "Der Vorgang wird derzeit von unseren internen Teams und Systemen geprüft. Sobald relevante Informationen vorliegen, wird der Status automatisch aktualisiert."
+      },
+      { 
+        days:2,
+        title: "Warten auf Antwort der Bank",
+        description:
+          "Der Vorgang wurde an den Kartenaussteller übermittelt und wir warten auf eine offizielle Rückmeldung. Dies erfolgt in der Regel innerhalb der üblichen Bearbeitungszeiten."
+      },
+      { 
+        days:5,
+        title: "Technische Überprüfung",
+        description:
+          "Wir führen eine technische und dokumentarische Überprüfung dieser Transaktion durch. Die Analyse folgt unseren internen Validierungsprozessen."
+      },
+      {
+        days:9,
+        title: "Validierungsphase",
+        description:
+          "Die Anfrage befindet sich in der Datenvalidierungsphase bei den Finanzplattformen. Die Bearbeitungszeit kann je nach aktuellem Arbeitsaufkommen variieren."
+      },
+      { 
+        days:12,
+        title: "Warten auf Bankaktualisierung",
+        description:
+          "Wir warten auf eine offizielle Aktualisierung im System des Herausgebers. Sobald die Informationen synchronisiert sind, wird der Status automatisch angepasst."
+      },
+      { 
+        days:15,
+        title: "Aktive Überwachung",
+        description:
+          "Der Vorgang wird weiterhin von unserem Team aktiv überwacht. Derzeit liegen keine neuen Informationen vor, aber Änderungen werden in Echtzeit angezeigt."
+      }
+    ]
+  };
 
     if(charge){
       let response = [];
@@ -423,7 +542,7 @@ const getCharges = async(idOrder, country)=>{
       const {createdAt} = charge;
       const diff = getDiffInDays(createdAt, country);
       
-      labels.forEach(value=>{
+      AllLabels[country].forEach(value=>{
         const {days} = value;
         
         if(diff < days){
