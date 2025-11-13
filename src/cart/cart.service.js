@@ -193,9 +193,7 @@ const createUrlCheckout = async (cart, country) => {
     // -------------------------
     let finalCountry = String(country || "").toUpperCase();
 
-    if (finalCountry !== "GB" && finalCountry !== "FR") {
-      finalCountry = "FR"; // fallback
-    }
+    console.log(finalCountry);
 
     const query = `
       mutation @inContext(country: ${finalCountry}) {
