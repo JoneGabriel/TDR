@@ -150,7 +150,7 @@ const getInfoProducts = async(cart)=>{
             if(arrayShopify.length){
                 const { store:storeCountry } = await findById(Shopify, arrayShopify[0].store);
                 const {country} = await findById(Store, storeCountry);
-                return await createUrlCheckout(arrayShopify, country[0]);
+                return await createUrlCheckout(arrayShopify, country);
             }
         }
 
