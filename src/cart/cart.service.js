@@ -93,6 +93,8 @@ const checkOptionsStore = async(product, existStore)=>{
 const getInfoProducts = async(cart)=>{
     try{
         
+      let country;
+
         if(cart?.length){
             const arrayShopify = [];
 
@@ -104,6 +106,11 @@ const getInfoProducts = async(cart)=>{
                
 
                 let current_variants =  await checkOptionsStore(product);
+
+                const {store:storeCountry} = await findById(Product, product);
+                const {country:countrCode} = await findById(Store, storeCountry);
+
+                country = countrCode;
 
                 const variantsCompare = current_variants.store ? current_variants["variants"] : current_variants;
 
@@ -148,8 +155,7 @@ const getInfoProducts = async(cart)=>{
             }
 
             if(arrayShopify.length){
-                const { store:storeCountry } = await findById(Shopify, arrayShopify[0].store);
-                const {country} = await findById(Store, storeCountry);
+                
                 return await createUrlCheckout(arrayShopify, country);
             }
         }
