@@ -8,6 +8,7 @@ const {
 } =require("../product/product.schema");
 const { findById, findAll } = require("../query");
 const { Shopify } = require("../shopify/shopify.schema");
+const { Store } = require("../store/store.schema");
 
 
 let cash_products = {};
@@ -147,7 +148,9 @@ const getInfoProducts = async(cart)=>{
             }
 
             if(arrayShopify.length){
-                return await createUrlCheckout(arrayShopify);
+                const { store:storeCountry } = await findById(Shopify, arrayShopify[0].store);
+                const {country} = await findById(Store, storeCountry);
+                return await createUrlCheckout(arrayShopify, country[0]);
             }
         }
 
@@ -177,20 +180,32 @@ const createLinesCheckout = (cart) => {
   }
 };
 
-const createUrlCheckout = async (cart) => {
+const createUrlCheckout = async (cart, country) => {
   try {
     if (!cart?.length) {
-      throw (statusHandler.newResponse(400, "Invalid cart"));
+      throw statusHandler.newResponse(400, "Invalid cart");
     }
 
     const lines = createLinesCheckout(cart);
 
+    // -------------------------
+    // PRIORIDADE PARA PARÂMETRO COUNTRY
+    // -------------------------
+    let finalCountry = String(country || "").toUpperCase();
+
+    if (finalCountry !== "GB" && finalCountry !== "FR") {
+      finalCountry = "FR"; // fallback
+    }
+
     const query = `
-      mutation {
+      mutation @inContext(country: ${finalCountry}) {
         cartCreate(input: {
           lines: [
             ${lines}
           ]
+          buyerIdentity: {
+            countryCode: ${finalCountry}
+          }
         }) {
           cart {
             id
@@ -204,7 +219,8 @@ const createUrlCheckout = async (cart) => {
       }
     `;
 
-    let domain, token;
+    let domain;
+    let token;
 
     if (cart[0].store) {
       const { url, token_storefront } = await findById(Shopify, cart[0].store);
@@ -216,44 +232,56 @@ const createUrlCheckout = async (cart) => {
       "POST",
       `https://${domain}/api/2023-10/graphql.json`,
       { query },
-      { 'X-Shopify-Storefront-Access-Token': token }
+      { "X-Shopify-Storefront-Access-Token": token }
     );
 
     let checkoutUrl = response?.data?.cartCreate?.cart?.checkoutUrl;
     const cartId = response?.data?.cartCreate?.cart?.id;
 
-    const codes = Array.from(new Set(
-      cart
-        .map(l => l?.cupom_code)
-        .filter(Boolean)
-        .map(c => String(c).trim())
-    ));
+    // -------------------------
+    // CUPONS (mantido igual)
+    // -------------------------
+    const codes = Array.from(
+      new Set(
+        cart
+          .map((l) => l?.cupom_code)
+          .filter(Boolean)
+          .map((c) => String(c).trim())
+      )
+    );
 
     const applyCodes = async (codesToApply) => {
       const applyCouponQuery = `
         mutation {
-          cartDiscountCodesUpdate(cartId: "${cartId}", discountCodes: [${codesToApply.map(c => `"${c}"`).join(", ")}]) {
+          cartDiscountCodesUpdate(cartId: "${cartId}", discountCodes: [${codesToApply
+            .map((c) => `"${c}"`)
+            .join(", ")}]) {
             cart { checkoutUrl }
             userErrors { field message }
           }
         }
       `;
+
       const discountRes = await request(
         "POST",
         `https://${domain}/api/2023-10/graphql.json`,
         { query: applyCouponQuery },
-        { 'X-Shopify-Storefront-Access-Token': token }
+        { "X-Shopify-Storefront-Access-Token": token }
       );
+
       const dUpdate = discountRes?.data?.cartDiscountCodesUpdate;
       const dErrors = dUpdate?.userErrors;
       const ok = !Array.isArray(dErrors) || dErrors.length === 0;
+
       return { ok, url: dUpdate?.cart?.checkoutUrl || checkoutUrl };
     };
 
     if (cartId && codes.length > 0) {
       let res = await applyCodes(codes);
+
       if (!res.ok) {
         let applied = false;
+
         for (let i = 0; i < codes.length && !applied; i++) {
           for (let j = i + 1; j < codes.length && !applied; j++) {
             const tryPair = await applyCodes([codes[i], codes[j]]);
@@ -263,6 +291,7 @@ const createUrlCheckout = async (cart) => {
             }
           }
         }
+
         if (!applied) {
           for (let i = 0; i < codes.length && !applied; i++) {
             const trySingle = await applyCodes([codes[i]]);
@@ -272,6 +301,7 @@ const createUrlCheckout = async (cart) => {
             }
           }
         }
+
         if (!applied) {
           checkoutUrl = res.url || checkoutUrl;
         }
@@ -283,7 +313,7 @@ const createUrlCheckout = async (cart) => {
     return statusHandler.newResponse(200, { url: checkoutUrl });
 
   } catch (error) {
-    throw (statusHandler.serviceError(error));
+    throw statusHandler.serviceError(error);
   }
 };
 
