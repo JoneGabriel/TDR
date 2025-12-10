@@ -6,7 +6,7 @@ const {
     OtherVariants,
     Bundle
 } =require("../product/product.schema");
-const { findById, findAll } = require("../query");
+const { findById, findAll, findOne } = require("../query");
 const { Shopify } = require("../shopify/shopify.schema");
 const { Store } = require("../store/store.schema");
 
@@ -321,9 +321,144 @@ const createUrlCheckout = async (cart, country) => {
   }
 };
 
+const createUrlCheckoutPagouAi = async(cartPayload)=>{
+    try{
+
+        const cartEndpoint = 'https://api-checkout.pagou.ai/public/cart'
+        var data = {
+            shop: 'zg5103-f0.myshopify.com',
+            shopify_internal_domain: 'zg5103-f0.myshopify.com',
+            cart_payload: cartPayload
+        };
+       
+        const response = await request("POST", cartEndpoint, data);
+
+        if(response.statusCode == 200){
+            
+            return statusHandler.newResponse(200, {url:response.data.checkout_url});
+        }
+
+
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
+
+const compareVariantsNew = (variantsCart, variantsProduct)=>{
+    try{
+       
+      
+        variantsCart.forEach((val)=>{
+            const {value, title} = val;
+            variantsProduct["variant_values"] = variantsProduct["variant_values"].filter(variant=> (variant.value_1 == value ||  variant.value_2 == value ||  variant.value_3 == value));
+
+        });
+
+        if(variantsProduct["variant_values"]?.length){
+            const {id_shopify, img} = variantsProduct["variant_values"][0];
+
+            return  {id_shopify, img};
+        }
+
+        
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
+
+const getVariantsValues = (variants)=>{
+    try{
+
+        let values = "";
+
+        variants.forEach((val, index)=>{
+            const {value} = val;
+            values+=` ${value} ${!index && variants.length > 1 ? "/" : ""}`
+        })
+
+        return values;
+
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+}
+
+const getInfoProductsNew = async(cart)=>{
+    try{
+
+        if(cart?.length){
+            const arrayItems = [];
+
+            for(i in cart){
+
+                const {product, variants, amount} = cart[i];
+                const findProduct = await findById(Product, product, {variants:1,is_variant:1, id_shopify:1, name:1, price:1});
+
+               
+                const {id_shopify:idShopify, variants:vari} = await findOne(OtherVariants, {product});
+
+                let variantsForCompare = vari;
+                variantsForCompare["id_shopify"] = idShopify;
+              
+                const {id_shopify, img} = compareVariantsNew(variants, variantsForCompare);
+                const titleVariant = getVariantsValues(variants);
+
+                let objectShopify = {
+                    id:parseInt(id_shopify),
+                    quantity:parseInt(amount),
+                    variant_id:parseInt(id_shopify),
+                    title:`${findProduct.name} - ${titleVariant}`,
+                    price:findProduct.price*100,
+                    original_price:findProduct.price*100,
+                    presentment_price:findProduct.price,
+                    discounted_price:findProduct.price*100,
+                    line_price:findProduct.price*100,
+                    original_line_price:findProduct.price*100,
+                    product_id:parseInt(idShopify),
+                    final_price:findProduct.price*100,
+                    final_line_price:findProduct.price*100,
+                    image:img, 
+                    requires_shipping:true,
+                };
+               
+                arrayItems.push(objectShopify)
+                
+            }
+            
+            if(arrayItems.length){
+
+                let total_price = 0;
+                let item_count = 0;
+
+                arrayItems.forEach(value=>{
+                    const {price, quantity} = value;
+
+                    total_price += (price*quantity);
+                    item_count+= quantity;
+                })
+
+                let objectPagouAi = {
+                    items:arrayItems,
+                    currency:"GBP",
+                    requires_shipping: true,
+                    total_price:total_price,
+                    item_count,
+                    items_subtotal_price:total_price,
+                    original_total_price:total_price
+                }
+               
+                return await createUrlCheckoutPagouAi(objectPagouAi);
+            }
+        }
+
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
 
 module.exports = {
     createUrlCheckout,
     getInfoProducts,
-    compareVariants
+    compareVariants,
+    getInfoProductsNew
 };
