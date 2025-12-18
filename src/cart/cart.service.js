@@ -327,7 +327,7 @@ const createUrlCheckoutPagouAi = async(cartPayload)=>{
         const cartEndpoint = 'https://api-checkout.pagou.ai/public/cart'
         var data = {
             shop: 'zg5103-f0.myshopify.com',
-            shopify_internal_domain: 'zg5103-f0.myshopify.com',
+            shopify_internal_domain: 'pro-collagen.co.uk',
             cart_payload: cartPayload
         };
        
