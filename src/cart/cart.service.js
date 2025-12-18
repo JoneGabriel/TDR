@@ -332,7 +332,7 @@ const createUrlCheckoutPagouAi = async(cartPayload)=>{
         };
        
         const response = await request("POST", cartEndpoint, data);
-
+        console.log(response)
         if(response.statusCode == 200){
             
             return statusHandler.newResponse(200, {url:response.data.checkout_url});
