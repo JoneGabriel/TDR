@@ -14,7 +14,8 @@ const {
     changeCollection,
     changeStatusProduct,
     changeStatusCollection,
-    removeBundle
+    removeBundle,
+    getPriceByVariants
 } =require("./product.service");
 
 router.post("/collection", async({body}, res)=>{
@@ -106,6 +107,18 @@ router.get("/product/:id", async({params}, res)=>{
     try{
 
         const response = await getProductById(params.id, true);
+
+        return res.status(response.status).send(response);
+    }catch(error){  
+
+        return statusHandler.responseError(error, res);
+    }
+});
+
+router.post("/product/variant/:id", async({params, body}, res)=>{
+    try{
+
+        const response = await getPriceByVariants(params, body);
 
         return res.status(response.status).send(response);
     }catch(error){  

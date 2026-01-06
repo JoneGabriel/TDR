@@ -30,6 +30,7 @@ const {
 const {
     compareVariants
 } = require("../cart/cart.service");
+const { Store } = require("../store/store.schema");
 
 const getInfoCollection = async(id)=>{
     try{
@@ -157,7 +158,9 @@ const formatVariants = (shopifyVariants) => {
         value_2: options[1]?.value || null,
         value_3: options[2]?.value || null,
         id_shopify: variant.id.replace("gid://shopify/ProductVariant/",""),
-        img:variant?.image?.url
+        img:variant?.image?.url,
+        price:variant?.price?.amount,
+        last_price:variant?.compareAtPrice?.amount
       };
     });
   
@@ -198,6 +201,11 @@ const getVariants = async(id_shopify, domain, token)=>{
                         amount
                         currencyCode
                       }
+                      compareAtPrice {
+                        amount
+                        currencyCode
+                       }
+
                       image {
                         url        
                     }
@@ -231,6 +239,8 @@ const getVariants = async(id_shopify, domain, token)=>{
           cursor  = hasNext ? edges[edges.length - 1].cursor : null;
         }
         
+        
+
         variants = formatVariants(variants);
 
         return  variants;
@@ -418,7 +428,13 @@ const getProductByIdForCart = async({id}, {cart, is_bundle})=>{
         const idShopify = compareVariants(cart, product["variants"]);
 
         product["variants"] = product["variants"]["variant_values"].filter(val=> val.id_shopify == idShopify);
-
+        
+        if(product["variants"].length){
+            const {last_price, price } = product["variants"][0];
+            product.last_price = last_price ||  product.last_price;
+            product.price = price || product.price;
+        }
+        
         return statusHandler.newResponse(200, product);
 
     }catch(error){  
@@ -556,6 +572,20 @@ const changeStatusCollection = async({id}, {status})=>{
     }
 };
 
+const getPriceByVariants = async({id}, options)=>{
+    try{
+
+        const variants = await findOne(OtherVariants, {product:id});
+        const {store} = await findById(Product, id);
+        const {moeda} = await findById(Store, store);
+        const prices =  compareVariants(options, variants.variants, true);
+
+        return statusHandler.newResponse(200, {prices, moeda})
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
+
 module.exports = {
     createProduct,
     getAllProducts,
@@ -573,5 +603,6 @@ module.exports = {
     changeCollection,
     changeStatusProduct,
     changeStatusCollection,
-    removeBundle
+    removeBundle,
+    getPriceByVariants
 };

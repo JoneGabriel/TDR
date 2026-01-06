@@ -75,6 +75,55 @@ const createUniqeuId = ()=>{
 };
 
 
+const changeVariantPrice = async()=>{
+  try{
+
+      const isBundle = $("[c-id=bundle-option]");
+      
+      if(isBundle?.length){
+        return;
+      }
+
+      let option = [];
+
+      $("select").each(function(){
+        let object = {};
+
+        const title = $(this).attr("id");
+        const value = $(this).val();
+
+        object['title'] = title;
+        object["value"] = value;
+
+        option.push(object);
+      });
+
+      const url = window.location.pathname;
+      const product = url.split('/').pop();
+
+      const response = await request("POST", `/product/variant/${product}`, option);
+      
+      if(response.status == 200){
+        const {prices, moeda:coin} = response.content;
+        const {price, last_price} = prices;
+        const moeda = {
+            'euro':'€',
+            'dolar':'$',
+            'libra':'£'
+        };
+        const porcentage = parseInt(100 - ((price*100)/last_price));
+        
+        $(".last-price-product").text(`${last_price.toFixed(2)} ${moeda[coin]}`);
+        $(".price-product").text(`${price.toFixed(2)} ${moeda[coin]}`);
+        $(".discount").text(`-${porcentage}%`)
+      }
+
+
+  }catch(error){
+    throw(statusHandler.messageError(error));
+  }
+};
+
 
 
 $(document).ready(function(){
@@ -149,12 +198,14 @@ $(document).ready(function(){
     }
   });
 
-  $("select").on("change", (e)=>{
+  $("select").on("change", async(e)=>{
     try{
 
         const select = $(e.target).val();
  
         $(e.target).prev().find("b").text(select);
+
+        await changeVariantPrice();
 
     }catch(error){
       statusHandler.messageError(error);

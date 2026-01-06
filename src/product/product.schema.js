@@ -73,7 +73,9 @@ const OtherVariants = mongoose.model("OTHER_VARIANT", {
                         
                         required:true
                     },
-                    img:String
+                    img:String,
+                    last_price:Number,
+                    price:Number,
                 }
             ]
             

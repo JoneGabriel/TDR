@@ -13,7 +13,7 @@ const { Store } = require("../store/store.schema");
 
 let cash_products = {};
 
-const compareVariants = (variantsCart, variantsProduct)=>{
+const compareVariants = (variantsCart, variantsProduct, prices = false)=>{
     try{
        
         let varProd = variantsProduct["variant_values"];
@@ -23,6 +23,12 @@ const compareVariants = (variantsCart, variantsProduct)=>{
             varProd = varProd.filter(variant=> (variant.value_1 == value ||  variant.value_2 == value ||  variant.value_3 == value));
 
         });
+
+        if(varProd?.length && prices){
+          const {price, last_price} = varProd[0];
+          console.log(varProd[0])
+          return {price, last_price}
+        }
 
         if(varProd?.length){
             const {id_shopify} = varProd[0];
@@ -35,6 +41,7 @@ const compareVariants = (variantsCart, variantsProduct)=>{
         throw(statusHandler.serviceError(error));
     }
 };
+
 
 const checkOptionsStore = async(product, existStore)=>{
     try{
@@ -332,7 +339,7 @@ const createUrlCheckoutPagouAi = async(cartPayload)=>{
         };
        
         const response = await request("POST", cartEndpoint, data);
-        console.log(response)
+        
         if(response.statusCode == 200){
             
             return statusHandler.newResponse(200, {url:response.data.checkout_url});
@@ -402,21 +409,25 @@ const getInfoProductsNew = async(cart)=>{
               
                 const {id_shopify, img} = compareVariantsNew(variants, variantsForCompare);
                 const titleVariant = getVariantsValues(variants);
+                const {price:priceVariant} = compareVariants(variants, vari, true)
+
+                const realPrice = priceVariant || findProduct.price
+                
 
                 let objectShopify = {
                     id:parseInt(id_shopify),
                     quantity:parseInt(amount),
                     variant_id:parseInt(id_shopify),
                     title:`${findProduct.name} - ${titleVariant}`,
-                    price:findProduct.price*100,
-                    original_price:findProduct.price*100,
-                    presentment_price:findProduct.price,
-                    discounted_price:findProduct.price*100,
-                    line_price:findProduct.price*100,
-                    original_line_price:findProduct.price*100,
+                    price:realPrice*100,
+                    original_price:realPrice*100,
+                    presentment_price:realPrice,
+                    discounted_price:realPrice*100,
+                    line_price:realPrice*100,
+                    original_line_price:realPrice*100,
                     product_id:parseInt(idShopify),
-                    final_price:findProduct.price*100,
-                    final_line_price:findProduct.price*100,
+                    final_price:realPrice*100,
+                    final_line_price:realPrice*100,
                     image:img, 
                     requires_shipping:true,
                 };
