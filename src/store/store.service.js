@@ -1160,12 +1160,12 @@ const policies = {
       <tr>
         <td style="border-bottom:1px solid #eee; padding:8px;">UK Mainland</td>
         <td style="border-bottom:1px solid #eee; padding:8px;">Tracked 48 / Courier Standard</td>
-        <td style="border-bottom:1px solid #eee; padding:8px;">2–3 business days</td>
+        <td style="border-bottom:1px solid #eee; padding:8px;">3–20 business days</td>
       </tr>
       <tr>
         <td style="border-bottom:1px solid #eee; padding:8px;">UK Mainland (Express)</td>
         <td style="border-bottom:1px solid #eee; padding:8px;">Next-Day (by carrier)</td>
-        <td style="border-bottom:1px solid #eee; padding:8px;">1 business day</td>
+        <td style="border-bottom:1px solid #eee; padding:8px;">2–18 business days</td>
       </tr>
       <tr>
         <td style="border-bottom:1px solid #eee; padding:8px;">Highlands, Islands, NI</td>
