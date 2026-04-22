@@ -212,7 +212,7 @@ $(document).ready(function(){
     }
   });
 
-  $("#Couleur,#Color,#Color-Harness-1,#Color-Harness-2").on("click", "[c-id=option-couleur]", (e)=>{
+  $("#Couleur,#Color,#Color-Harness-1,#Color-Harness-2, #Couleur-du-pull-1, #Couleur-du-pull-2").on("click", "[c-id=option-couleur]", (e)=>{
     try{
 
       const id = $(e.delegateTarget).attr("id");
