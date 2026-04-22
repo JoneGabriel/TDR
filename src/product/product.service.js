@@ -336,6 +336,7 @@ const arrangeVariants = (product, isBundle = false)=>{
 
                     const exist =  object["values"].find(val=>val.value == value[`value_${numberKey}`]) || object["values"].find(val=>val == value[`value_${numberKey}`]);
                     const condition = object["title"] == 'Couleur' || object["title"] == 'Color' || object["title"] == 'Color-Harness-1' || object["title"] == 'Color-Harness-2'
+                     || object["title"] == 'Couleur-du-pull-1' || object["title"] == 'Couleur-du-pull-2'
 
                     if(condition && !isBundle){
                         !exist && object["values"].push({value:value[`value_${numberKey}`], img:value.img});
