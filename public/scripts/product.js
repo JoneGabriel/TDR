@@ -23,11 +23,11 @@
     };
   
    
-    prevBtn.addEventListener('click', () => show(current - 1));
-    nextBtn.addEventListener('click', () => show(current + 1));
+    prevBtn?.addEventListener('click', () => show(current - 1));
+    nextBtn?.addEventListener('click', () => show(current + 1));
   
    
-    thumbs.forEach(thumb =>
+    thumbs?.forEach(thumb =>
       thumb.addEventListener('click', e => show(+e.currentTarget.dataset.index))
     );
   
@@ -43,13 +43,13 @@
     };
   
     
-    carousel.addEventListener('touchstart',  e => startDrag(e.touches[0].clientX), {passive:true});
-    carousel.addEventListener('touchend',    e => endDrag(e.changedTouches[0].clientX));
+    carousel?.addEventListener('touchstart',  e => startDrag(e.touches[0].clientX), {passive:true});
+    carousel?.addEventListener('touchend',    e => endDrag(e.changedTouches[0].clientX));
   
     
-    carousel.addEventListener('mousedown',   e => startDrag(e.clientX));
-    carousel.addEventListener('mouseup',     e => endDrag(e.clientX));
-    carousel.addEventListener('mouseleave',  e => endDrag(e.clientX));
+    carousel?.addEventListener('mousedown',   e => startDrag(e.clientX));
+    carousel?.addEventListener('mouseup',     e => endDrag(e.clientX));
+    carousel?.addEventListener('mouseleave',  e => endDrag(e.clientX));
 })();
 
 
