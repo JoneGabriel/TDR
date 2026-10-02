@@ -60,7 +60,7 @@ docker compose logs app | head -3         # mostra "clonando ... com token"
 docker compose exec app npm run create-admin -- admin 'SenhaForte123'
 ```
 
-Regras do `.env`: formato `KEY=valor`, sem espaços em volta do `=`. A chave `GIT_TOKEN` precisa existir (vazia, se o repositório for público). O compose injeta `URL_DB` apontando para o serviço `mongo`, então não é preciso definir `URL_DB` no `.env` (se definir, ele é ignorado).
+Regras do `.env`: formato `KEY=valor`, sem espaços em volta do `=`. A chave `GIT_TOKEN` precisa existir (vazia, se o repositório for público). Dentro do compose o app monta a URL do banco a partir de `MONGO_USER`/`MONGO_PASSWORD` (com escape de caracteres especiais), então não é preciso definir `URL_DB` no `.env` (se definir, ele é ignorado). A senha do Mongo é gravada no volume no primeiro `up`; trocar `MONGO_PASSWORD` depois exige recriar o volume (`docker compose down -v`, apaga o banco) ou mudar a senha dentro do Mongo com `db.changeUserPassword`.
 
 Enquanto nenhum domínio foi configurado, o painel responde em `https://IP-DA-VPS/admin/login` com certificado autoassinado (aceite o aviso do navegador).
 
@@ -133,7 +133,7 @@ scp tdr-atual.archive.gz usuario@vps:/opt/tdr/backups/
 docker compose exec -T mongo sh -c 'mongorestore --archive --gzip --drop --nsFrom "TDR.*" --nsTo "TDR.*" -u "$MONGO_INITDB_ROOT_USERNAME" -p "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin' < backups/tdr-atual.archive.gz
 ```
 
-Para continuar no Atlas em vez do Mongo local: em `docker-compose.yml`, remova a linha `URL_DB:` do bloco `environment` do serviço `app` e o `depends_on: mongo`, deixe `URL_DB` no `.env` e rode `docker compose up -d --build app`. O serviço `mongo` pode ficar parado ou ser removido do arquivo.
+Para continuar no Atlas em vez do Mongo local: em `docker-compose.yml`, remova as linhas `MONGO_HOST:` e `MONGO_DB:` do bloco `environment` do serviço `app` e o `depends_on: mongo`, deixe `URL_DB` no `.env` e rode `docker compose up -d --build app`. O serviço `mongo` pode ficar parado ou ser removido do arquivo.
 
 ## 7. Operação e problemas comuns
 
@@ -146,6 +146,7 @@ docker compose exec nginx nginx -s reload  # recarrega sem derrubar
 docker compose exec -T mongo mongosh -u "$MONGO_USER" -p "$MONGO_PASSWORD" --authenticationDatabase admin TDR
 ```
 
+- **`MongoParseError: Password contains unescaped characters`** (versões antes de out/2026): a URL era montada pelo compose sem escape. Atualize o código (`./scripts/deploy.sh`), que agora monta a URL no app com escape; ou use uma senha só com letras e números.
 - **502 Bad Gateway**: o app está reiniciando ou sem saúde. Veja `docker compose logs app`. Causa comum: `JWT_SECRET` ausente ou `URL_DB` inválido.
 - **Build falha no `git clone`** (`Authentication failed` ou `Repository not found`): `GIT_TOKEN` inválido, expirado ou sem acesso ao repositório; `GIT_BRANCH` inexistente. O log do build mostra `clonando ... sem token` quando a variável está vazia.
 - **Certificado não emite**: veja `/var/log/tdr-domains.log`. "aguardando DNS" = o registro A ainda não aponta para a VPS; erro do certbot = porta 80 fechada no firewall ou no provedor, ou Cloudflare com proxy. Teste com `curl http://loja.com/.well-known/acme-challenge/teste` (deve responder 404 do nginx, não erro de conexão). Após uma falha o `sync` espera 1 hora para aquele domínio; apague `nginx/sites/.sync-state/<dominio>.failed` para tentar antes.

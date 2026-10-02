@@ -1,10 +1,26 @@
 const mongoose = require('mongoose');
 const statusHandler = require("./helpers/helpers.statusHandler");
 
+// URL do banco. Com MONGO_HOST definido (docker-compose), monta a URL a partir de MONGO_USER/MONGO_PASSWORD/MONGO_DB
+// escapando usuário e senha (caracteres como @ # : / quebram a URL se forem crus); senão usa URL_DB (Atlas, local).
+const dbUrl = ()=>{
+    const host = (process.env.MONGO_HOST || "").trim();
+    if(!host) return process.env.URL_DB;
+
+    const user = process.env.MONGO_USER || "";
+    const password = process.env.MONGO_PASSWORD || "";
+    const db = process.env.MONGO_DB || "TDR";
+    const port = process.env.MONGO_PORT || "27017";
+    const auth = user ? `${encodeURIComponent(user)}:${encodeURIComponent(password)}@` : "";
+    const authSource = user ? `?authSource=${encodeURIComponent(process.env.MONGO_AUTH_SOURCE || "admin")}` : "";
+
+    return `mongodb://${auth}${host}:${port}/${db}${authSource}`;
+};
+
 const findOne = async(schema, query = {})=>{
     try{
 
-        mongoose.connect(process.env.URL_DB);
+        mongoose.connect(dbUrl());
 
         return await schema.findOne(query);
 
@@ -16,7 +32,7 @@ const findOne = async(schema, query = {})=>{
 const findById = async(schema, _id, select = null)=>{
     try{
 
-        mongoose.connect(process.env.URL_DB);
+        mongoose.connect(dbUrl());
 
         return !select ? (await schema.findOne({_id})) : (await schema.findOne({_id}).select(select));
     }catch(error){
@@ -27,7 +43,7 @@ const findById = async(schema, _id, select = null)=>{
 const save = async(schema, value)=>{
     try{    
 
-        mongoose.connect(process.env.URL_DB);
+        mongoose.connect(dbUrl());
 
         const insert = new schema(value);
 
@@ -41,7 +57,7 @@ const save = async(schema, value)=>{
 const findAll = async(schema, query = {}, select = null)=>{
     try{
 
-       await mongoose.connect(process.env.URL_DB);
+       await mongoose.connect(dbUrl());
 
         return select ? (await schema.find(query).select(select)) : (await schema.find(query));
 
@@ -54,7 +70,7 @@ const findAll = async(schema, query = {}, select = null)=>{
 const updateById = async(schema, _id, value)=>{
     try{    
 
-        mongoose.connect(process.env.URL_DB);
+        mongoose.connect(dbUrl());
 
         const update = await schema.updateOne({_id}, value);
 
@@ -70,7 +86,7 @@ const updateById = async(schema, _id, value)=>{
 const removeOne = async(schema, _id)=>{
     try{
 
-        mongoose.connect(process.env.URL_DB);
+        mongoose.connect(dbUrl());
 
         const result = await schema.deleteOne({_id});
        
@@ -83,7 +99,7 @@ const removeOne = async(schema, _id)=>{
 const removeMany = async(schema, query)=>{
     try{
 
-        mongoose.connect(process.env.URL_DB);
+        mongoose.connect(dbUrl());
 
         const result = await schema.deleteMany(query);
 
@@ -95,7 +111,7 @@ const removeMany = async(schema, query)=>{
 
 const populate = async(schema, value, populate)=>{
     try{
-        mongoose.connect(process.env.URL_DB);
+        mongoose.connect(dbUrl());
 
         const result = await schema.populate(value, populate);
 
@@ -108,7 +124,7 @@ const populate = async(schema, value, populate)=>{
 const countDocuments = async(schema, query = {})=>{
     try{
      
-        await mongoose.connect(process.env.URL_DB);
+        await mongoose.connect(dbUrl());
 
         return await schema.countDocuments(query)
 
@@ -120,7 +136,7 @@ const countDocuments = async(schema, query = {})=>{
 const aggregate = async(schema, query)=>{
     try{
 
-        await mongoose.connect(process.env.URL_DB);
+        await mongoose.connect(dbUrl());
         
         const result = await schema.aggregate(query);
 
@@ -132,6 +148,7 @@ const aggregate = async(schema, query)=>{
 };
 
 module.exports = {
+    dbUrl,
     save,
     findById,
     findAll,

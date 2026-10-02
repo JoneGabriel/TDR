@@ -1,6 +1,6 @@
 // Cria um usuário do painel admin (senha guardada com bcrypt).
 // Uso: npm run create-admin -- <usuario> <senha>   (ou node scripts/create-admin.js <usuario> <senha>)
-// Usa URL_DB do .env.
+// Usa URL_DB do .env (ou MONGO_HOST/MONGO_USER/MONGO_PASSWORD no docker-compose; ver dbUrl em src/query.js).
 require("dotenv").config();
 const { createAdmin } = require("../src/auth/auth.service");
 
