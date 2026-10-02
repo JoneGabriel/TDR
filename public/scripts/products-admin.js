@@ -127,7 +127,7 @@ const getBodyProduct = async()=>{
                 name:$(ctx).find("[c-id=name_second]").val(),
                 last_price:$(ctx).find("[c-id=last_price_second]").val(),
                 price:$(ctx).find("[c-id=price_second]").val(),
-                description:tinymce.get('description_second')?.getContent() || "",
+                description:editorContent('description_second'),
                 images:getImagesBody("[c-id=image-list-second]")
             }
         };
@@ -137,7 +137,7 @@ const getBodyProduct = async()=>{
         const store = $("[c-id=store-config]").val();
 
         
-        const description = tinymce.get('description').getContent()
+        const description = editorContent('description')
         const other_shopify = getStores();
         const bundles = getBundles();
 
@@ -605,11 +605,72 @@ const deleteProduct = async(id, nome)=>{
     }
 };
 
+// diálogos do TinyMCE (ex.: código-fonte) ficam fora do modal: sem isto o focus trap do Bootstrap bloqueia a digitação neles
 document.addEventListener('focusin', function (e) { 
   if (e.target.closest('.tox-tinymce-aux, .moxman-window, .tam-assetmanager-root') !== null) { 
     e.stopImmediatePropagation();
   } 
 });
+
+// ---------------------------------------------------------------- editores HTML da descrição (TinyMCE auto-hospedado)
+// Iniciados uma vez, na primeira abertura do modal (com ele já visível) e reaproveitados depois. Resolve no evento
+// `init` de cada editor, porque o promise de tinymce.init nem sempre resolve dentro de modais; se o CDN falhar,
+// cai no textarea puro após 8s e o produto continua editável.
+const PRODUCT_EDITORS = ['description', 'description_second'];
+let productEditorsReady = null;
+
+const ensureProductEditors = ()=>{
+    if(productEditorsReady){
+        return productEditorsReady;
+    }
+
+    productEditorsReady = new Promise(resolve=>{
+        const ids = PRODUCT_EDITORS.filter(id=> document.getElementById(id));
+        let pending = ids.length;
+
+        if(!pending || typeof tinymce == "undefined"){
+            return resolve();
+        }
+
+        const timer = setTimeout(resolve, 8000);
+        const done = ()=>{
+            if(--pending <= 0){
+                clearTimeout(timer);
+                resolve();
+            }
+        };
+
+        tinymce.init({
+            selector: ids.map(id=> '#' + id).join(', '),
+            menu: { happy: { title: 'HTML', items: 'code' } },
+            plugins: 'code',
+            menubar: 'happy',
+            skin: 'oxide-dark',
+            content_css: 'dark',
+            setup: (editor)=> editor.on('init', done)
+        });
+    });
+
+    return productEditorsReady;
+};
+
+// escreve/lê o HTML no editor pronto ou, se ele não existir, no textarea (que o TinyMCE lê ao iniciar)
+const setEditorContent = (id, html)=>{
+    const editor = typeof tinymce != "undefined" ? tinymce.get(id) : null;
+
+    if(editor && editor.initialized){
+        editor.setContent(html || '');
+        return;
+    }
+
+    $('#' + id).val(html || '');
+};
+
+const editorContent = (id)=>{
+    const editor = typeof tinymce != "undefined" ? tinymce.get(id) : null;
+
+    return editor && editor.initialized ? editor.getContent() : ($('#' + id).val() || '');
+};
 
 $(document).ready(function(){
 
@@ -703,22 +764,17 @@ $(document).ready(function(){
         }
     });
 
-    $("[c-id=new-product]").on("click", ()=>{
-        $("[c-id=modal-product]").modal("show");
-        tinymce.init({
-            selector: 'textarea',  
-            menu: {
-                happy: { title: 'HTML', items: 'code' }
-            },
-            plugins: 'code',  
-            menubar: 'happy' ,
-            skin: 'oxide-dark',
-            content_css: 'dark',
-            
-        });
-        tinymce.get('description').setContent('');
-        tinymce.get('description_second')?.setContent('');
+    $("[c-id=new-product]").on("click", async()=>{
+        try{
 
+            $("[c-id=modal-product]").modal("show");
+            await ensureProductEditors();
+            setEditorContent('description', '');
+            setEditorContent('description_second', '');
+
+        }catch(error){
+            statusHandler.messageError(error);
+        }
     });
 
     $("[c-id=close-modal]").on("click", ()=>{
@@ -796,19 +852,9 @@ $(document).ready(function(){
 
             const product = await getProductById(id);
             $("[c-id=modal-product]").modal("show");
-            tinymce.init({
-                selector: 'textarea',  
-                menu: {
-                    happy: { title: 'HTML', items: 'code' }
-                },
-                plugins: 'code',  
-                menubar: 'happy' ,
-                skin: 'oxide-dark',
-                content_css: 'dark',
-                
-            });
-            tinymce.get('description').setContent(product.description || '');
-            tinymce.get('description_second')?.setContent(product.layouts?.second?.description || '');
+            await ensureProductEditors();
+            setEditorContent('description', product.description || '');
+            setEditorContent('description_second', product.layouts?.second?.description || '');
 
 
         }catch(error){
@@ -868,7 +914,7 @@ $(document).ready(function(){
             $(ctx).find("[c-id=name_second]").val($(ctx).find("[c-id=name]").val());
             $(ctx).find("[c-id=last_price_second]").val($(ctx).find("[c-id=last_price]").val());
             $(ctx).find("[c-id=price_second]").val($(ctx).find("[c-id=price]").val());
-            tinymce.get('description_second')?.setContent(tinymce.get('description')?.getContent() || '');
+            setEditorContent('description_second', editorContent('description'));
 
             $(ctx).find("[c-id=image-list-second]").html("");
             listImg(getImagesBody().map(img=> img.base64), "[c-id=image-list-second]");

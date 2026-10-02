@@ -457,6 +457,13 @@ const saveTemplate = async(idStore, id)=>{
     }
 }
 
+// diálogos do TinyMCE (código-fonte) ficam fora do modal: sem isto o focus trap do Bootstrap bloqueia a digitação neles
+document.addEventListener('focusin', (e)=>{
+    if(e.target.closest('.tox-tinymce-aux') !== null){
+        e.stopImmediatePropagation();
+    }
+});
+
 // ---------------------------------------------------------------- políticas da loja
 const policyEditor = ()=> tinymce.get('policy-editor');
 
