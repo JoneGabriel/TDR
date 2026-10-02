@@ -5,10 +5,10 @@ const {
  getInfoProductsNew
 } = require("./cart.service");
 
-router.post("/checkout", async({body}, res)=>{
+router.post("/checkout", async({body, query}, res)=>{
     try{
 
-        const response = await getInfoProducts(body);
+        const response = await getInfoProducts(body, query.country);
 
         return res.status(response.status).send(response);
     }catch(error){  

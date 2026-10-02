@@ -28,9 +28,9 @@
                     <a c-id="name-store"></a>
                 </div>
                 <div class="col-lg-4">
-                    <div class="form-check form-switch">
+                    <div class="row-actions"><div class="form-check form-switch">
                         <input c-id="status" class="form-check-input" type="checkbox" role="switch" id="switchCheckChecked">
-                    </div>
+                    </div><button c-id="btn-delete" class="btn-delete" title="Excluir domínio"><i class="bi bi-trash3"></i></button></div>
                 </div>
                 
             </div>
@@ -48,14 +48,14 @@
                         <a>{{domain.store.name}}</a>
                         </div>
                         <div class="col-lg-4">
-                            <div class="form-check form-switch">
+                            <div class="row-actions"><div class="form-check form-switch">
                                 <input c-id="status" class="form-check-input" type="checkbox" role="switch" id="switchCheckChecked" 
                                 {% if domain.status == true %}
                                     checked
                                 {% endif %}
                                 
                                 >
-                            </div>
+                            </div><button c-id="btn-delete" class="btn-delete" title="Excluir domínio"><i class="bi bi-trash3"></i></button></div>
                         </div>
                         
                     </div>
@@ -69,45 +69,35 @@
 </div>
 
 
-<div c-id="modal-domain" class="modal fade modal-product-style"  tabindex="-1"   aria-modal="true" role="dialog">
-  <div class="modal-dialog">
+
+<div c-id="modal-domain" class="modal fade" tabindex="-1" aria-modal="true" role="dialog">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
     <div c-id="form" class="modal-content bk-modal">
       <div class="modal-header rm-border">
-         <button c-id="close-modal" class="btn-modal">Fechar</button>
+        <div class="container-fluid px-3">
+            <h1 class="modal-title fs-5"><i class="bi bi-globe me-1"></i>Domínio</h1>
+            <p class="modal-subtitle">Cada domínio aponta para uma loja. O DNS precisa apontar para este servidor.</p>
+        </div>
+        <button c-id="close-modal" class="btn-modal">Fechar</button>
       </div>
       <div class="modal-body">
-        <div class="container">
-            <div class="row form-default">
-                <div class="col-lg-6">
-                    <div class="mb-3">
-                        <label class="form-label">Dominio</label>
-                        <input c-id="domain" type="text" class="form-control"  placeholder="exemplo.com">
-                    </div>
-                   
+        <section class="modal-section mb-0">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Domínio</label>
+                    <input c-id="domain" type="text" class="form-control" placeholder="exemplo.com">
                 </div>
-                <div class="col-lg-6">
-                     <div class="mb-3">
-                        <label class="form-label">Loja</label>
-                        <select c-id="store-config" class="form-select"></select>
-                    </div>
-                </div>
-
-            
-
-            </div>
-            <button c-id="save-domain" class="btn-modal mt-4 float-end">Salvar</button>
-            <div class="clearfix">
-                <div c-id="loading-btn" class="spinner-border float-end mt-4 none" role="status">
-                    <span class="visually-hidden">Loading...</span>
+                <div class="col-md-6">
+                    <label class="form-label">Loja</label>
+                    <select c-id="store-config" class="form-select"></select>
                 </div>
             </div>
-            <br>
-            <br>
-            <br>
-
-        </div>
+        </section>
       </div>
-      
+      <div class="modal-footer rm-border">
+        <div c-id="loading-btn" class="spinner-border none" role="status"><span class="visually-hidden">Loading...</span></div>
+        <button c-id="save-domain" class="btn-modal">Salvar</button>
+      </div>
     </div>
   </div>
 </div>

@@ -35,7 +35,7 @@
                 <label class="mt-1"><b>Data de Cadastro</b></label>
             </div>
             <div class="col-lg-4">
-                <label class="mt-1"><b></b></label>
+                <label class="mt-1"><b>Ações</b></label>
             </div>
         </div>
 
@@ -48,16 +48,14 @@
                 <div class="col-lg-4">
                     <a c-id="createdAt" class="ms-2"></a>
                 </div>
-                <div class="col-lg-4">
-                   
-                </div>
+                <div class="col-lg-4"><div class="row-actions"><button c-id="btn-delete" class="btn-delete" title="Excluir IP"><i class="bi bi-trash3"></i></button></div></div>
             </div>
         </div>
 
         <div c-id="all-ip" class="row">
             {% for ip in ips %}
 
-                <div c-id="model-ip" id="{{colecao._id}}" class="col-lg-12">
+                <div c-id="model-ip" id="{{ip._id}}" class="col-lg-12">
                     <div  class="row model-table p-2">
                         <div class="col-lg-4">
                             <a class="ms-2">{{ip.ip}}</a>
@@ -65,8 +63,7 @@
                         <div class="col-lg-4">
                             <a c-id="createdAt" class="ms-2">{{ip.createdAt}}</a>
                         </div>
-                        <div class="col-lg-4">
-                        </div>
+                        <div class="col-lg-4"><div class="row-actions"><button c-id="btn-delete" class="btn-delete" title="Excluir IP"><i class="bi bi-trash3"></i></button></div></div>
                     </div>
                 </div>
 
@@ -78,39 +75,27 @@
 </div>
 
 
-<div c-id="modal-ip" class="modal fade modal-product-style"  tabindex="-1"   aria-modal="true" role="dialog">
-  <div class="modal-dialog">
+
+<div c-id="modal-ip" class="modal fade" tabindex="-1" aria-modal="true" role="dialog">
+  <div class="modal-dialog modal-dialog-centered">
     <div c-id="form" class="modal-content bk-modal">
       <div class="modal-header rm-border">
-         <button c-id="close-modal" class="btn-modal">Fechar</button>
+        <div class="container-fluid px-3">
+            <h1 class="modal-title fs-5"><i class="bi bi-shield-lock me-1"></i>Novo IP na white list</h1>
+            <p class="modal-subtitle">IPs da equipe passam direto pelo filtro e não entram nas métricas.</p>
+        </div>
+        <button c-id="close-modal" class="btn-modal">Fechar</button>
       </div>
       <div class="modal-body">
-        <div class="container">
-            <div class="row form-default">
-                <div class="col-lg-6">
-                    <div class="mb-3">
-                        <label class="form-label">Ip</label>
-                        <input c-id="ip" type="text" class="form-control"  placeholder="177.55.228.202">
-                    </div>
-                   
-                </div>
-
-            
-
-            </div>
-            <button c-id="save-ip" class="btn-modal mt-4 float-end">Salvar</button>
-            <div class="clearfix">
-                <div c-id="loading-btn" class="spinner-border float-end mt-4 none" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </div>
-            <br>
-            <br>
-            <br>
-
-        </div>
+        <section class="modal-section mb-0">
+            <label class="form-label">IP</label>
+            <input c-id="ip" type="text" class="form-control" placeholder="177.55.228.202">
+        </section>
       </div>
-      
+      <div class="modal-footer rm-border">
+        <div c-id="loading-btn" class="spinner-border none" role="status"><span class="visually-hidden">Loading...</span></div>
+        <button c-id="save-ip" class="btn-modal">Salvar</button>
+      </div>
     </div>
   </div>
 </div>

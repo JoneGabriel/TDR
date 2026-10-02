@@ -87,7 +87,49 @@ const saveIp = async(id=false)=>{
 
 
 
+// Exclusão definitiva (não é desativação): pede confirmação antes
+const deleteIp = async(id, nome)=>{
+    try{
+
+        const ok = await confirmAction({
+            title:"Excluir IP",
+            message:`Excluir "${nome}" definitivamente? Essa ação não pode ser desfeita.`
+        });
+
+        if(!ok){
+            return;
+        }
+
+        const response = await request("DELETE", `/cloacker/white-list/${id}`);
+
+        if(response.status != 200){
+            throw(statusHandler.messageError(response.content || "Erro ao excluir", true));
+        }
+
+        statusHandler.newMessage("Ip excluído(a)");
+        await listAllIps();
+
+    }catch(error){
+        throw(statusHandler.messageError(error));
+    }
+};
+
 $(document).ready(function(){
+
+    $("body").on("click", "[c-id=model-ip]", async(e)=>{
+        try{
+
+            const id = $(e.currentTarget).attr("id");
+            const target = $(e.target).closest("[c-id]").attr("c-id");
+
+            if(target == "btn-delete"){
+                await deleteIp(id, $(e.currentTarget).find("a").first().text());
+            }
+
+        }catch(error){
+            statusHandler.messageError(error);
+        }
+    });
 
     $("[c-id=save-ip]").on("click", async(e)=>{
         try{

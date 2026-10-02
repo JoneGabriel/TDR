@@ -15,7 +15,7 @@ const {
     WhiteList
 } = require("./cloacker.schema");
 const statusHandler = require('../helpers/helpers.statusHandler');
-const { findOne, updateById, save, findAll } = require('../query');
+const { findOne, updateById, save, findAll, findById, removeOne } = require('../query');
 const { isEmpty } = require('../helpers/helpers.global');
 
 
@@ -48,12 +48,14 @@ const getAllIps = async()=>{
         let ips = await findAll(WhiteList);
         ips = ips.map(value=>{
 
-            const {ip, createdAt} = value;
+            const {_id, ip, createdAt} = value;
             const date = new Date(createdAt);
             const day = (date.getDate()+"").length == 1 ? `0${date.getDate()}` : date.getDate();
             const month = ((date.getMonth()+1)+"").length == 1 ? `0${date.getMonth()+1}` : date.getMonth()+1;
 
+            // _id é necessário para editar/excluir a linha no admin
             return {
+                _id,
                 ip,
                 createdAt:`${day}/${month}/${date.getFullYear()}`
             }
@@ -67,7 +69,27 @@ const getAllIps = async()=>{
     }
 };
 
+// Exclusão definitiva de um IP da white list
+const removeIp = async({id})=>{
+    try{
+
+        const ip = await findById(WhiteList, id);
+
+        if(!ip){
+            throw(statusHandler.newResponse(404, "IP não encontrado"));
+        }
+
+        await removeOne(WhiteList, id);
+
+        return statusHandler.newResponse(200, "IP excluído");
+
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
+
 module.exports = { 
+    removeIp,
     useragent, 
     getAllIps,
     saveNewIp

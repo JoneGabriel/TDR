@@ -2,6 +2,7 @@ const router = require("express").Router();
 const path = require('path');
 const relativePath =  path.resolve(`${__dirname}/../`);
 const index = relativePath + '/template/index.twig';
+const errorPage = relativePath + '/components/store/error.twig';
 
 const {
     getFirtsCollection,
@@ -15,7 +16,8 @@ const {
 
 const {
     getOrderShopify,
-    getCharges
+    getCharges,
+    getChatContext
 } = require("../order/order.service");
 
 const {
@@ -42,14 +44,29 @@ const {
     options_country,
     options_moeda,
     options_idioma,
-    policies,
-    files
+    files,
+    options_layout,
+    useLayout,
+    useCountry,
+    policy_files
 } = require("../store/store.service");
 const Twig = require('twig');
+const { requireAdminPage } = require("../auth/auth.service");
+
+// Página de erro da vitrine, usada no catch das rotas da loja.
+// `config` pode estar indefinido se a loja nem chegou a carregar (ex.: domínio não cadastrado).
+const renderError = (res, error, config)=>{
+    console.error(error);
+
+    return res.status(500).render(errorPage, {
+        title:config?.title,
+        logo:config?.logo
+    });
+};
 
 //rotas admin
 
-router.get("/admin/products", async(req, res)=>{
+router.get("/admin/products", requireAdminPage, async(req, res)=>{
     try{
 
         const products_ = await getAllProducts();
@@ -68,7 +85,7 @@ router.get("/admin/products", async(req, res)=>{
     }   
 });
 
-router.get("/admin/home", async(req, res)=>{
+router.get("/admin/home", requireAdminPage, async(req, res)=>{
     try{
 
         let max = new Date(Date.now());
@@ -101,7 +118,7 @@ router.get("/admin/home", async(req, res)=>{
 });
 
 
-router.get("/admin/collections", async(req, res)=>{
+router.get("/admin/collections", requireAdminPage, async(req, res)=>{
     try{
 
         const all_collections =  await getAllCollections(true);
@@ -121,7 +138,7 @@ router.get("/admin/collections", async(req, res)=>{
 });
 
 
-router.get("/admin/shopify", async(req, res)=>{
+router.get("/admin/shopify", requireAdminPage, async(req, res)=>{
     try{
 
         const shopifys = await getAllShopify()
@@ -140,7 +157,7 @@ router.get("/admin/shopify", async(req, res)=>{
     }   
 });
 
-router.get("/admin/stores", async(req, res)=>{
+router.get("/admin/stores", requireAdminPage, async(req, res)=>{
     try{
 
         const stores = await getAllStores()
@@ -154,7 +171,9 @@ router.get("/admin/stores", async(req, res)=>{
             options_country,
             options_moeda,
             options_idioma,
-            files
+            files,
+            options_layout,
+            policy_files
         });
         
     }catch(error){
@@ -164,7 +183,7 @@ router.get("/admin/stores", async(req, res)=>{
 });
 
 
-router.get("/admin/cloacker", async(req, res)=>{
+router.get("/admin/cloacker", requireAdminPage, async(req, res)=>{
     try{
 
         const ips = await getAllIps();
@@ -183,7 +202,7 @@ router.get("/admin/cloacker", async(req, res)=>{
     }   
 });
 
-router.get("/admin/domain", async(req, res)=>{
+router.get("/admin/domain", requireAdminPage, async(req, res)=>{
     try{
 
         const domains = await getAllDomains();
@@ -202,22 +221,39 @@ router.get("/admin/domain", async(req, res)=>{
     }   
 });
 
+router.get("/admin/integrations", requireAdminPage, async(req, res)=>{
+    try{
+
+        return res.render(index, {
+            template:'{% include "' + relativePath + '/components/admin/integrations.twig" %}',
+            script:"integrations-admin.js",
+            admin:true,
+            integrations:'active'
+        });
+        
+    }catch(error){
+      console.log(error)
+        
+    }   
+});
+
 // rotas loja
 router.get("/", async(req, res)=>{
+    let config;
+
     try{
 
     
-        const config = await getConfigStore(req.get('host'), 'domain');
-        const isSecure = await saveSession(req, config.country);
+        config = await getConfigStore(req.get('host'), 'domain');
+        const isSecure = await saveSession(req, res, config.country);
 
-        if(!isSecure){                
-            const host = req.get('host');
-            const newUrl = `https://www.${host}${req.originalUrl}`;
+        // visitante filtrado pelo cloaker vê o layout "second"; liberado vê "first" (ou ?layout= para pré-visualizar)
+        useLayout(config, isSecure ? req.query.layout : "second");
+        // moeda e preços pelo país da visita (?country= pré-visualiza outro país atendido)
+        useCountry(config, req.query.country || req.visitorCountry);
 
-            return res.redirect(newUrl);
-        }
-
-        const firstCollection = await getFirtsCollection(config._id);
+        // produtos na versão do layout em uso (first/second); /order/:id fica fora dessa regra
+        const firstCollection = await getFirtsCollection(config._id, config.layout, config.buyer_country);
         const all_collections =  await getAllCollections(false, config._id);
 
         let {header_template, menu_store, cart_template, footer_template, home_template} = config;
@@ -258,30 +294,28 @@ router.get("/", async(req, res)=>{
         });
 
     }catch(error){
-        const host = req.get('host');
-        const newUrl = `https://www.${host}${req.originalUrl}`;
 
-        return res.redirect(newUrl);
+        return renderError(res, error, config);
     }
 });
 
-router.get("/collections/:id", async(req , res)=>{
+router.get("/collections/:id", async(req, res)=>{
+    let config;
+
     try{    
         
-        const config = await getConfigStore(req.params.id, 'collection');
+        config = await getConfigStore(req.params.id, 'collection');
        
 
-        const isSecure = await saveSession(req, config.country);
+        const isSecure = await saveSession(req, res, config.country);
         
-        if(!isSecure){
-            const host = req.get('host');
-            const newUrl = `https://www.${host}${req.originalUrl}`;
-
-            return res.redirect(newUrl);
-        }
+        // visitante filtrado pelo cloaker vê o layout "second"; liberado vê "first" (ou ?layout= para pré-visualizar)
+        useLayout(config, isSecure ? req.query.layout : "second");
+        // moeda e preços pelo país da visita (?country= pré-visualiza outro país atendido)
+        useCountry(config, req.query.country || req.visitorCountry);
         
         const {id} = req.params;
-        const info = await getInfoCollection(id);
+        const info = await getInfoCollection(id, config.layout, config.buyer_country);
         const all_collections =  await getAllCollections(false, config._id);
 
         let {header_template, menu_store, cart_template, footer_template, collection_template} = config;
@@ -320,35 +354,31 @@ router.get("/collections/:id", async(req , res)=>{
 
     }catch(error){
 
-        const host = req.get('host');
-        const newUrl = `https://www.${host}${req.originalUrl}`;
-
-        return res.redirect(newUrl);
+        return renderError(res, error, config);
     }
 });
 
 router.get("/products/:id", async(req, res)=>{
+    let config;
+
     try{    
 
-        const config = await getConfigStore(req.params.id, 'product');
+        config = await getConfigStore(req.params.id, 'product');
 
-        const isSecure = await saveSession(req, config.country);
+        const isSecure = await saveSession(req, res, config.country);
 
-        if(!isSecure){
-            const host = req.get('host');
-            const newUrl = `https://www.${host}${req.originalUrl}`;
-
-            return res.redirect(newUrl);
-
-        }
+        // visitante filtrado pelo cloaker vê o layout "second"; liberado vê "first" (ou ?layout= para pré-visualizar)
+        useLayout(config, isSecure ? req.query.layout : "second");
+        // moeda e preços pelo país da visita (?country= pré-visualiza outro país atendido)
+        useCountry(config, req.query.country || req.visitorCountry);
 
         const {id} = req.params;
-        const product = await getProductById(id);
+        const product = await getProductById(id, false, config.layout, config.buyer_country);
         
         
 
         const all_collections =  await getAllCollections(false, config._id);
-        const ramdonProducts = await getProductsRamdon(product.collection_, config._id);
+        const ramdonProducts = await getProductsRamdon(product.collection_, config._id, config.layout, config.buyer_country);
 
         let {header_template, menu_store, cart_template, footer_template, product_template} = config;
 
@@ -426,25 +456,29 @@ router.get("/products/:id", async(req, res)=>{
         });
 
     }catch(error){
-        console.log(error)
-        const host = req.get('host');
-        const newUrl = `https://www.${host}${req.originalUrl}`;
 
-        return res.redirect(newUrl);
+        return renderError(res, error, config);
     }
 });
 
 router.get("/order/:id", async(req, res)=>{
+    let config;
+
     try{    
 
         //const isSecure = await saveSession(req);
 
-        const config = await getConfigStore(req.get('host'), 'domain');
+        config = await getConfigStore(req.get('host'), 'domain');
+        // sem filtro de visitante nesta rota: layout "first" por padrão, ?layout= para pré-visualizar
+        useLayout(config, req.query.layout);
+        useCountry(config, req.query.country || req.visitorCountry);
         const country =config.country[0];
 
         const {id} = req.params;
-        const order = await getOrderShopify(id, req.query, country);
+        const order = await getOrderShopify(id, req.query, country, config.idioma_code);
         const charges = await getCharges(id, country)
+        // contexto do chat inteligente (window.TDR_ORDER em index.twig)
+        const order_chat = order ? getChatContext(order, config, req.query.urlStore) : null;
         const all_collections =  await getAllCollections(false);
 
         const timeZoneCountry = {
@@ -482,6 +516,7 @@ router.get("/order/:id", async(req, res)=>{
             script:"order.js",
             store:true,
             ...config,
+            order_chat,
             header_template,
             menu_store,
             cart_template,
@@ -489,26 +524,25 @@ router.get("/order/:id", async(req, res)=>{
         });
 
     }catch(error){
-        console.log(error);
 
-        res.redirect("/");
+        return renderError(res, error, config);
     }
 });
 
 router.get("/privacy-policy", async(req, res)=>{
+    let config;
+
     try{
     
         
-        const config = await getConfigStore(req.get('host'), 'domain');
+        config = await getConfigStore(req.get('host'), 'domain');
         const countrCode = config.country[0];
-        const isSecure = await saveSession(req, config.country);
+        const isSecure = await saveSession(req, res, config.country);
 
-        if(!isSecure){                
-            const host = req.get('host');
-            const newUrl = `https://www.${host}${req.originalUrl}`;
-
-            return res.redirect(newUrl);
-        }
+        // visitante filtrado pelo cloaker vê o layout "second"; liberado vê "first" (ou ?layout= para pré-visualizar)
+        useLayout(config, isSecure ? req.query.layout : "second");
+        // moeda e preços pelo país da visita (?country= pré-visualiza outro país atendido)
+        useCountry(config, req.query.country || req.visitorCountry);
         
         const all_collections =  await getAllCollections(false, config._id);
         
@@ -534,7 +568,7 @@ router.get("/privacy-policy", async(req, res)=>{
             template:'{% include "' + relativePath + '/components/store/policies.twig" %}',
             store:true,
             all_collections:all_collections.content,
-           ...policies[countrCode]['privacy'],
+           ...config.policies.privacy,
            ...config,
            policy:true,
            header_template,
@@ -544,27 +578,25 @@ router.get("/privacy-policy", async(req, res)=>{
         });
 
     }catch(error){
-        const host = req.get('host');
-        const newUrl = `https://www.${host}${req.originalUrl}`;
 
-        return res.redirect(newUrl);
+        return renderError(res, error, config);
     }
 });
 
 
 router.get("/shipping-policy", async(req, res)=>{
+    let config;
+
     try{
     
-        const config = await getConfigStore(req.get('host'), 'domain');
+        config = await getConfigStore(req.get('host'), 'domain');
         const countrCode = config.country[0];
-        const isSecure = await saveSession(req, config.country);
+        const isSecure = await saveSession(req, res, config.country);
 
-        if(!isSecure){                
-            const host = req.get('host');
-            const newUrl = `https://www.${host}${req.originalUrl}`;
-
-            return res.redirect(newUrl);
-        }
+        // visitante filtrado pelo cloaker vê o layout "second"; liberado vê "first" (ou ?layout= para pré-visualizar)
+        useLayout(config, isSecure ? req.query.layout : "second");
+        // moeda e preços pelo país da visita (?country= pré-visualiza outro país atendido)
+        useCountry(config, req.query.country || req.visitorCountry);
         
         const all_collections =  await getAllCollections(false, config._id);
         
@@ -590,7 +622,7 @@ router.get("/shipping-policy", async(req, res)=>{
             template:'{% include "' + relativePath + '/components/store/policies.twig" %}',
             store:true,
             all_collections:all_collections.content,
-           ...policies[countrCode]['shipping'],
+           ...config.policies.shipping,
            ...config,
            policy:true,
            header_template,
@@ -600,27 +632,25 @@ router.get("/shipping-policy", async(req, res)=>{
         });
 
     }catch(error){
-        const host = req.get('host');
-        const newUrl = `https://www.${host}${req.originalUrl}`;
 
-        return res.redirect(newUrl);
+        return renderError(res, error, config);
     }
 });
 
 
 router.get("/return-refund", async(req, res)=>{
+    let config;
+
     try{
     
-        const config = await getConfigStore(req.get('host'), 'domain');
+        config = await getConfigStore(req.get('host'), 'domain');
         const countrCode = config.country[0];
-        const isSecure = await saveSession(req, config.country);
+        const isSecure = await saveSession(req, res, config.country);
 
-        if(!isSecure){                
-            const host = req.get('host');
-            const newUrl = `https://www.${host}${req.originalUrl}`;
-
-            return res.redirect(newUrl);
-        }
+        // visitante filtrado pelo cloaker vê o layout "second"; liberado vê "first" (ou ?layout= para pré-visualizar)
+        useLayout(config, isSecure ? req.query.layout : "second");
+        // moeda e preços pelo país da visita (?country= pré-visualiza outro país atendido)
+        useCountry(config, req.query.country || req.visitorCountry);
         
         const all_collections =  await getAllCollections(false, config._id);
 
@@ -646,7 +676,7 @@ router.get("/return-refund", async(req, res)=>{
             template:'{% include "' + relativePath + '/components/store/policies.twig" %}',
             store:true,
             all_collections:all_collections.content,
-           ...policies[countrCode]['return'],
+           ...config.policies.return,
            ...config,
             policy:true,
            header_template,
@@ -656,27 +686,25 @@ router.get("/return-refund", async(req, res)=>{
         });
 
     }catch(error){
-        const host = req.get('host');
-        const newUrl = `https://www.${host}${req.originalUrl}`;
 
-        return res.redirect(newUrl);
+        return renderError(res, error, config);
     }
 });
 
 
 router.get("/terms-of-service", async(req, res)=>{
+    let config;
+
     try{
     
-        const config = await getConfigStore(req.get('host'), 'domain');
+        config = await getConfigStore(req.get('host'), 'domain');
         const countrCode = config.country[0];
-        const isSecure = await saveSession(req, config.country);
+        const isSecure = await saveSession(req, res, config.country);
 
-        if(!isSecure){                
-            const host = req.get('host');
-            const newUrl = `https://www.${host}${req.originalUrl}`;
-
-            return res.redirect(newUrl);
-        }
+        // visitante filtrado pelo cloaker vê o layout "second"; liberado vê "first" (ou ?layout= para pré-visualizar)
+        useLayout(config, isSecure ? req.query.layout : "second");
+        // moeda e preços pelo país da visita (?country= pré-visualiza outro país atendido)
+        useCountry(config, req.query.country || req.visitorCountry);
         
         const all_collections =  await getAllCollections(false, config._id);
         
@@ -702,7 +730,7 @@ router.get("/terms-of-service", async(req, res)=>{
             template:'{% include "' + relativePath + '/components/store/policies.twig" %}',
             store:true,
             all_collections:all_collections.content,
-           ...policies[countrCode]['terms'],
+           ...config.policies.terms,
            ...config,
            policy:true,
            header_template,
@@ -712,10 +740,8 @@ router.get("/terms-of-service", async(req, res)=>{
         });
 
     }catch(error){
-        const host = req.get('host');
-        const newUrl = `https://www.${host}${req.originalUrl}`;
 
-        return res.redirect(newUrl);
+        return renderError(res, error, config);
     }
 });
 

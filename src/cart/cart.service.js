@@ -1,3 +1,4 @@
+const { pickBuyerCountry } = require("../helpers/helpers.countries");
 const statusHandler = require("../helpers/helpers.statusHandler")
 const {request, isEmpty} = require("../helpers/helpers.global");
 
@@ -8,6 +9,7 @@ const {
 } =require("../product/product.schema");
 const { findById, findAll, findOne } = require("../query");
 const { Shopify } = require("../shopify/shopify.schema");
+const { shopifyGraphql } = require("../shopify/shopify.client");
 const { Store } = require("../store/store.schema");
 
 
@@ -97,7 +99,7 @@ const checkOptionsStore = async(product, existStore)=>{
     }
 };
 
-const getInfoProducts = async(cart)=>{
+const getInfoProducts = async(cart, requestedCountry = null)=>{
     try{
         
       let country;
@@ -115,9 +117,10 @@ const getInfoProducts = async(cart)=>{
                 let current_variants =  await checkOptionsStore(product);
 
                 const {store:storeCountry} = await findById(Product, product);
-                const {country:countrCode} = await findById(Store, storeCountry);
+                const {country:served} = await findById(Store, storeCountry);
 
-                country = countrCode;
+                // país do comprador: o da visita se a loja o atende, senão o primeiro país da loja (define a moeda do checkout)
+                country = pickBuyerCountry(served, requestedCountry);
 
                 const variantsCompare = current_variants.store ? current_variants["variants"] : current_variants;
 
@@ -174,17 +177,17 @@ const getInfoProducts = async(cart)=>{
 
 const createLinesCheckout = (cart) => {
   try {
-    let lines = "";
+    const lines = [];
     cart.forEach((line) => {
       if (line.is_bundle && Array.isArray(line.ids) && line.ids.length) {
         const qty = Number.parseInt(String(line.amount ?? 1), 10) || 1;
         line.ids.forEach((variantId) => {
-          lines += `{merchandiseId:"gid://shopify/ProductVariant/${variantId}", quantity: ${qty/line.ids.length}},\n`;
+          lines.push({ merchandiseId: `gid://shopify/ProductVariant/${variantId}`, quantity: qty / line.ids.length });
         });
       } else {
         const { id_shopify, amount } = line;
         const qty = Number.parseInt(String(amount ?? 1), 10) || 1;
-        lines += `{merchandiseId:"gid://shopify/ProductVariant/${id_shopify}", quantity: ${qty}},\n`;
+        lines.push({ merchandiseId: `gid://shopify/ProductVariant/${id_shopify}`, quantity: qty });
       }
     });
     return lines;
@@ -209,15 +212,8 @@ const createUrlCheckout = async (cart, country) => {
     console.log(finalCountry);
 
     const query = `
-      mutation @inContext(country: ${finalCountry}) {
-        cartCreate(input: {
-          lines: [
-            ${lines}
-          ]
-          buyerIdentity: {
-            countryCode: ${finalCountry}
-          }
-        }) {
+      mutation CartCreate($lines: [CartLineInput!]!, $country: CountryCode!) @inContext(country: $country) {
+        cartCreate(input: { lines: $lines, buyerIdentity: { countryCode: $country } }) {
           cart {
             id
             checkoutUrl
@@ -230,24 +226,20 @@ const createUrlCheckout = async (cart, country) => {
       }
     `;
 
-    let domain;
-    let token;
+    const shopify = await findById(Shopify, cart[0].store);
 
-    if (cart[0].store) {
-      const { url, token_storefront } = await findById(Shopify, cart[0].store);
-      domain = url;
-      token = token_storefront;
+    if (!shopify) {
+      throw statusHandler.newResponse(400, "Shopify nao encontrada para o carrinho");
     }
 
-    const response = await request(
-      "POST",
-      `https://${domain}/api/2023-10/graphql.json`,
-      { query },
-      { "X-Shopify-Storefront-Access-Token": token }
-    );
+    const data = await shopifyGraphql(shopify, "storefront", query, { lines, country: finalCountry });
 
-    let checkoutUrl = response?.data?.cartCreate?.cart?.checkoutUrl;
-    const cartId = response?.data?.cartCreate?.cart?.id;
+    if (data.cartCreate?.userErrors?.length) {
+      console.warn('\x1b[33m%s\x1b[0m', JSON.stringify(data.cartCreate.userErrors));
+    }
+
+    let checkoutUrl = data.cartCreate?.cart?.checkoutUrl;
+    const cartId = data.cartCreate?.cart?.id;
 
     // -------------------------
     // CUPONS (mantido igual)
@@ -263,26 +255,27 @@ const createUrlCheckout = async (cart, country) => {
 
     const applyCodes = async (codesToApply) => {
       const applyCouponQuery = `
-        mutation {
-          cartDiscountCodesUpdate(cartId: "${cartId}", discountCodes: [${codesToApply
-            .map((c) => `"${c}"`)
-            .join(", ")}]) {
-            cart { checkoutUrl }
+        mutation CartDiscountCodesUpdate($cartId: ID!, $discountCodes: [String!]!) {
+          cartDiscountCodesUpdate(cartId: $cartId, discountCodes: $discountCodes) {
+            cart {
+              checkoutUrl
+              discountCodes { code applicable }
+            }
             userErrors { field message }
           }
         }
       `;
 
-      const discountRes = await request(
-        "POST",
-        `https://${domain}/api/2023-10/graphql.json`,
-        { query: applyCouponQuery },
-        { "X-Shopify-Storefront-Access-Token": token }
-      );
+      const discountRes = await shopifyGraphql(shopify, "storefront", applyCouponQuery, {
+        cartId,
+        discountCodes: codesToApply
+      });
 
-      const dUpdate = discountRes?.data?.cartDiscountCodesUpdate;
+      const dUpdate = discountRes?.cartDiscountCodesUpdate;
       const dErrors = dUpdate?.userErrors;
-      const ok = !Array.isArray(dErrors) || dErrors.length === 0;
+      // cupom invalido nao gera userErrors, volta com applicable: false
+      const notApplicable = (dUpdate?.cart?.discountCodes || []).filter((d) => !d.applicable);
+      const ok = (!Array.isArray(dErrors) || dErrors.length === 0) && notApplicable.length === 0;
 
       return { ok, url: dUpdate?.cart?.checkoutUrl || checkoutUrl };
     };

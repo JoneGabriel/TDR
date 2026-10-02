@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>{{ title|default('Error') }}</title>
+    <link href="/assets/styles/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body{margin:0;padding:16px;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#fff;color:#222;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+        .error-box{max-width:420px;width:100%;text-align:center}
+        .error-box img{max-width:120px;margin-bottom:24px}
+        .error-box h1{font-size:1.5rem;font-weight:700;margin-bottom:8px}
+        .error-box p{color:#666;margin-bottom:24px}
+        .error-box .btn{border-radius:0;padding:10px 24px}
+    </style>
+</head>
+<body>
+    <div class="error-box">
+        {% if logo %}
+            <a href="/"><img src="{{ logo }}" alt="{{ title|default('') }}"></a>
+        {% endif %}
+        <h1>Something went wrong</h1>
+        <p>We couldn't load this page. Please try again in a moment.</p>
+        <a class="btn btn-dark" href="/">Back to home</a>
+    </div>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{# Modal de confirmação para ações destrutivas do admin; usado por confirmAction() em public/scripts/helpers.js #}
+<div c-id="modal-confirm" class="modal fade modal-confirm" tabindex="-1" aria-modal="true" role="dialog">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header rm-border">
+        <h1 class="modal-title fs-5"><i class="bi bi-exclamation-triangle"></i> <span c-id="confirm-title">Confirmar exclusão</span></h1>
+      </div>
+      <div class="modal-body">
+        <p c-id="confirm-message" class="mb-0"></p>
+      </div>
+      <div class="modal-footer rm-border">
+        <button c-id="confirm-cancel" class="btn-modal">Cancelar</button>
+        <button c-id="confirm-ok" class="btn-modal btn-danger-neon">Excluir</button>
+      </div>
+    </div>
+  </div>
+</div>

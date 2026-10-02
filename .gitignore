@@ -1,16 +1,34 @@
-
-# Ignorar node_modules
+# dependências
 node_modules/
+npm-debug.log*
 
-
-
-
-
-# Ignorar variáveis de ambiente
+# variáveis de ambiente e segredos (nunca versionar)
 .env
+.env.*
+env/
+*.pem
+*.key
 
-nginx.config
-
+# pasta de deploy da VPS: fica fora do git e vai para a VPS por scp (ver DEPLOY.md)
+Dockerfile
 docker-compose.yml
+docker-compose.*.yml
+compose.yml
+compose.*.yml
+.dockerignore
+.env.docker.example
+nginx/
+nginx.config
+scripts/*.sh
+backups/
+certs/
 
+# gerados e locais
+*.log
+logs/
 todo
+.claude/settings.local.json
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -6,11 +6,13 @@ const cleanProductFilds = ()=>{
         });
 
         $("[c-id=form]").find("[c-id=image-list]").html("");
+        $("[c-id=form]").find("[c-id=image-list-second]").html("");
         $("[c-id=form]").find("[c-id=save-product]").removeAttr("id");
         $("[c-id=form]").find("[c-id=all-stores]").html("");
         $("[c-id=form]").find("[c-id=all-bundles]").html("");
 
         $("[c-id=form]").find("[c-id=name-product]").text("");
+        $("[c-id=discount-preview]").addClass("none").text("");
 
 
     }catch(error){
@@ -118,6 +120,17 @@ const getBodyProduct = async()=>{
        
 
         body["images"] = getImagesBody();
+
+        // versão second do produto (visitante filtrado); campos vazios caem na versão first
+        body["layouts"] = {
+            second:{
+                name:$(ctx).find("[c-id=name_second]").val(),
+                last_price:$(ctx).find("[c-id=last_price_second]").val(),
+                price:$(ctx).find("[c-id=price_second]").val(),
+                description:tinymce.get('description_second')?.getContent() || "",
+                images:getImagesBody("[c-id=image-list-second]")
+            }
+        };
         //body["lp"] = await getLeadingPage(); 
 
         const collection = $("[c-id=collection]").val();
@@ -249,33 +262,29 @@ const getLeadingPage = async()=>{
     }
 };
 
-const getImages = async()=>{
+// imagens do input de arquivo, já redimensionadas/comprimidas no navegador (admin-media.js)
+const getImages = async(selector = "[c-id=images]")=>{
     try{
 
-        const file = $("[c-id=form]").find("[c-id=images]").prop("files");
-        
-        let imgs = [];
+        return await AdminMedia.filesToDataUrls($("[c-id=form]").find(selector).prop("files"));
 
-        if(file.length){
-
-            for(i in file){
-
-                if(file[i].size){
-                    const base64 = await convertFileToBase64(file[i]);
-                    imgs.push(base64);
-                }
-                
-            }
-            
-        }
-        
-        return imgs;
     }catch(error){
         throw(statusHandler.messageError(error));
     }
 };
 
-const listImg = (imgs)=>{
+// desconto implícito entre comparação de preço e preço
+const updateDiscountPreview = ()=>{
+    const price = parseFloat($("[c-id=form]").find("[c-id=price]").val());
+    const last = parseFloat($("[c-id=form]").find("[c-id=last_price]").val());
+    const chip = $("[c-id=discount-preview]");
+
+    (price > 0 && last > price)
+        ? chip.text(`-${Math.round(100 - price * 100 / last)}%`).removeClass("none")
+        : chip.addClass("none").text("");
+};
+
+const listImg = (imgs, ctx = "[c-id=image-list]")=>{
     try{
 
         imgs.forEach(val => {
@@ -284,7 +293,7 @@ const listImg = (imgs)=>{
 
             $(model).find("img").attr("src", val);
             $(model).removeClass("none");
-            $("[c-id=image-list]").append(model);
+            $(ctx).append(model);
         });
 
     }catch(error){
@@ -292,12 +301,12 @@ const listImg = (imgs)=>{
     }
 };
 
-const getImagesBody = () =>{
+const getImagesBody = (ctx = "[c-id=image-list]") =>{
     try{    
 
         let imgs = [];
 
-        const models = $("[c-id=image-list]").find("[c-id=model-img]");
+        const models = $(ctx).find("[c-id=model-img]");
 
         $(models).each(function(el){
             const src = $(this).find("img").attr("src");
@@ -335,6 +344,7 @@ const listProductInForm = (product)=>{
 
         $(ctx).find("[c-id=last_price]").val(last_price);
         $(ctx).find("[c-id=price]").val(price);
+        updateDiscountPreview();
         $(ctx).find("[c-id=brand]").val(brand);
         $(ctx).find("[c-id=store-config]").val(store);
 
@@ -342,6 +352,14 @@ const listProductInForm = (product)=>{
         $(ctx).find("[c-id=collection]").val(collection_);
         $(ctx).find("[c-id=description]").val(description);
         $(ctx).find("[c-id=save-product]").attr("id", _id);
+
+        // versão second (campos vazios = usa a first)
+        const second = product.layouts?.second || {};
+
+        $(ctx).find("[c-id=name_second]").val(second.name);
+        $(ctx).find("[c-id=last_price_second]").val(second.last_price);
+        $(ctx).find("[c-id=price_second]").val(second.price);
+        listImg((second.images || []).map(img=> img.base64), "[c-id=image-list-second]");
 
     }catch(error){
         throw(statusHandler.messageError(error));
@@ -379,7 +397,7 @@ const getProductById = async(id)=>{
 
         loadingAfterOpenModal(false);
 
-        return response.content.description;
+        return response.content;
 
     }catch(error){
         loadingAfterOpenModal(false);
@@ -560,6 +578,33 @@ const listStores = async()=>{
     }
 };
 
+// Exclusão definitiva (não é desativação): pede confirmação antes
+const deleteProduct = async(id, nome)=>{
+    try{
+
+        const ok = await confirmAction({
+            title:"Excluir produto",
+            message:`Excluir "${nome}" definitivamente? Variantes Shopify e bundles do produto também serão apagados. Essa ação não pode ser desfeita.`
+        });
+
+        if(!ok){
+            return;
+        }
+
+        const response = await request("DELETE", `/product/${id}`);
+
+        if(response.status != 200){
+            throw(statusHandler.messageError(response.content || "Erro ao excluir", true));
+        }
+
+        statusHandler.newMessage("Produto excluído(a)");
+        await listProducts();
+
+    }catch(error){
+        throw(statusHandler.messageError(error));
+    }
+};
+
 document.addEventListener('focusin', function (e) { 
   if (e.target.closest('.tox-tinymce-aux, .moxman-window, .tam-assetmanager-root') !== null) { 
     e.stopImmediatePropagation();
@@ -572,6 +617,26 @@ $(document).ready(function(){
     listCollections();
     listShopifys();
     listStores();
+
+    // fotos: arrastar e soltar, reordenar, capa e contador (componente em admin-media.js)
+    AdminMedia.bindDropzone(document.querySelector("[c-id=dropzone-images]"), async(files)=> listImg(await AdminMedia.filesToDataUrls(files)));
+    AdminMedia.bindDropzone(document.querySelector("[c-id=dropzone-images-second]"), async(files)=> listImg(await AdminMedia.filesToDataUrls(files), "[c-id=image-list-second]"));
+    AdminMedia.enableReorder(document.querySelector("[c-id=image-list]"));
+    AdminMedia.enableReorder(document.querySelector("[c-id=image-list-second]"));
+    AdminMedia.watchCount(document.querySelector("[c-id=image-list]"), document.querySelector("[c-id=media-count]"));
+    AdminMedia.watchCount(document.querySelector("[c-id=image-list-second]"), document.querySelector("[c-id=media-count-second]"));
+
+    $("[c-id=image-list], [c-id=image-list-second]").on("click", "[c-id=set-cover]", (e)=>{
+        const item = $(e.currentTarget).closest("[c-id=model-img]");
+
+        item.prependTo(item.parent());
+    });
+
+    $("[c-id=form]").on("input", "[c-id=price], [c-id=last_price]", updateDiscountPreview);
+
+    // gerar foto com IA (Higgsfield) nas duas versões
+    AdminMedia.bindAiBar(document.querySelector("[c-id=ai-bar-images]"), (image)=> listImg([image]));
+    AdminMedia.bindAiBar(document.querySelector("[c-id=ai-bar-images-second]"), (image)=> listImg([image], "[c-id=image-list-second]"));
     
     $("body").on("click", "[c-id=remove-bundle]", async(e)=>{
         try{
@@ -612,6 +677,32 @@ $(document).ready(function(){
         }
     });
 
+    // cache de preços por país (Shopify Markets) de todos os produtos
+    $("[c-id=refresh-prices]").on("click", async(e)=>{
+        try{
+
+            $(e.target).prop("disabled", true).text("Atualizando...");
+            loadingAfterOpenModal(true);
+
+            const response = await request("POST", "/pricing/refresh");
+
+            if(response.status != 200){
+                throw(statusHandler.messageError(response.content || "Erro ao atualizar preços", true));
+            }
+
+            const {products, variants, errors, seconds} = response.content;
+
+            statusHandler.newMessage(`Preços atualizados: ${products} produto(s), ${variants} variante(s) em ${seconds}s`);
+            errors.length && statusHandler.messageError(`${errors.length} erro(s): ${errors.slice(0, 3).join(" | ")}`, true);
+
+        }catch(error){
+            statusHandler.messageError(error);
+        }finally{
+            loadingAfterOpenModal(false);
+            $(e.target).prop("disabled", false).text("Atualizar preços");
+        }
+    });
+
     $("[c-id=new-product]").on("click", ()=>{
         $("[c-id=modal-product]").modal("show");
         tinymce.init({
@@ -621,9 +712,12 @@ $(document).ready(function(){
             },
             plugins: 'code',  
             menubar: 'happy' ,
+            skin: 'oxide-dark',
+            content_css: 'dark',
             
         });
         tinymce.get('description').setContent('');
+        tinymce.get('description_second')?.setContent('');
 
     });
 
@@ -684,7 +778,7 @@ $(document).ready(function(){
         try{
 
             const id = $(e.currentTarget).attr("id");
-            const target = $(e.target).attr("c-id");
+            const target = $(e.target).closest("[c-id]").attr("c-id");
 
             if(target == 'status'){
                 const checked = $(e.target).prop("checked");
@@ -696,7 +790,11 @@ $(document).ready(function(){
                 return await listAllDomains(id); 
             }
 
-            const description = await getProductById(id);
+            if(target == "btn-delete"){
+                return await deleteProduct(id, $(e.currentTarget).find("a").first().text());
+            }
+
+            const product = await getProductById(id);
             $("[c-id=modal-product]").modal("show");
             tinymce.init({
                 selector: 'textarea',  
@@ -705,9 +803,12 @@ $(document).ready(function(){
                 },
                 plugins: 'code',  
                 menubar: 'happy' ,
+                skin: 'oxide-dark',
+                content_css: 'dark',
                 
             });
-            tinymce.get('description').setContent(description);
+            tinymce.get('description').setContent(product.description || '');
+            tinymce.get('description_second')?.setContent(product.layouts?.second?.description || '');
 
 
         }catch(error){
@@ -715,7 +816,7 @@ $(document).ready(function(){
         }
     });
 
-    $("[c-id=image-list]").on("click", "[c-id=remove-img]", (e)=>{
+    $("[c-id=image-list], [c-id=image-list-second]").on("click", "[c-id=remove-img]", (e)=>{
         $(e.currentTarget).closest("[c-id=model-img]").remove();
     });
 
@@ -740,6 +841,39 @@ $(document).ready(function(){
             $("[c-id=loading-btn]").addClass("none");
             $(e.target).removeClass("none");
             loadingAfterOpenModal(false);
+            statusHandler.messageError(error);
+        }
+    });
+
+    $("[c-id=images-second]").on("change", async(e)=>{
+        try{
+
+            const imgs = await getImages("[c-id=images-second]");
+
+            listImg(imgs, "[c-id=image-list-second]");
+
+            $(e.target).val('');
+
+        }catch(error){
+            statusHandler.messageError(error);
+        }
+    });
+
+    // preenche a versão second com os valores atuais da versão first
+    $("[c-id=copy-first]").on("click", ()=>{
+        try{
+
+            const ctx = "[c-id=form]";
+
+            $(ctx).find("[c-id=name_second]").val($(ctx).find("[c-id=name]").val());
+            $(ctx).find("[c-id=last_price_second]").val($(ctx).find("[c-id=last_price]").val());
+            $(ctx).find("[c-id=price_second]").val($(ctx).find("[c-id=price]").val());
+            tinymce.get('description_second')?.setContent(tinymce.get('description')?.getContent() || '');
+
+            $(ctx).find("[c-id=image-list-second]").html("");
+            listImg(getImagesBody().map(img=> img.base64), "[c-id=image-list-second]");
+
+        }catch(error){
             statusHandler.messageError(error);
         }
     });

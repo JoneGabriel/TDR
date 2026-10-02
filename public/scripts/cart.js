@@ -79,7 +79,10 @@ const getProduct = async(id, cart, is_bundle)=>{
     try{
 
         let body ={
-            cart
+            cart,
+            // versão do produto do layout da página (first/second) e país da visita, definidos pelo servidor em <body>
+            layout:document.body.dataset.layout || "first",
+            country:document.body.dataset.country || ""
         };
 
         if(is_bundle){
@@ -294,45 +297,33 @@ const addLocalStorage = (objectCart)=>{
     }
 };
 
-const saveAddCart = async()=>{
+// Eventos de métrica: enviados sempre; o servidor conta uma vez por sessão (cookie tdr_vid).
+// keepalive mantém a requisição viva mesmo quando a página navega para o checkout logo em seguida.
+const sendMetricEvent = async(route)=>{
     try{
 
-        const check = localStorage.getItem("ADD_TO_CART");
+        const body = {
+            id:localStorage.getItem("ID_TDR"),
+            domain:window.location.host,
+            path:window.location.pathname,
+            product:window.location.pathname.startsWith("/products/") ? window.location.pathname.split("/").pop() : undefined
+        };
 
-        if(!check){
-            const idClient = localStorage.getItem("ID_TDR");
-            
-            const response = await request("POST","/add-cart", {id:idClient, domain:window.location.hostname});
-
-            if(response.status == 200){
-                localStorage.setItem("ADD_TO_CART", true);
-            }
-        }
+        await fetch(route, {
+            method:"POST",
+            keepalive:true,
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify(body)
+        });
 
     }catch(error){
-        throw(statusHandler.messageError(error));
+        console.log(error);
     }
 };
 
-const saveInitCheckout = async()=>{
-    try{
+const saveAddCart = ()=> sendMetricEvent("/add-cart");
 
-        const check = localStorage.getItem("INIT_CHECKOUT");
-
-        if(!check){
-            const idClient = localStorage.getItem("ID_TDR");
-            
-            const response = await request("POST","/init-checkout", {id:idClient, domain:window.location.hostname});
-
-            if(response.status == 200){
-                localStorage.setItem("INIT_CHECKOUT", true);
-            }
-        }
-
-    }catch(error){
-        throw(statusHandler.messageError(error));
-    }
-};
+const saveInitCheckout = ()=> sendMetricEvent("/init-checkout");
 
 const getBundle = ()=>{
     try{
@@ -456,7 +447,8 @@ const removeItemCart = async(id)=>{
 const getUrlCheckout = async(cart)=>{
     try{
 
-        const {status, content} = await request("POST", `/checkout`, cart);
+        // país da visita define a moeda do checkout na Shopify
+        const {status, content} = await request("POST", `/checkout?country=${document.body.dataset.country || ""}`, cart);
 
         if(status == 200){
 
@@ -480,8 +472,9 @@ const checkout = async()=>{
             const url = await getUrlCheckout(cart);
             const utm = (window.location.href).split("?")[1];
            
+           // registra o checkout antes de sair da página
+           await saveInitCheckout();
            window.location.href = `${url}&${utm}`;
-           saveInitCheckout();
         }
 
     }catch(error){

@@ -101,15 +101,19 @@ const changeVariantPrice = async()=>{
       const url = window.location.pathname;
       const product = url.split('/').pop();
 
-      const response = await request("POST", `/product/variant/${product}`, option);
+      // país da visita (definido pelo servidor em <body data-country>) para o preço vir na moeda certa
+      const country = document.body.dataset.country || "";
+      const response = await request("POST", `/product/variant/${product}?country=${country}`, option);
       
       if(response.status == 200){
         const {prices, moeda:coin} = response.content;
         const {price, last_price} = prices;
+        // o servidor já devolve o símbolo; o mapa cobre respostas antigas (euro/dolar/libra)
         const moeda = {
             'euro':'€',
             'dolar':'$',
-            'libra':'£'
+            'libra':'£',
+            [coin]:coin
         };
         const porcentage = parseInt(100 - ((price*100)/last_price));
         

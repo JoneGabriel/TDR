@@ -6,8 +6,16 @@ const {
     aggregate,
     save,
     findOne,
-    findById
+    findById,
+    countDocuments
 } = require("../query");
+
+const {
+    findActiveSession,
+    touchSession,
+    nowBrazil,
+    VISITOR_COOKIE
+} = require("../trail/trail.service");
 const { Store } = require("../store/store.schema");
 
 const {
@@ -161,27 +169,257 @@ const getAllSessions = async(start , end, domain, api = false)=>{
     }
 };
 
-const createNewEvent = async(client, event)=>{
+// Evento da vitrine (add-to-cart / init-checkout). Identidade: cookie tdr_vid, com fallback no id do localStorage.
+// Marca o funil na sessão ativa (uma vez por sessão) e guarda o evento como histórico, sem duplicar por sessão.
+const createNewEvent = async(client = {}, event, req = null)=>{
     try{
 
-        const {id} = client;
-        const exist = await findOne(Event, {id, type_event:event});
+        const visitor = req?.cookies?.[VISITOR_COOKIE] || client.id;
+        const domain = client.domain || req?.headers?.host;
 
-        if(!isEmpty(exist)){
-
+        if(!visitor){
             return statusHandler.newResponse(200, 'ok');
         }
 
-        const nowUTC = new Date();
-        const offsetMs = 3 * 60 * 60 * 1000;
-        const nowBrazil = new Date(nowUTC.getTime() - offsetMs);
+        const now = nowBrazil();
+        const session = await findActiveSession(visitor, domain);
 
-        client['createdAt'] = nowBrazil;
-        client['type_event'] = event;
+        if(session){
+            const flag = event == 'add-to-cart' ? 'added_cart' : 'init_checkout';
+            let extra = {};
 
-        await save(Event, client);
+            if(!session[flag]){
+                extra[flag] = true;
+                extra[`${flag}_at`] = now;
+            }
+
+            await touchSession(session, null, extra);
+        }
+
+        const dayStart = new Date(now); dayStart.setUTCHours(0, 0, 0, 0);
+        const dedupe = session
+            ? {session:session._id, type_event:event}
+            : {id:visitor, type_event:event, createdAt:{$gte:dayStart}};
+        const exist = await findOne(Event, dedupe);
+
+        if(!isEmpty(exist)){
+            return statusHandler.newResponse(200, 'ok');
+        }
+
+        await save(Event, {
+            id:visitor,
+            visitor,
+            session:session?._id,
+            domain,
+            type_event:event,
+            product:client.product,
+            path:client.path,
+            createdAt:now
+        });
 
         return statusHandler.newResponse(200, 'ok');
+
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
+
+// Heartbeat da vitrine (public/scripts/session.js): renova a sessão ativa para o contador em tempo real
+const pingSession = async(req, {domain, path} = {})=>{
+    try{
+
+        const visitor = req.cookies?.[VISITOR_COOKIE];
+        const session = await findActiveSession(visitor, domain || req.headers.host);
+
+        if(session){
+            await touchSession(session, null, path ? {last_path:path} : {});
+        }
+
+        return statusHandler.newResponse(200, 'ok');
+
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
+
+// Datas do painel chegam como YYYY-MM-DD. O banco guarda horário de Brasília deslocado,
+// então o dia local corresponde a 00:00Z–23:59:59Z do mesmo valor.
+const dayStart = (ymd)=> new Date(`${ymd}T00:00:00.000Z`);
+const dayEnd = (ymd)=> new Date(`${ymd}T23:59:59.999Z`);
+const todayYmd = ()=> nowBrazil().toISOString().slice(0, 10);
+const pct = (part, total)=> total ? Math.round(part / total * 1000) / 10 : 0;
+
+const buildMatch = (start, end, domain)=>{
+    let match = {
+        createdAt:{$gte:dayStart(start), $lte:dayEnd(end)},
+        is_bot:{$ne:true}
+    };
+
+    !isEmpty(domain) && (match.domain = domain);
+
+    return match;
+};
+
+// Resumo do período para o painel: totais, funil, série temporal, páginas, países e dispositivos.
+// Bots ficam fora de tudo (contados à parte); sessões antigas sem os campos novos contam como 1 pageview.
+const getSummary = async(start, end, domain)=>{
+    try{
+
+        start = /^\d{4}-\d{2}-\d{2}$/.test(start || "") ? start : todayYmd();
+        end = /^\d{4}-\d{2}-\d{2}$/.test(end || "") ? end : start;
+        start > end && ([start, end] = [end, start]);
+
+        const byHour = start == end;
+        const match = buildMatch(start, end, domain);
+        const flag = (field)=> ({$sum:{$cond:[{$eq:[`$${field}`, true]}, 1, 0]}});
+        const views = {$ifNull:["$pageviews", 1]};
+
+        const pipeline = [
+            {$match:match},
+            {$facet:{
+                totals:[{$group:{
+                    _id:null,
+                    sessions:{$sum:1},
+                    pageviews:{$sum:views},
+                    passed:{$sum:{$cond:[{$eq:["$page", "black"]}, 1, 0]}},
+                    filtered:{$sum:{$cond:[{$eq:["$page", "white"]}, 1, 0]}},
+                    mobile:flag("isMobile"),
+                    bounces:{$sum:{$cond:[{$lte:[views, 1]}, 1, 0]}},
+                    added_cart:flag("added_cart"),
+                    init_checkout:flag("init_checkout")
+                }}],
+                series:[
+                    {$group:{
+                        _id:{$dateToString:{format:byHour ? "%H" : "%Y-%m-%d", date:"$createdAt"}},
+                        sessions:{$sum:1},
+                        added_cart:flag("added_cart"),
+                        init_checkout:flag("init_checkout")
+                    }},
+                    {$sort:{_id:1}}
+                ],
+                pages:[
+                    {$unwind:"$pages"},
+                    {$group:{_id:"$pages", views:{$sum:1}}},
+                    {$sort:{views:-1}},
+                    {$limit:8}
+                ],
+                countries:[
+                    {$group:{_id:{$ifNull:["$country_code", "?"]}, sessions:{$sum:1}}},
+                    {$sort:{sessions:-1}},
+                    {$limit:6}
+                ],
+                devices:[
+                    {$group:{_id:{$cond:[{$eq:["$isMobile", true]}, "mobile", "desktop"]}, sessions:{$sum:1}}},
+                    {$sort:{sessions:-1}}
+                ]
+            }}
+        ];
+
+        const [result] = await aggregate(Trail, pipeline);
+        const totals = result.totals[0] || {sessions:0, pageviews:0, passed:0, filtered:0, mobile:0, bounces:0, added_cart:0, init_checkout:0};
+        const bots = await countDocuments(Trail, {...match, is_bot:true});
+
+        // série com todos os intervalos, mesmo os vazios
+        const found = Object.fromEntries(result.series.map(row=> [row._id, row]));
+        let series = [];
+
+        if(byHour){
+            for(let h = 0; h < 24; h++){
+                const key = (h + "").padStart(2, "0");
+                const row = found[key] || {};
+
+                series.push({label:`${key}h`, sessions:row.sessions || 0, added_cart:row.added_cart || 0, init_checkout:row.init_checkout || 0});
+            }
+        }else{
+            for(let d = dayStart(start); d <= dayEnd(end); d = new Date(d.getTime() + 24 * 60 * 60 * 1000)){
+                const key = d.toISOString().slice(0, 10);
+                const row = found[key] || {};
+
+                series.push({label:`${key.slice(8, 10)}/${key.slice(5, 7)}`, sessions:row.sessions || 0, added_cart:row.added_cart || 0, init_checkout:row.init_checkout || 0});
+            }
+        }
+
+        return statusHandler.newResponse(200, {
+            range:{start, end, granularity:byHour ? "hour" : "day", domain:domain || null},
+            sessions:totals.sessions,
+            pageviews:totals.pageviews,
+            passed:totals.passed,
+            filtered:totals.filtered,
+            mobile:totals.mobile,
+            bounces:totals.bounces,
+            bots,
+            added_cart:totals.added_cart,
+            init_checkout:totals.init_checkout,
+            rates:{
+                cart:pct(totals.added_cart, totals.sessions),
+                checkout:pct(totals.init_checkout, totals.sessions),
+                checkout_from_cart:pct(totals.init_checkout, totals.added_cart),
+                bounce:pct(totals.bounces, totals.sessions),
+                mobile:pct(totals.mobile, totals.sessions),
+                pages_per_session:totals.sessions ? Math.round(totals.pageviews / totals.sessions * 10) / 10 : 0
+            },
+            series,
+            pages:result.pages.map(row=> ({path:row._id, views:row.views})),
+            countries:result.countries.map(row=> ({country:row._id, sessions:row.sessions})),
+            devices:result.devices.map(row=> ({device:row._id, sessions:row.sessions}))
+        });
+
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
+
+// Usuários em tempo real: sessões com atividade nos últimos 5 minutos (heartbeat ou navegação), sem bots
+const REALTIME_WINDOW_MS = 5 * 60 * 1000;
+
+const getRealtime = async(domain)=>{
+    try{
+
+        let match = {
+            lastSeenAt:{$gte:new Date(nowBrazil().getTime() - REALTIME_WINDOW_MS)},
+            is_bot:{$ne:true}
+        };
+
+        !isEmpty(domain) && (match.domain = domain);
+
+        const pipeline = [
+            {$match:match},
+            {$facet:{
+                totals:[{$group:{
+                    _id:null,
+                    active:{$sum:1},
+                    mobile:{$sum:{$cond:[{$eq:["$isMobile", true]}, 1, 0]}},
+                    passed:{$sum:{$cond:[{$eq:["$page", "black"]}, 1, 0]}},
+                    filtered:{$sum:{$cond:[{$eq:["$page", "white"]}, 1, 0]}},
+                    added_cart:{$sum:{$cond:[{$eq:["$added_cart", true]}, 1, 0]}}
+                }}],
+                pages:[
+                    {$group:{_id:{$ifNull:["$last_path", "$entry_page"]}, users:{$sum:1}}},
+                    {$sort:{users:-1}},
+                    {$limit:6}
+                ],
+                domains:[
+                    {$group:{_id:"$domain", users:{$sum:1}}},
+                    {$sort:{users:-1}},
+                    {$limit:6}
+                ]
+            }}
+        ];
+
+        const [result] = await aggregate(Trail, pipeline);
+        const totals = result.totals[0] || {active:0, mobile:0, passed:0, filtered:0, added_cart:0};
+
+        return statusHandler.newResponse(200, {
+            window_minutes:REALTIME_WINDOW_MS / 60000,
+            generated_at:new Date().toISOString(),
+            active:totals.active,
+            mobile:totals.mobile,
+            passed:totals.passed,
+            filtered:totals.filtered,
+            added_cart:totals.added_cart,
+            pages:result.pages.filter(row=> row._id).map(row=> ({path:row._id, users:row.users})),
+            domains:result.domains.map(row=> ({domain:row._id, users:row.users}))
+        });
 
     }catch(error){
         throw(statusHandler.serviceError(error));
@@ -219,5 +457,8 @@ module.exports = {
     getAllSessions,
     getSessionsInterval,
     createNewEvent,
-    getMetrics
+    getMetrics,
+    pingSession,
+    getSummary,
+    getRealtime
 }

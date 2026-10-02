@@ -1139,3 +1139,60 @@ a{
 .default-bundle p{
   margin-bottom: 0px;
 }
+
+/* ---------- pedido: linha do tempo, resumo, rastreio ---------- */
+.order-chips{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+.status-refunded, .status-partially_refunded, .status-voided{ background-color:#e8e8e8; color:#444; }
+.status-in_progress, .status-partially_fulfilled{ background-color:#e2e6ff; color:#2b3a8f; }
+.order-progress{ margin:26px 0 10px; }
+.order-timeline{ list-style:none; display:flex; justify-content:space-between; padding:0; margin:0; position:relative; }
+.order-timeline::before{ content:""; position:absolute; left:7%; right:7%; top:11px; height:3px; background:#e0e0e0; border-radius:2px; }
+.timeline-step{ position:relative; flex:1; text-align:center; font-size:12px; color:#999; }
+.timeline-dot{ display:block; width:22px; height:22px; margin:0 auto 8px; border-radius:50%; background:#fff; border:3px solid #d0d0d0; position:relative; z-index:1; }
+.timeline-step.done{ color:#1a1a1a; }
+.timeline-step.done .timeline-dot{ background:#1a1a1a; border-color:#1a1a1a; }
+.timeline-step.current .timeline-dot{ box-shadow:0 0 0 5px rgba(26,26,26,.15); }
+.timeline-step.current .timeline-label{ font-weight:700; }
+.order-timeline.is-cancelled .timeline-dot{ background:#fff; border-color:#d0d0d0; }
+.timeline-cancelled{ text-align:center; color:#721c24; font-weight:600; margin-top:10px; }
+.item-total{ font-weight:600; white-space:nowrap; align-self:center; }
+.summary-total{ border-top:1px solid #ddd; margin-top:6px; padding-top:12px; font-weight:700; font-size:18px; }
+.summary-muted{ color:#888; font-size:14px; }
+.order-address{ margin-top:30px; padding-top:20px; border-top:1px solid #ddd; }
+.order-address h2{ font-size:18px; margin-bottom:8px; }
+.order-address p{ color:#444; line-height:1.6; margin:0; }
+.tracking-eta, .tracking-event{ font-size:14px; color:#444; margin:4px 0 0; }
+.btn-copy{ margin-left:10px; background:none; border:1px solid #1a1a1a; border-radius:4px; font-size:12px; padding:2px 8px; cursor:pointer; }
+.btn-copy:hover{ background:#1a1a1a; color:#fff; }
+
+/* ---------- chat de suporte do pedido ---------- */
+.chat-panel{ border:1px solid #e0e0e0; border-radius:12px; background:#fff; display:flex; flex-direction:column; max-width:760px; margin:10px auto 24px; overflow:hidden; }
+.chat-head{ display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid #eee; background:#fafafa; }
+.chat-avatar{ width:40px; height:40px; border-radius:50%; background:#1a1a1a; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; }
+.chat-name{ font-weight:700; }
+.chat-status{ font-size:12px; color:#2e7d32; display:flex; align-items:center; gap:6px; }
+.chat-dot{ width:8px; height:8px; border-radius:50%; background:#2e7d32; display:inline-block; }
+.chat-messages{ padding:16px; display:flex; flex-direction:column; gap:12px; max-height:52vh; overflow-y:auto; background:#f8f8f8; }
+.chat-msg{ display:flex; flex-direction:column; max-width:85%; animation:chat-in .25s ease; }
+.chat-msg-assistant{ align-self:flex-start; }
+.chat-msg-user{ align-self:flex-end; align-items:flex-end; }
+.chat-bubble{ padding:10px 14px; border-radius:16px; line-height:1.5; font-size:15px; }
+.chat-msg-assistant .chat-bubble{ background:#fff; border:1px solid #e3e3e3; border-bottom-left-radius:4px; }
+.chat-msg-user .chat-bubble{ background:#1a1a1a; color:#fff; border-bottom-right-radius:4px; }
+.chat-meta{ font-size:11px; color:#999; margin-top:4px; padding:0 4px; }
+.chat-typing{ display:flex; align-items:center; gap:4px; padding:6px 16px; font-size:12px; color:#777; background:#f8f8f8; }
+.chat-typing span{ width:6px; height:6px; border-radius:50%; background:#999; animation:chat-blink 1.2s infinite; }
+.chat-typing span:nth-child(2){ animation-delay:.2s; } .chat-typing span:nth-child(3){ animation-delay:.4s; }
+.chat-typing em{ margin-left:6px; font-style:normal; }
+.chat-suggestions{ display:flex; flex-wrap:wrap; gap:8px; padding:10px 16px; background:#fff; border-top:1px solid #eee; }
+.chat-suggestions:empty{ display:none; }
+.chat-suggestion{ background:#fff; border:1px solid #1a1a1a; border-radius:20px; padding:6px 12px; font-size:13px; cursor:pointer; transition:all .2s; }
+.chat-suggestion:hover{ background:#1a1a1a; color:#fff; }
+.chat-input{ display:flex; gap:8px; padding:12px 16px; border-top:1px solid #eee; background:#fff; }
+.chat-input input{ flex:1; border:1px solid #ccc; border-radius:20px; padding:10px 14px; font-size:15px; outline:none; }
+.chat-input input:focus{ border-color:#1a1a1a; }
+.chat-input button{ background:#1a1a1a; color:#fff; border:0; border-radius:20px; padding:10px 18px; font-weight:600; cursor:pointer; }
+.chat-input button:disabled{ opacity:.5; cursor:default; }
+.order-form{ max-width:760px; margin:0 auto 30px; }
+@keyframes chat-in{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
+@keyframes chat-blink{ 0%, 80%, 100%{ opacity:.3; } 40%{ opacity:1; } }

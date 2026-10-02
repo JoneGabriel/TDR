@@ -123,27 +123,12 @@ const listImg = (imgs)=>{
     }
 };
 
+// imagem do input de arquivo, já redimensionada/comprimida no navegador (admin-media.js)
 const getImages = async()=>{
     try{
 
-        const file = $("[c-id=modal-collection]").find("[c-id=images]").prop("files");
-        
-        let imgs = [];
+        return await AdminMedia.filesToDataUrls($("[c-id=modal-collection]").find("[c-id=images]").prop("files"));
 
-        if(file.length){
-
-            for(i in file){
-
-                if(file[i].size){
-                    const base64 = await convertFileToBase64(file[i]);
-                    imgs.push(base64);
-                }
-                
-            }
-            
-        }
-        
-        return imgs;
     }catch(error){
         throw(statusHandler.messageError(error));
     }
@@ -157,7 +142,7 @@ const listCollectionInForm = (collection)=>{
         let {image, name, _id, store} = collection;
     
 
-        listImg([image]);
+        listImg([image].filter(Boolean));
         
         const ctx = "[c-id=modal-collection]";
 
@@ -231,6 +216,33 @@ const listAllDomains = async(id)=>{
     }
 };
 
+// Exclusão definitiva (não é desativação): pede confirmação antes
+const deleteCollection = async(id, nome)=>{
+    try{
+
+        const ok = await confirmAction({
+            title:"Excluir coleção",
+            message:`Excluir "${nome}" definitivamente? Essa ação não pode ser desfeita.`
+        });
+
+        if(!ok){
+            return;
+        }
+
+        const response = await request("DELETE", `/collection/${id}`);
+
+        if(response.status != 200){
+            throw(statusHandler.messageError(response.content || "Erro ao excluir", true));
+        }
+
+        statusHandler.newMessage("Coleção excluído(a)");
+        await listAllCollections();
+
+    }catch(error){
+        throw(statusHandler.messageError(error));
+    }
+};
+
 const listStores = async()=>{
     try{
 
@@ -266,6 +278,10 @@ $(document).ready(function(){
 
     listStores();
 
+    // arrastar e soltar a imagem da coleção (admin-media.js)
+    AdminMedia.bindDropzone(document.querySelector("[c-id=dropzone-images]"), async(files)=> listImg(await AdminMedia.filesToDataUrls(files)));
+    AdminMedia.bindAiBar(document.querySelector("[c-id=ai-bar-images]"), (image)=> listImg([image]));
+
      $("body").on("click", "[c-id=copy]", async(e)=>{
         try{
 
@@ -288,7 +304,7 @@ $(document).ready(function(){
         try{
 
             const id = $(e.currentTarget).attr("id");
-            const target = $(e.target).attr("c-id");
+            const target = $(e.target).closest("[c-id]").attr("c-id");
 
             if(target == 'status'){
                 const checked = $(e.target).prop("checked");
@@ -298,6 +314,10 @@ $(document).ready(function(){
             if(target == "btn-link"){
 
                 return await listAllDomains(id); 
+            }
+
+            if(target == "btn-delete"){
+                return await deleteCollection(id, $(e.currentTarget).find("a").first().text());
             }
 
             await getCollectionById(id);

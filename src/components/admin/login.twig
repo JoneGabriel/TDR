@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Login | TDR Admin</title>
+    <link href="/assets/styles/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="/styles/styles-admin.css" rel="stylesheet">
+    <style>
+        /* só o que é exclusivo desta página; o tema vem de styles-admin.css */
+        .login-body{min-height:100vh}
+    </style>
+</head>
+<body class="login-body">
+    <form class="login-box" method="post" action="/admin/login">
+        <img src="/img/admin/logo.png" alt="">
+        <h1>TDR<span>//</span>ADMIN</h1>
+        <p class="login-sub">acesso restrito</p>
+        {% if error %}
+            <div class="alert alert-danger py-2" role="alert">{{ error }}</div>
+        {% endif %}
+        <div class="mb-3">
+            <label class="form-label" for="username">Usuário</label>
+            <input class="form-control" id="username" name="username" value="{{ username|default('') }}" autocomplete="username" required autofocus>
+        </div>
+        <div class="mb-4">
+            <label class="form-label" for="password">Senha</label>
+            <input class="form-control" id="password" name="password" type="password" autocomplete="current-password" required>
+        </div>
+        <button class="btn" type="submit">Entrar</button>
+    </form>
+</body>
+</html>

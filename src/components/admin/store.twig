@@ -43,9 +43,9 @@
                     
                 </div>
                 <div class="col-lg-3">
-                    <div class="form-check form-switch">
+                    <div class="row-actions"><div class="form-check form-switch">
                         <input c-id="status" class="form-check-input" type="checkbox" role="switch" id="switchCheckChecked">
-                    </div>
+                    </div><button c-id="btn-delete" class="btn-delete" title="Excluir loja"><i class="bi bi-trash3"></i></button></div>
                 </div>
             </div>
         </div>
@@ -69,14 +69,14 @@
                             
                         </div>
                         <div class="col-lg-3">
-                            <div class="form-check form-switch">
+                            <div class="row-actions"><div class="form-check form-switch">
                                 <input c-id="status" class="form-check-input" type="checkbox" role="switch" id="switchCheckChecked" 
                                 {% if store.status == true %}
                                     checked
                                 {% endif %}
                                 
                                 >
-                            </div>
+                            </div><button c-id="btn-delete" class="btn-delete" title="Excluir loja"><i class="bi bi-trash3"></i></button></div>
                         </div>
                         
                     </div>
@@ -95,260 +95,213 @@
     </div>
 </div>
 
-<div c-id="modal-store" class="modal fade modal-product-style" tabindex="-1" aria-labelledby="exampleModalFullscreenLabel"  aria-modal="true" role="dialog">
-  <div class="modal-dialog modal-fullscreen" >
-    <div c-id="form" class="modal-content bk-modal" >
-      <div class="modal-header rm-border" >
-        <div class="container">
-            <h1 class="modal-title fs-5 ms-3" >
-                <b c-id="name-store"></b>
-                
-            </h1>
-            
+
+<div c-id="modal-store" class="modal fade modal-product-style" tabindex="-1" aria-modal="true" role="dialog">
+  <div class="modal-dialog modal-fullscreen">
+    <div c-id="form" class="modal-content bk-modal">
+      <div class="modal-header rm-border">
+        <div class="container-fluid px-3">
+            <h1 class="modal-title fs-5"><i class="bi bi-tag me-1"></i><b c-id="name-store"></b><span class="modal-title-fallback">Nova loja</span></h1>
+            <p class="modal-subtitle">Identidade, países atendidos, visual e CSS da vitrine. Templates e políticas ficam nos botões ao lado.</p>
         </div>
-        <button c-id="open-template" class="btn-modal me-3 none">Editar template</button>
+        <button c-id="open-policies" class="btn-modal me-2 none">Políticas</button>
+        <button c-id="open-template" class="btn-modal me-2 none">Editar template</button>
         <button c-id="close-modal" class="btn-modal">Fechar</button>
       </div>
-      <div class="modal-body" >
-        <div class="container">
-            <div class="row form-default">
+      <div class="modal-body">
+        <div class="container-xl">
+            <div class="row g-3">
+                <div class="col-lg-7">
+                    <section class="modal-section">
+                        <h6 class="modal-section-title"><i class="bi bi-info-circle"></i> Identidade</h6>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Nome</label>
+                                <input c-id="name" type="text" class="form-control" placeholder="Galeries Lafayette">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Idioma</label>
+                                <select c-id="idioma" class="form-control">
+                                    {% for idi_ in options_idioma %}
+                                        <option value="{{idi_.value}}">{{idi_.key}}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Moeda base</label>
+                                <select c-id="moeda" class="form-control">
+                                    {% for moeda_ in options_moeda %}
+                                        <option value="{{moeda_.value}}">{{moeda_.key}}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </section>
 
-                <div class="col-lg-6">
-                    <div class="mb-3">
-                        <label class="form-label">Logo</label>
-                        <input c-id="logo" type="file" class="form-control">
-                        <div class="row">
-                            <div class="col-lg-6">
-                                <div class="model-img none mt-4 ms-2">
-                                    <img style="width: 120px;" c-id="img-logo">
-                                    <button  c-id="remove-img">Remover</button>
+                    <section class="modal-section">
+                        <h6 class="modal-section-title"><i class="bi bi-globe"></i> Países atendidos <span c-id="country-count" class="chip">0</span></h6>
+                        <p class="modal-section-hint">O primeiro país marcado define a moeda e o checkout padrão. Visitantes de outros países caem no filtro (layout second).</p>
+                        <input c-id="country-filter" type="text" class="form-control mb-2" placeholder="Filtrar país...">
+                        <div c-id="country" class="country-grid">
+                            {% for country_ in options_country %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="{{country_.value}}" id="country-{{country_.value}}">
+                                    <label class="form-check-label" for="country-{{country_.value}}">{{country_.key}} <small>{{country_.value}}</small></label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </section>
+
+                    <section class="modal-section">
+                        <h6 class="modal-section-title"><i class="bi bi-chat-dots"></i> Atendimento (chat do pedido)</h6>
+                        <p class="modal-section-hint">A assistente responde com os dados reais do pedido na Shopify e as políticas da loja. Cupom e instruções são opcionais.</p>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nome da assistente</label>
+                                <input c-id="support_assistant" type="text" class="form-control" placeholder="Padrão por idioma (Élodie, Emily, Lena, Emma)">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Cupom de fidelidade</label>
+                                <input c-id="support_loyalty" type="text" class="form-control" placeholder="ex.: FIDELITE">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Instruções extras para a assistente</label>
+                                <textarea c-id="support_instructions" rows="3" class="form-control" placeholder="ex.: prazo de entrega habitual, horário do suporte, o que nunca prometer..."></textarea>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="modal-section">
+                        <h6 class="modal-section-title"><i class="bi bi-palette"></i> Cores</h6>
+                        <div class="color-grid">
+                            <div class="color-group">
+                                <div class="color-group-title">Mensagem no topo</div>
+                                <input c-id="message_top" class="form-control mb-2" placeholder="Frete grátis acima de 50€">
+                                <div class="color-fields">
+                                    <label class="color-field"><input type="color" c-id="color_message" class="form-control"><span>Texto</span></label>
+                                    <label class="color-field"><input type="color" c-id="bk_message" class="form-control"><span>Fundo</span></label>
                                 </div>
                             </div>
-                            <div class="col-lg-6">
-                                <div c-id="position-logo" class="mb-3 mt-4">
-                                    <label class="form-label">Posição logo</label>
+                            <div class="color-group">
+                                <div class="color-group-title">Botão da página do produto</div>
+                                <div class="color-fields">
+                                    <label class="color-field"><input type="color" c-id="color_btn_product" class="form-control"><span>Texto</span></label>
+                                    <label class="color-field"><input type="color" c-id="bk_btn_product" class="form-control"><span>Fundo</span></label>
+                                </div>
+                            </div>
+                            <div class="color-group">
+                                <div class="color-group-title">Botão de checkout (carrinho)</div>
+                                <div class="color-fields">
+                                    <label class="color-field"><input type="color" c-id="color_btn_checkout" class="form-control"><span>Texto</span></label>
+                                    <label class="color-field"><input type="color" c-id="bk_btn_checkout" class="form-control"><span>Fundo</span></label>
+                                </div>
+                            </div>
+                            <div class="color-group">
+                                <div class="color-group-title">Botão adicionar mais itens (carrinho)</div>
+                                <div class="color-fields">
+                                    <label class="color-field"><input type="color" c-id="color_btn_add_items" class="form-control"><span>Texto</span></label>
+                                    <label class="color-field"><input type="color" c-id="bk_btn_add_items" class="form-control"><span>Fundo</span></label>
+                                </div>
+                            </div>
+                            <div class="color-group">
+                                <div class="color-group-title">Rodapé</div>
+                                <div class="color-fields">
+                                    <label class="color-field"><input type="color" c-id="color_footer" class="form-control"><span>Texto</span></label>
+                                    <label class="color-field"><input type="color" c-id="bk_footer" class="form-control"><span>Fundo</span></label>
+                                </div>
+                            </div>
+                            <div class="color-group">
+                                <div class="color-group-title">Ícones</div>
+                                <div class="color-fields">
+                                    <label class="color-field"><input type="color" c-id="color_icons" class="form-control"><span>Ícones</span></label>
+                                    <label class="color-field"><input type="color" c-id="color_n_items_cart" class="form-control"><span>Fundo do contador do carrinho</span></label>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="col-lg-5">
+                    <section class="modal-section">
+                        <h6 class="modal-section-title"><i class="bi bi-image"></i> Logo</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="image-picker">
+                                    <label class="dropzone dropzone-sm" c-id="dropzone-logo">
+                                        <input c-id="logo" type="file" accept="image/*" class="dropzone-input">
+                                        <i class="bi bi-cloud-arrow-up"></i>
+                                        <span class="dropzone-title">Escolher logo</span>
+                                    </label>
+                                    <div class="ai-bar" c-id="ai-bar-logo" data-aspect="1:1">
+                                <i class="bi bi-stars"></i>
+                                <input c-id="ai-prompt" type="text" class="form-control" placeholder="Ou gere o logo com IA...">
+                                <button type="button" c-id="ai-generate" class="btn-modal">Gerar</button>
+                            </div>
+                                    <div class="image-picker-preview none">
+                                        <img c-id="img-logo" alt="">
+                                        <button type="button" c-id="remove-img" title="Remover"><i class="bi bi-trash3"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div c-id="position-logo">
+                                    <label class="form-label">Posição do logo</label>
                                     <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="position" value="left">
-                                        <label class="form-check-label">
-                                            Esquerda
-                                        </label>
+                                        <input class="form-check-input" type="radio" name="position" value="left" id="position-left">
+                                        <label class="form-check-label" for="position-left">Esquerda</label>
                                     </div>
                                     <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="position" value="center">
-                                        <label class="form-check-label">
-                                            Centralizado
-                                        </label>
+                                        <input class="form-check-input" type="radio" name="position" value="center" id="position-center">
+                                        <label class="form-check-label" for="position-center">Centralizado</label>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="row mt-4">
-                        <div class="col-lg-6">
-                            <div class="mb-3">
-                                <label>Banner 1</label>
-                                <input c-id="banner_1" type="file" class="form-control">
-                                <div class="model-img none mt-4 ms-2">
-                                    <img class="img-fluid" c-id="banner-1">
-                                    <button style="margin-left: 6.5rem;"  c-id="remove-img">Remover</button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-6">
-                            <div class="mb-3">
-                                <label>Banner 2</label>
-                                <input c-id="banner_2" type="file" class="form-control">
-                                <div class="model-img none mt-4 ms-2">
-                                    <img class="img-fluid" c-id="banner-2">
-                                    <button style="margin-left: 6.5rem;" c-id="remove-img">Remover</button>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label>Banner 3</label>
-                                <input c-id="banner_3" type="file" class="form-control">
-                                <div class="model-img none mt-4 ms-2">
-                                    <img class="img-fluid" c-id="banner-3">
-                                    <button style="margin-left: 6.5rem;" c-id="remove-img">Remover</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                   
-                </div>
+                    </section>
 
-                <div class="col-lg-6">
-                    <div class="mb-3">
-                        <label class="form-label">Nome</label>
-                        <input c-id="name" type="text" class="form-control"  placeholder="Galeries Lafayette">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Idioma</label>
-                        <select c-id="idioma" class="form-control">
-                            {% for idi_ in options_idioma %}
-                                <option value="{{idi_.value}}">{{idi_.key}}</option>
+                    <section class="modal-section">
+                        <h6 class="modal-section-title"><i class="bi bi-images"></i> Banners</h6>
+                        <p class="modal-section-hint">Usados pelo template da home como banner_1, banner_2 e banner_3.</p>
+                        <div class="row g-3">
+                            {% for n in 1..3 %}
+                            <div class="col-md-4">
+                                <div class="image-picker">
+                                    <label class="dropzone dropzone-sm" c-id="dropzone-banner_{{n}}">
+                                        <input c-id="banner_{{n}}" type="file" accept="image/*" class="dropzone-input">
+                                        <i class="bi bi-cloud-arrow-up"></i>
+                                        <span class="dropzone-title">Banner {{n}}</span>
+                                    </label>
+                                    <div class="ai-bar ai-bar-sm" c-id="ai-bar-banner_{{n}}" data-aspect="16:9">
+                                        <i class="bi bi-stars"></i>
+                                        <input c-id="ai-prompt" type="text" class="form-control" placeholder="Gerar com IA...">
+                                        <button type="button" c-id="ai-generate" class="btn-modal">Gerar</button>
+                                    </div>
+                                    <div class="image-picker-preview none">
+                                        <img c-id="banner-{{n}}" alt="">
+                                        <button type="button" c-id="remove-img" title="Remover"><i class="bi bi-trash3"></i></button>
+                                    </div>
+                                </div>
+                            </div>
                             {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Moeda</label>
-                        <select c-id="moeda" class="form-control">
-                            {% for moeda_ in options_moeda %}
-                                <option value="{{moeda_.value}}">{{moeda_.key}}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div c-id="country" class="mb-3">
-                        <label class="form-label">Paises</label>
-                        {% for country_ in options_country %}
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" value="{{country_.value}}" >
-                                <label class="form-check-label" for="checkDefault">
-                                    {{country_.key}}
-                                </label>
-                            </div>
-                        {% endfor %}
-                    </div>
-                    
-                </div>
-                
-                <div class="col-lg-6">
-                    <div class="mb-3">
-                        <h6 class="mt-4">Mensagem no topo da pagina</h6>
-                        <input c-id="message_top" class="form-control" >
-                        <div class="d-flex justify-content-start">
-                            <div>
-                                <label class="form-label mt-3">Cor texto</label>
-                                <input type="color" c-id="color_message" class="form-control" style="width:50px">
-                            </div>
-                            <div class="ms-4">
-                                <label class="form-label mt-3">Cor background</label>
-                                <input type="color" c-id="bk_message" class="form-control" style="width:50px">
-                            </div>
                         </div>
-                        
-                    </div>
+                    </section>
 
-                    <div class="mb-3">
-                        <h6 class="mt-4">Botão Adicionar mais itens (carrinho)</h6>
-                        <div class="d-flex justify-content-start">
-                            <div>
-                                <label class="form-label">Cor texto </label>
-                                <input type="color" c-id="color_btn_add_items" class="form-control"  style="width:50px">
-                            </div>
-
-
-                            <div class="ms-3">
-                                <label class="form-label">Cor background</label>
-                                <input type="color" c-id="bk_btn_add_items" class="form-control"  style="width:50px">
-                            </div>
-
-                        </div>
-                    
-                    </div>
-
-                    <div class="mb-3 ">
-                        <h6 class="mt-4">Rodape</h6>
-                        <div class="d-flex justify-content-start">
-                            <div>
-                                <label class="form-label">Cor texto </label>
-                                <input type="color" c-id="color_footer" class="form-control"  style="width:50px">
-                            </div>
-
-
-                            <div class="ms-3">
-                                <label class="form-label">Cor background</label>
-                                <input type="color" c-id="bk_footer" class="form-control"  style="width:50px">
-                            </div>
-
-                        </div>
-                    
-                    </div>
-
-                </div>
-
-
-                <div class="col-lg-6">
-
-                    <div class="mb-3 ">
-                        <h6 class="mt-4">Botão pagina do produto</h6>
-                        <div class="d-flex justify-content-start">
-                            <div>
-                                <label class="form-label">Cor texto </label>
-                                <input type="color" c-id="color_btn_product" class="form-control"  style="width:50px">
-                            </div>
-
-
-                            <div class="ms-3">
-                                <label class="form-label">Cor background</label>
-                                <input type="color" c-id="bk_btn_product" class="form-control"  style="width:50px">
-                            </div>
-
-                        </div>
-                    
-                    </div>
-
-                    <div class="mb-3">
-                        <h6 class="mt-4">Botão checkout (carrinho)</h6>
-                        <div class="d-flex justify-content-start">
-                            <div>
-                                <label class="form-label">Cor texto </label>
-                                <input type="color" c-id="color_btn_checkout" class="form-control"  style="width:50px">
-                            </div>
-
-
-                            <div class="ms-3">
-                                <label class="form-label">Cor background</label>
-                                <input type="color" c-id="bk_btn_checkout" class="form-control"  style="width:50px">
-                            </div>
-
-                        </div>
-                    
-                    </div>
-
-                    <div class="mb-3 ">
-                        <h6 class="mt-4">Icones</h6>
-                        <div class="d-flex justify-content-start">
-                            <div>
-                                <label class="form-label">Cor Icones </label>
-                                <input type="color" c-id="color_icons" class="form-control"  style="width:50px">
-                            </div>
-
-
-                            <div class="ms-3">
-                                <label class="form-label">Cor background numero de itens carrinho</label>
-                                <input type="color" c-id="color_n_items_cart" class="form-control"  style="width:50px">
-                            </div>
-
-                        </div>
-                    
-                    </div>
-                    <h6 class="mt-4">Css</h6>
-                    <div style="min-height:420px;">
-                        <div id="editor" style="width:100%;height:400px;"></div>
-                    </div>
-                </div>
-
-            </div>
-            <button c-id="save-store" class="btn-modal mt-4 float-end">Salvar</button>
-            <div class="clearfix">
-                <div c-id="loading-btn" class="spinner-border float-end mt-4 none" role="status">
-                    <span class="visually-hidden">Loading...</span>
+                    <section class="modal-section">
+                        <h6 class="modal-section-title"><i class="bi bi-filetype-css"></i> CSS da vitrine</h6>
+                        <p class="modal-section-hint">Injetado em todas as páginas da loja.</p>
+                        <div id="editor" style="width:100%;height:360px;"></div>
+                    </section>
                 </div>
             </div>
-            <br>
-            <br>
-            <br>
-
         </div>
-
       </div>
-    
+      <div class="modal-footer rm-border">
+        <div c-id="loading-btn" class="spinner-border none" role="status"><span class="visually-hidden">Loading...</span></div>
+        <button c-id="save-store" class="btn-modal">Salvar</button>
+      </div>
     </div>
   </div>
 </div>
-
-
 
 <div c-id="modal-template" class="modal fade modal-product-style" tabindex="-2" aria-labelledby="exampleModalFullscreenLabel"  aria-modal="true" role="dialog">
   <div class="modal-dialog modal-fullscreen" >
@@ -361,6 +314,12 @@
         <div style="height: 94%;">
             <div style="height: 94%;" class="row mx-2">
                 <div class="col-lg-2">
+                    <h5><b>Layout</b></h5>
+                    <select c-id="layout-file" class="form-control mb-3">
+                        {% for layout_ in options_layout %}
+                            <option value="{{layout_.value}}">{{layout_.key}}</option>
+                        {% endfor %}
+                    </select>
                     <h5><b>Arquivos</b></h5>
                     {% for file in files %}
                         <div id="{{file.id}}" c-id="model-file" class="div-file">
@@ -383,6 +342,53 @@
         
       </div>
     
+    </div>
+  </div>
+</div>
+
+<div c-id="modal-policies" class="modal fade modal-product-style" tabindex="-1" aria-modal="true" role="dialog">
+  <div class="modal-dialog modal-fullscreen">
+    <div class="modal-content bk-modal">
+      <div class="modal-header rm-border">
+        <div class="container">
+            <h1 class="modal-title fs-5 ms-3">Políticas da loja</h1>
+        </div>
+        <button c-id="close-modal-policies" class="btn-modal">Fechar</button>
+      </div>
+      <div class="modal-body">
+        <div class="row mx-2">
+            <div class="col-lg-2">
+                <h5><b>Políticas</b></h5>
+                {% for policy in policy_files %}
+                    <div id="{{policy.id}}" c-id="model-policy" class="div-file">
+                        <p class="p-2">{{policy.name}}</p>
+                    </div>
+                {% endfor %}
+                <p class="metric-sub mt-3">Sem texto próprio, a loja usa o padrão do país (ou do idioma). Salvar com título e texto vazios volta ao padrão.</p>
+            </div>
+            <div class="col-lg-10">
+                <div class="form-default">
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                        <span c-id="policy-source" class="policy-source"></span>
+                        <div>
+                            <button c-id="reset-policy" class="btn-modal me-2">Restaurar padrão</button>
+                            <button c-id="save-policy" class="btn-modal">Salvar</button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Título</label>
+                        <input c-id="policy-title" type="text" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Texto</label>
+                        <textarea id="policy-editor" c-id="policy-editor"></textarea>
+                    </div>
+                </div>
+                <br>
+                <br>
+            </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>

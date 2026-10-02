@@ -6,6 +6,8 @@ const getShopify = ()=>{
         const url = $(ctx).find("[c-id=url]").val();
         const token_storefront = $(ctx).find("[c-id=token_storefront]").val();
         const token_admin = $(ctx).find("[c-id=token_admin]").val();
+        const client_id = $(ctx).find("[c-id=client_id]").val();
+        const client_secret = $(ctx).find("[c-id=client_secret]").val();
         const store = $("[c-id=store-config]").val();
 
 
@@ -13,6 +15,8 @@ const getShopify = ()=>{
             url,
             token_storefront,
             token_admin,
+            client_id,
+            client_secret,
             store
         };
 
@@ -41,7 +45,7 @@ const listShopify = async()=>{
 
                     $(model).attr("id", store._id);
                     $(model).find("a").text(store.url);
-                    $(model).find("[c-id=storefront]").text(store.token_storefront);
+                    $(model).find("[c-id=client_id]").text(store.client_id || "");
                     $(model).find("[c-id=admin]").text(store.token_admin);
                     $(model).removeClass("none");
                     $(ctx).append(model);
@@ -94,7 +98,7 @@ const listShopifyInForm = (shopify)=>{
         
         cleanShopifyFilds();
         
-        let {url, token_storefront, token_admin, _id, store} = shopify;
+        let {url, token_storefront, token_admin, client_id, client_secret, _id, store} = shopify;
         
         const ctx = "[c-id=modal-store]";
 
@@ -103,6 +107,8 @@ const listShopifyInForm = (shopify)=>{
 
         $(ctx).find("[c-id=token_storefront]").val(token_storefront);
         $(ctx).find("[c-id=token_admin]").val(token_admin);
+        $(ctx).find("[c-id=client_id]").val(client_id);
+        $(ctx).find("[c-id=client_secret]").val(client_secret);
         $(ctx).find("[c-id=store-config]").val(store);
 
 
@@ -123,6 +129,33 @@ const getShopifyById = async(id)=>{
 
             listShopifyInForm(response.content);
         }
+
+    }catch(error){
+        throw(statusHandler.messageError(error));
+    }
+};
+
+// Exclusão definitiva (não é desativação): pede confirmação antes
+const deleteShopify = async(id, nome)=>{
+    try{
+
+        const ok = await confirmAction({
+            title:"Excluir Shopify",
+            message:`Excluir "${nome}" definitivamente? Essa ação não pode ser desfeita.`
+        });
+
+        if(!ok){
+            return;
+        }
+
+        const response = await request("DELETE", `/store/${id}`);
+
+        if(response.status != 200){
+            throw(statusHandler.messageError(response.content || "Erro ao excluir", true));
+        }
+
+        statusHandler.newMessage("Shopify excluído(a)");
+        await listShopify();
 
     }catch(error){
         throw(statusHandler.messageError(error));
@@ -199,6 +232,11 @@ $(document).ready(function(){
         try{
 
             const id = $(e.currentTarget).attr("id");
+            const target = $(e.target).closest("[c-id]").attr("c-id");
+
+            if(target == "btn-delete"){
+                return await deleteShopify(id, $(e.currentTarget).find("a").first().text());
+            }
 
             await getShopifyById(id);
             $("[c-id=modal-store]").modal("show");

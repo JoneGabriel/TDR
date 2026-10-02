@@ -1,7 +1,10 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 {% include './head.twig'%} 
-<body>
+<body data-layout="{{ layout|default('first') }}" data-country="{{ buyer_country|default('') }}" data-currency="{{ currency|default('') }}">
+    {% if order_chat is defined and order_chat %}
+        <script>window.TDR_ORDER = {{ order_chat|raw }};</script>
+    {% endif %}
     {% if store == true %}
         {{ menu_store}}
     {% endif %}
@@ -9,6 +12,7 @@
      {% if admin == true %}
    
         {% include './menu-admin.twig'%}
+        {% include './confirm-admin.twig'%}
     {% endif %}
 
         {% if store == true and policy !=true %}

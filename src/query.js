@@ -80,6 +80,19 @@ const removeOne = async(schema, _id)=>{
     }
 };
 
+const removeMany = async(schema, query)=>{
+    try{
+
+        mongoose.connect(process.env.URL_DB);
+
+        const result = await schema.deleteMany(query);
+
+        return result.deletedCount;
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
+
 const populate = async(schema, value, populate)=>{
     try{
         mongoose.connect(process.env.URL_DB);
@@ -125,6 +138,7 @@ module.exports = {
     updateById,
     findOne,
     removeOne,
+    removeMany,
     populate,
     countDocuments,
     aggregate

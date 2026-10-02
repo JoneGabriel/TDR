@@ -9,7 +9,7 @@ const cleanStoreFilds = ()=>{
             const hasClass = $(this).hasClass("form-check-input");
 
             if(hasClass){
-                $(this).attr("checked", false);
+                $(this).prop("checked", false);
                 return
             }
             $(this).val("");
@@ -22,37 +22,30 @@ const cleanStoreFilds = ()=>{
         $("[c-id=form]").find("[c-id=name-store]").text("");
         $("[c-id=form]").find("img").attr("src", "")
         $("[c-id=modal-store]").find("[c-id=open-template]").addClass("none");
+        $("[c-id=modal-store]").find("[c-id=open-policies]").addClass("none");
+        $("[c-id=country] .form-check").removeClass("is-hidden");
+        updateCountryCount();
 
     }catch(error){
         throw(statusHandler.messageError(error));
     }
 };
 
+// primeira imagem do input de arquivo, já redimensionada/comprimida no navegador (admin-media.js)
 const getBase64 = async(fild = "[c-id=logo]")=>{
     try{
 
-        const file = $("[c-id=form]").find(fild).prop("files");
-        
-        let imgs = [];
+        const [img] = await AdminMedia.filesToDataUrls($("[c-id=form]").find(fild).prop("files"));
 
-        if(file.length){
+        return img;
 
-            for(i in file){
-
-                if(file[i].size){
-                    const base64 = await convertFileToBase64(file[i]);
-                    imgs.push(base64);
-                }
-                
-            }
-            
-        }
-        
-        return imgs[0];
     }catch(error){
         throw(statusHandler.messageError(error));
     }
 };
+
+// contador de países marcados
+const updateCountryCount = ()=> $("[c-id=country-count]").text($("[c-id=form]").find("[c-id=country] input:checked").length);
 
 const getCountry = ()=>{
     try{
@@ -134,6 +127,11 @@ const getBodyStore = ()=>{
         body["color_icons"] = $(ctx).find("[c-id=color_icons]").val();
         body["color_n_items_cart"] = $(ctx).find("[c-id=color_n_items_cart]").val();
         body["css"] = editor.getValue();
+        body["support"] = {
+            assistant_name:$(ctx).find("[c-id=support_assistant]").val(),
+            loyalty_code:$(ctx).find("[c-id=support_loyalty]").val(),
+            instructions:$(ctx).find("[c-id=support_instructions]").val()
+        };
 
         return body;    
 
@@ -242,6 +240,9 @@ const listStoreInForm = (store)=>{
 
         $(ctx).find("[c-id=color_icons]").val(color_icons);
         $(ctx).find("[c-id=color_n_items_cart]").val(color_n_items_cart);
+        $(ctx).find("[c-id=support_assistant]").val(store.support?.assistant_name || "");
+        $(ctx).find("[c-id=support_loyalty]").val(store.support?.loyalty_code || "");
+        $(ctx).find("[c-id=support_instructions]").val(store.support?.instructions || "");
 
         $(ctx).find(`[value=${position_logo}]`).prop("checked", true);
 
@@ -264,6 +265,7 @@ const listStoreInForm = (store)=>{
         });
 
         $(ctx).find("[c-id=save-store]").attr("id", _id);
+        updateCountryCount();
 
         return css;
 
@@ -309,10 +311,43 @@ const listBanner = (img, banner)=>{
     }
 };
 
+// layout selecionado no editor de templates (first | second)
+const getSelectedLayout = ()=>{
+    return $("[c-id=modal-template]").find("[c-id=layout-file]").val() || "first";
+};
+
+// Exclusão definitiva (não é desativação): pede confirmação antes
+const deleteStore = async(id, nome)=>{
+    try{
+
+        const ok = await confirmAction({
+            title:"Excluir loja",
+            message:`Excluir "${nome}" definitivamente? Essa ação não pode ser desfeita.`
+        });
+
+        if(!ok){
+            return;
+        }
+
+        const response = await request("DELETE", `/store-config/${id}`);
+
+        if(response.status != 200){
+            throw(statusHandler.messageError(response.content || "Erro ao excluir", true));
+        }
+
+        statusHandler.newMessage("Loja excluído(a)");
+        await listStores();
+
+    }catch(error){
+        throw(statusHandler.messageError(error));
+    }
+};
+
 const getTemplate = async(idStore, id)=>{
     try{
 
-        const response = await request("GET", `/store-config/${idStore}/${id}`);
+        const layout = getSelectedLayout();
+        const response = await request("GET", `/store-config/${idStore}/${id}?layout=${layout}`);
         
         if(response.status == 200){
             const twig = response.content[id];
@@ -330,20 +365,214 @@ const saveTemplate = async(idStore, id)=>{
     try{
 
         const file = edit_twig.getValue();
-        const response = await request("PUT", `/store-config/${idStore}/${id}`, {file});
+        const layout = getSelectedLayout();
+        const response = await request("PUT", `/store-config/${idStore}/${id}?layout=${layout}`, {file});
 
         if(response.status != 200){
             throw(statusHandler.messageError("Erro ao salvar, verifique o arquivo", true));
         }
 
-        statusHandler.newMessage("Arquivo salvo");
+        statusHandler.newMessage(`Arquivo salvo (layout ${layout})`);
 
     }catch(error){
         throw(statusHandler.messageError(error));
     }
 }
 
+// ---------------------------------------------------------------- políticas da loja
+const policyEditor = ()=> tinymce.get('policy-editor');
+
+// Garante o TinyMCE do modal (iniciado só na primeira abertura, com o modal já visível).
+// Resolve no evento `init` do editor: o promise de tinymce.init nem sempre resolve dentro de modais.
+let policyEditorReady = null;
+
+const ensurePolicyEditor = ()=>{
+    if(policyEditorReady){
+        return policyEditorReady;
+    }
+
+    policyEditorReady = new Promise(resolve=>{
+        const done = ()=> resolve(policyEditor());
+        const timer = setTimeout(done, 8000);
+
+        tinymce.init({
+            selector:'#policy-editor',
+            height:520,
+            menu:{ happy:{ title:'HTML', items:'code' } },
+            plugins:'code',
+            menubar:'happy',
+            skin:'oxide-dark',
+            content_css:'dark',
+            setup:(editor)=> editor.on('init', ()=>{
+                clearTimeout(timer);
+                done();
+            })
+        });
+    });
+
+    return policyEditorReady;
+};
+
+const showPolicySource = (source)=>{
+    const $tag = $("[c-id=policy-source]").removeClass("is-default is-custom");
+
+    source == "store"
+        ? $tag.addClass("is-custom").text("Texto próprio da loja")
+        : $tag.addClass("is-default").text("Padrão do país (não personalizado)");
+};
+
+const getPolicy = async(idStore, key)=>{
+    try{
+
+        const response = await request("GET", `/store-config/${idStore}/policy/${key}`);
+
+        if(response.status != 200){
+            throw(statusHandler.messageError(response.content || "Erro ao buscar política", true));
+        }
+
+        const {title_policy, text_policy, source} = response.content;
+        const editor = await ensurePolicyEditor();
+
+        $("[c-id=policy-title]").val(title_policy || "");
+        editor?.setContent(text_policy || "");
+        showPolicySource(source);
+        $("[c-id=save-policy]").attr("id", key);
+
+    }catch(error){
+        throw(statusHandler.messageError(error));
+    }
+};
+
+const savePolicy = async(idStore, key, reset = false)=>{
+    try{
+
+        const body = reset
+            ? {title_policy:"", text_policy:""}
+            : {title_policy:$("[c-id=policy-title]").val(), text_policy:policyEditor()?.getContent() || ""};
+
+        const response = await request("PUT", `/store-config/${idStore}/policy/${key}`, body);
+
+        if(response.status != 200){
+            throw(statusHandler.messageError(response.content || "Erro ao salvar política", true));
+        }
+
+        statusHandler.newMessage(response.content);
+        await getPolicy(idStore, key);
+
+    }catch(error){
+        throw(statusHandler.messageError(error));
+    }
+};
+
 $(document).ready(function(){
+
+    $("[c-id=open-policies]").on("click", async()=>{
+        try{
+
+            // inicia o editor só com o modal totalmente visível e abre a primeira política
+            $("[c-id=modal-policies]").one("shown.bs.modal", async()=>{
+                try{
+
+                    await ensurePolicyEditor();
+                    $("[c-id=model-policy]").first().trigger("click");
+
+                }catch(error){
+                    statusHandler.messageError(error);
+                }
+            });
+
+            $("[c-id=modal-policies]").modal("show");
+
+        }catch(error){
+            statusHandler.messageError(error);
+        }
+    });
+
+    $("[c-id=model-policy]").on("click", async(e)=>{
+        try{
+
+            const idStore = $("[c-id=modal-store]").find("[c-id=save-store]").attr("id");
+            const key = $(e.currentTarget).attr("id");
+
+            $("[c-id=model-policy]").removeClass("active");
+            $(e.currentTarget).addClass("active");
+
+            await getPolicy(idStore, key);
+
+        }catch(error){
+            statusHandler.messageError(error);
+        }
+    });
+
+    $("[c-id=save-policy]").on("click", async(e)=>{
+        try{
+
+            const idStore = $("[c-id=modal-store]").find("[c-id=save-store]").attr("id");
+            const key = $(e.currentTarget).attr("id");
+
+            key && await savePolicy(idStore, key);
+
+        }catch(error){
+            statusHandler.messageError(error);
+        }
+    });
+
+    $("[c-id=reset-policy]").on("click", async()=>{
+        try{
+
+            const idStore = $("[c-id=modal-store]").find("[c-id=save-store]").attr("id");
+            const key = $("[c-id=save-policy]").attr("id");
+
+            if(!key){
+                return;
+            }
+
+            const ok = await confirmAction({
+                title:"Restaurar padrão",
+                message:"Descartar o texto próprio desta política e voltar ao padrão do país?",
+                okText:"Restaurar"
+            });
+
+            ok && await savePolicy(idStore, key, true);
+
+        }catch(error){
+            statusHandler.messageError(error);
+        }
+    });
+
+    $("[c-id=close-modal-policies]").on("click", ()=>{
+        $("[c-id=modal-policies]").modal("hide");
+        $("[c-id=save-policy]").removeAttr("id");
+        $("[c-id=model-policy]").removeClass("active");
+    });
+
+    // logo e banners: arrastar e soltar (admin-media.js)
+    AdminMedia.bindDropzone(document.querySelector("[c-id=dropzone-logo]"), async(files)=>{
+        const [img] = await AdminMedia.filesToDataUrls(files);
+
+        img && listLogo(img);
+    });
+
+    [1, 2, 3].forEach(n=> AdminMedia.bindDropzone(document.querySelector(`[c-id=dropzone-banner_${n}]`), async(files)=>{
+        const [img] = await AdminMedia.filesToDataUrls(files);
+
+        img && listBanner(img, `[c-id=banner-${n}]`);
+    }));
+
+    // gerar logo e banners com IA (Higgsfield)
+    AdminMedia.bindAiBar(document.querySelector("[c-id=ai-bar-logo]"), (image)=> listLogo(image));
+    [1, 2, 3].forEach(n=> AdminMedia.bindAiBar(document.querySelector(`[c-id=ai-bar-banner_${n}]`), (image)=> listBanner(image, `[c-id=banner-${n}]`)));
+
+    // países: filtro por nome/código e contador
+    $("[c-id=country-filter]").on("input", (e)=>{
+        const term = $(e.target).val().trim().toLowerCase();
+
+        $("[c-id=country] .form-check").each(function(){
+            $(this).toggleClass("is-hidden", !!term && !$(this).text().toLowerCase().includes(term));
+        });
+    });
+
+    $("[c-id=form]").on("change", "[c-id=country] input", updateCountryCount);
 
     $("[c-id=model-file]").on("click", async(e)=>{
         try{
@@ -351,7 +580,24 @@ $(document).ready(function(){
             const idStore = $("[c-id=modal-store]").find("[c-id=save-store]").attr("id")
             const idFile = $(e.currentTarget).attr("id");
 
+            $("[c-id=model-file]").removeClass("active");
+            $(e.currentTarget).addClass("active");
+
             await getTemplate(idStore, idFile)
+
+        }catch(error){
+            statusHandler.messageError(error);
+        }
+    });
+
+    $("[c-id=layout-file]").on("change", async()=>{
+        try{
+
+            const idStore = $("[c-id=modal-store]").find("[c-id=save-store]").attr("id");
+            const idFile = $("[c-id=save-template]").attr("id");
+
+            // recarrega o arquivo aberto no layout recém-selecionado
+            idFile && await getTemplate(idStore, idFile);
 
         }catch(error){
             statusHandler.messageError(error);
@@ -362,11 +608,15 @@ $(document).ready(function(){
         try{
 
             const id = $(e.currentTarget).attr("id");
-            const target = $(e.target).attr("c-id");
+            const target = $(e.target).closest("[c-id]").attr("c-id");
 
             if(target == 'status'){
                 const checked = $(e.target).prop("checked");
                 //return await changeStatusProduct(id, checked);
+            }
+
+            if(target == "btn-delete"){
+                return await deleteStore(id, $(e.currentTarget).find("a").first().text());
             }
 
             const css = await getStoreById(id);
@@ -383,6 +633,7 @@ $(document).ready(function(){
                 });
             });
             $("[c-id=modal-store]").find("[c-id=open-template]").removeClass("none");
+            $("[c-id=modal-store]").find("[c-id=open-policies]").removeClass("none");
             
         }catch(error){
             statusHandler.messageError(error);
@@ -482,6 +733,8 @@ $(document).ready(function(){
         try{
 
         $("[c-id=modal-template]").modal("show");
+        // o editor sempre abre no layout "first"
+        $("[c-id=layout-file]").val("first");
         $("#edit-twig").html("");
         require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' }});
             require(['vs/editor/editor.main'], function () {

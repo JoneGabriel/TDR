@@ -104,6 +104,33 @@ const changeStatusDomain = async(id, checked)=>{
     }
 };
 
+// Exclusão definitiva (não é desativação): pede confirmação antes
+const deleteDomain = async(id, nome)=>{
+    try{
+
+        const ok = await confirmAction({
+            title:"Excluir domínio",
+            message:`Excluir "${nome}" definitivamente? Essa ação não pode ser desfeita.`
+        });
+
+        if(!ok){
+            return;
+        }
+
+        const response = await request("DELETE", `/domain/${id}`);
+
+        if(response.status != 200){
+            throw(statusHandler.messageError(response.content || "Erro ao excluir", true));
+        }
+
+        statusHandler.newMessage("Domínio excluído(a)");
+        await listAllDomains();
+
+    }catch(error){
+        throw(statusHandler.messageError(error));
+    }
+};
+
 const listStores = async()=>{
     try{
 
@@ -179,11 +206,15 @@ $(document).ready(function(){
         try{
 
             const id = $(e.currentTarget).attr("id");
-            const target = $(e.target).attr("c-id");
+            const target = $(e.target).closest("[c-id]").attr("c-id");
 
             if(target == 'status'){
                 const checked = $(e.target).prop("checked");
                 return await changeStatusDomain(id, checked);
+            }
+
+            if(target == "btn-delete"){
+                return await deleteDomain(id, $(e.currentTarget).find("a").first().text());
             }
 
             await getDomainById(id);

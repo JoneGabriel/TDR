@@ -3,8 +3,12 @@ const {
     save,
     findAll,
     findById,
-    updateById
+    updateById,
+    removeOne,
+    countDocuments
 } =require("../query");
+
+const { OtherVariants } = require("../product/product.schema");
 
 const {
     Shopify
@@ -55,7 +59,33 @@ const changeShopify = async({id}, shopify)=>{
     }
 };
 
+// Exclusão definitiva da Shopify; bloqueada enquanto produtos tiverem variantes vindas dela
+const removeShopify = async({id})=>{
+    try{
+
+        const shopify = await findById(Shopify, id);
+
+        if(!shopify){
+            throw(statusHandler.newResponse(404, "Shopify não encontrada"));
+        }
+
+        const variants = await countDocuments(OtherVariants, {store:id});
+
+        if(variants){
+            throw(statusHandler.newResponse(400, `${variants} produto(s) ainda usam variantes desta Shopify. Remova a Shopify desses produtos antes.`));
+        }
+
+        await removeOne(Shopify, id);
+
+        return statusHandler.newResponse(200, "Shopify excluída");
+
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
+
 module.exports = {
+    removeShopify,
     createShopify,
     getAllShopify,
     getShopifyById,

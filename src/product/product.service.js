@@ -13,6 +13,7 @@ const {
     populate,
     updateById,
     removeOne,
+    removeMany,
     countDocuments
 } =require("../query");
 
@@ -26,21 +27,125 @@ const statusHandler = require("../helpers/helpers.statusHandler");
 const {
     Shopify
 } = require("../shopify/shopify.schema");
+const { shopifyGraphql } = require("../shopify/shopify.client");
 
 const {
     compareVariants
 } = require("../cart/cart.service");
 const { Store } = require("../store/store.schema");
+const { pickBuyerCountry, legacyMoeda, symbolOf } = require("../helpers/helpers.countries");
+const { refreshProductPrices } = require("../pricing/pricing.service");
 
-const getInfoCollection = async(id)=>{
+// Campos do produto que têm versão por layout da loja
+const productLayoutFields = ["name", "last_price", "price", "images", "description"];
+
+const isFilled = (value)=> Array.isArray(value) ? value.length > 0 : (value !== undefined && value !== null && value !== "");
+
+// Devolve o produto na versão do layout da loja: a raiz do documento é a versão "first";
+// em "second", os campos preenchidos em layouts.second sobrepõem a raiz e os vazios caem na "first".
+const applyProductLayout = (product, layout = "first", country = null)=>{
+    if(!product){
+        return product;
+    }
+
+    const doc = typeof product.toJSON == "function" ? product.toJSON() : product;
+    const second = doc.layouts?.second || {};
+
+    if(layout == "second"){
+        productLayoutFields.forEach(field=>{
+            isFilled(second[field]) && (doc[field] = second[field]);
+        });
+    }
+
+    doc.layout = layout == "second" ? "second" : "first";
+    delete doc.layouts;
+
+    // preço do país do visitante (cache de pricing.service), só no layout first, que é o que vai ao checkout
+    const local = country && doc.layout == "first" ? doc.prices?.[country] : null;
+
+    if(local){
+        doc.price = local.price;
+        doc.last_price = local.last_price ?? doc.last_price;
+        doc.currency = local.currency;
+    }
+
+    delete doc.prices;
+
+    return doc;
+};
+
+// Variantes com o preço do país quando há cache; sem cache ficam no preço base da Shopify
+const localizeVariants = (variants, country)=>{
+    const plain = variants ? JSON.parse(JSON.stringify(variants)) : {};
+
+    if(!plain.variant_values || !country){
+        return plain;
+    }
+
+    plain.variant_values = plain.variant_values.map(value=>{
+        const local = value.prices?.[country];
+
+        // base_price guarda o preço base da Shopify para a razão dos bundles continuar correta depois de localizar
+        return local ? {...value, base_price:value.price, price:local.price, last_price:local.last_price ?? value.last_price, currency:local.currency} : value;
+    });
+
+    return plain;
+};
+
+// Razão preço local / preço base da primeira variante com cache: converte preços manuais (bundles) na proporção da Shopify
+const countryRatio = (variants, country)=>{
+    const value = (variants?.variant_values || []).find(item=> item.prices?.[country]?.price && (item.base_price ?? item.price));
+
+    return value ? value.prices[country].price / (value.base_price ?? value.price) : 1;
+};
+
+const round2 = (value)=> Math.round(value * 100) / 100;
+
+// Loja e país do comprador para as rotas JSON (variante, carrinho): país pedido se atendido, senão o primeiro da loja
+const buyerContext = async(product, requested)=>{
+    const store = product?.store ? await findById(Store, product.store) : null;
+    const country = pickBuyerCountry(store?.country, requested);
+    const currency = (country && store?.market_currencies?.[country]) || legacyMoeda[store?.moeda] || "EUR";
+
+    return {store, country, currency, moeda:symbolOf(currency)};
+};
+
+// Limpa a versão second vinda do admin: campos vazios são removidos para cair na versão first.
+// Sem `layouts` no body nada muda no banco (PUT parcial).
+const normalizeProductLayouts = (product)=>{
+    if(!product.layouts){
+        return product;
+    }
+
+    const second = product.layouts.second || {};
+    let clean = {};
+
+    productLayoutFields.forEach(field=>{
+        isFilled(second[field]) && (clean[field] = second[field]);
+    });
+
+    product.layouts = {second:clean};
+
+    return product;
+};
+
+// Projeção leve para listagens (só a primeira imagem), já com a versão second
+const listProjection = {
+    name:1, last_price:1, price:1, brand:1, status:1, prices:1,
+    images:{$slice:1},
+    "layouts.second.name":1, "layouts.second.last_price":1, "layouts.second.price":1,
+    "layouts.second.images":{$slice:1}
+};
+
+const getInfoCollection = async(id, layout = "first", country = null)=>{
     try{
        
         const collection = await findById(Collection, id);
-        const products = await findAll(Product, {
+        let products = await findAll(Product, {
             collection_:id, status:true
-        }, {name:1, last_price:1, price:1, brand:1, status:true, images:{
-            $slice:1
-        }});
+        }, listProjection);
+
+        products = products.map(product=> applyProductLayout(product, layout, country));
         
         return {
             products,
@@ -53,7 +158,7 @@ const getInfoCollection = async(id)=>{
     }
 }
 
-const createObjectCollections = async(collections)=>{
+const createObjectCollections = async(collections, layout = "first", country = null)=>{
     try{
 
         let object = [];
@@ -61,16 +166,9 @@ const createObjectCollections = async(collections)=>{
         for(i in collections){
 
             const {_id, name} = collections[i];
-            const products = await findAll(Product, 
-                {collection_:_id}, 
-                {
-                    name:1, 
-                    last_price:1, 
-                    price:1, 
-                    images:{
-                        $slice:1}
-                }
-            );
+            let products = await findAll(Product, {collection_:_id}, listProjection);
+
+            products = products.map(product=> applyProductLayout(product, layout, country));
 
             products.length && object.push({
                 name,
@@ -85,16 +183,16 @@ const createObjectCollections = async(collections)=>{
     }
 };
 
-const getFirtsCollection = async(store)=>{
+const getFirtsCollection = async(store, layout = "first", country = null)=>{
     try{    
 
         const collections = await findAll(Collection, {status:true, store});
         const position = collections.length-1;
-        const products = await findAll(Product, {
+        let products = await findAll(Product, {
             collection_:collections[position]?._id, status:true, store
-        }, {name:1, last_price:1, price:1, brand:1,images:{
-            $slice:1
-        }});
+        }, listProjection);
+
+        products = products.map(product=> applyProductLayout(product, layout, country));
 
         
         return {
@@ -102,7 +200,7 @@ const getFirtsCollection = async(store)=>{
             collection_name:collections[position]?.name,
             products:products.slice(0,4),
             collections,
-            object_collections: await createObjectCollections(collections)
+            object_collections: await createObjectCollections(collections, layout, country)
         };
     }catch(error){
         throw(statusHandler.serviceError(error));
@@ -174,76 +272,53 @@ const formatVariants = (shopifyVariants) => {
     };
 };
 
-const getVariants = async(id_shopify, domain, token)=>{
+const getVariants = async(id_shopify, shopify)=>{
     try {
-        const productGid = `gid://shopify/Product/${id_shopify}`;
-    
-        let cursor  = null;
-        let hasNext = true;
-        let variants = [];
-        let productInfo = null;
-    
-        while (hasNext) {
-          const query = `
-            query {
-              product(id: "${productGid}") {
-                id
-                title
-                handle
-                variants(first: 100${cursor ? `, after: "${cursor}"` : ""}) {
-                  edges {
-                    cursor
-                    node {
-                      id
-                      title
-                      sku
-                      price {
-                        amount
-                        currencyCode
-                      }
-                      compareAtPrice {
-                        amount
-                        currencyCode
-                       }
-
-                      image {
-                        url        
-                    }
-                      selectedOptions { name value }
-                    }
-                  }
-                  pageInfo { hasNextPage }
+        const query = `
+          query ProductVariants($id: ID!, $after: String) {
+            product(id: $id) {
+              id
+              title
+              handle
+              variants(first: 100, after: $after) {
+                nodes {
+                  id
+                  title
+                  sku
+                  price { amount currencyCode }
+                  compareAtPrice { amount currencyCode }
+                  image { url }
+                  selectedOptions { name value }
                 }
+                pageInfo { hasNextPage endCursor }
               }
             }
-          `;
-    
-          const raw = await request(
-            "POST",
-            `https://${domain}/api/2023-10/graphql.json`,
-            { query },
-            { "X-Shopify-Storefront-Access-Token": token }
-          );
-    
-          const res = typeof raw === "string" ? JSON.parse(raw) : raw;
-    
-          const p = res.data.product;
-          if (!productInfo) {
-            productInfo = { id: p.id, title: p.title, handle: p.handle };
           }
-    
-          const edges = p.variants.edges;
-          variants.push(...edges.map((e) => e.node));
-    
+        `;
+
+        let after = null;
+        let hasNext = true;
+        let variants = [];
+
+        while (hasNext) {
+          const data = await shopifyGraphql(shopify, "storefront", query, {
+            id: `gid://shopify/Product/${id_shopify}`,
+            after
+          });
+
+          const p = data.product;
+
+          if (!p) {
+            throw statusHandler.newResponse(404, `Produto ${id_shopify} nao encontrado na Shopify`);
+          }
+
+          variants.push(...p.variants.nodes);
+
           hasNext = p.variants.pageInfo.hasNextPage;
-          cursor  = hasNext ? edges[edges.length - 1].cursor : null;
+          after = p.variants.pageInfo.endCursor;
         }
-        
-        
 
-        variants = formatVariants(variants);
-
-        return  variants;
+        return formatVariants(variants);
       } catch (error) {
         throw statusHandler.serviceError(error);
       }
@@ -255,10 +330,10 @@ const createOtherVariants = async(otherShopify, idProduct)=>{
         for(i in otherShopify){
 
             const {store, id_shopify_store} = otherShopify[i];
-            const {url, token_storefront} = await findById(Shopify, store);
+            const shopify = await findById(Shopify, store);
 
             let otherVariants = {};
-            otherVariants["variants"] = await getVariants(id_shopify_store, url, token_storefront);
+            otherVariants["variants"] = await getVariants(id_shopify_store, shopify);
             
             otherVariants["store"] = store;
             otherVariants["id_shopify"] = id_shopify_store;
@@ -284,12 +359,18 @@ const createProduct = async(product)=>{
         
         const shopify = product["other_shopify"];
         const bundles = product["bundles"];
+
+        normalizeProductLayouts(product);
+
         const idProduct = await save(Product, product);
 
         if(!isEmpty(shopify)){
             
             await createOtherVariants(shopify, "" + (idProduct)._id);
         }
+
+        // cache de preços por país (falha na Shopify não impede o cadastro)
+        await refreshProductPrices("" + (idProduct)._id).catch(error=> console.warn('\x1b[33m%s\x1b[0m', `[pricing] ${error.content || error.message || error}`));
 
 
         return statusHandler.newResponse(200, "Created product");
@@ -357,11 +438,12 @@ const arrangeVariants = (product, isBundle = false)=>{
     }
 };
 
-const getProductById = async(id, api = false)=>{
+const getProductById = async(id, api = false, layout = "first", country = null)=>{
     try{
 
         let product = await findById(Product, id);
-        product = product.toJSON();
+        // admin (api) recebe o documento inteiro, com layouts.second, para editar as duas versões
+        product = api ? product.toJSON() : applyProductLayout(product, layout, country);
         
         if(api){
 
@@ -382,7 +464,7 @@ const getProductById = async(id, api = false)=>{
             const bundles = await findAll(Bundle, {product:id});
 
             product['bundles'] = bundles;
-            product['variants'] = otherVariants?.variants || {};
+            product['variants'] = localizeVariants(otherVariants?.variants, country);
             product.discount = parseInt((product.price/(product.last_price)*100)-100);
         }
 
@@ -392,22 +474,27 @@ const getProductById = async(id, api = false)=>{
     }
 };
 
-const getProductByIdForCart = async({id}, {cart, is_bundle})=>{
+const getProductByIdForCart = async({id}, {cart, is_bundle, layout, country})=>{
     try{
         
-        let product =  await findById(Product,id, {name:1, last_price:1, price:1});
+        let product =  await findById(Product, id, {name:1, last_price:1, price:1, store:1, prices:1, "layouts.second.name":1, "layouts.second.last_price":1, "layouts.second.price":1});
 
         const otherVariants =  await findOne(OtherVariants, {product:id});
+        const buyer = await buyerContext(product, country);
         
-        product = product.toJSON();
-        product['variants'] = otherVariants?.variants || {};
+        product = applyProductLayout(product, layout, buyer.country);
+        product['variants'] = localizeVariants(otherVariants?.variants, buyer.country);
+        product['country'] = buyer.country;
+        product['currency'] = buyer.currency;
         
         if(is_bundle){
 
             const bundle = await findById(Bundle, is_bundle);
+            // bundle tem preço manual na moeda base: converte na mesma proporção que a Shopify aplicou às variantes
+            const ratio = countryRatio(product["variants"], buyer.country);
 
-            product["price"] = bundle.price_bundle;
-            product["last_price"] = bundle.last_price_bundle;
+            product["price"] = round2(bundle.price_bundle * ratio);
+            product["last_price"] = bundle.last_price_bundle ? round2(bundle.last_price_bundle * ratio) : bundle.last_price_bundle;
             product["name"] = bundle.title_bundle;
 
             const variants = product["variants"];
@@ -431,9 +518,11 @@ const getProductByIdForCart = async({id}, {cart, is_bundle})=>{
         product["variants"] = product["variants"]["variant_values"].filter(val=> val.id_shopify == idShopify);
         
         if(product["variants"].length){
-            const {last_price, price } = product["variants"][0];
+            const {last_price, price, currency} = product["variants"][0];
             product.last_price = last_price ||  product.last_price;
             product.price = price || product.price;
+            // a variante com cache do país manda na moeda; sem cache fica a da loja (base)
+            currency && (product.currency = currency);
         }
         
         return statusHandler.newResponse(200, product);
@@ -443,12 +532,12 @@ const getProductByIdForCart = async({id}, {cart, is_bundle})=>{
     }
 };
 
-const getProductsRamdon = async(collection_, store)=>{
+const getProductsRamdon = async(collection_, store, layout = "first", country = null)=>{
     try{
 
         let products = await findAll(Product, {collection_, status:true, store});
         
-        return products.slice(0,6);
+        return products.slice(0,6).map(product=> applyProductLayout(product, layout, country));
 
     }catch(error){
         throw(statusHandler.serviceError(error));
@@ -493,6 +582,50 @@ const removeBundle = async({id})=>{
     }
 };
 
+// Exclusão definitiva do produto e do que só existe por causa dele (variantes Shopify e bundles)
+const removeProduct = async({id})=>{
+    try{
+
+        const product = await findById(Product, id);
+
+        if(!product){
+            throw(statusHandler.newResponse(404, "Produto não encontrado"));
+        }
+
+        await removeMany(OtherVariants, {product:id});
+        await removeMany(Bundle, {product:id});
+        await removeOne(Product, id);
+
+        return statusHandler.newResponse(200, "Produto excluído");
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
+
+// Exclusão definitiva da coleção; bloqueada enquanto houver produtos nela (não deixa produto órfão)
+const removeCollection = async({id})=>{
+    try{
+
+        const collection = await findById(Collection, id);
+
+        if(!collection){
+            throw(statusHandler.newResponse(404, "Coleção não encontrada"));
+        }
+
+        const products = await countDocuments(Product, {collection_:id});
+
+        if(products){
+            throw(statusHandler.newResponse(400, `A coleção ainda tem ${products} produto(s). Exclua ou mova os produtos antes.`));
+        }
+
+        await removeOne(Collection, id);
+
+        return statusHandler.newResponse(200, "Coleção excluída");
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
+
 const changeProduct = async({id}, product)=>{
     try{
         
@@ -507,7 +640,12 @@ const changeProduct = async({id}, product)=>{
             await createBundles(bundles, id);
         }
 
+        normalizeProductLayouts(product);
+
         await updateById(Product, id, product)
+
+        // cache de preços por país (falha na Shopify não impede a edição)
+        await refreshProductPrices(id).catch(error=> console.warn('\x1b[33m%s\x1b[0m', `[pricing] ${error.content || error.message || error}`));
 
         return statusHandler.newResponse(200, "Updated product");
     }catch(error){
@@ -573,15 +711,20 @@ const changeStatusCollection = async({id}, {status})=>{
     }
 };
 
-const getPriceByVariants = async({id}, options)=>{
+const getPriceByVariants = async({id}, options, country = null)=>{
     try{
 
         const variants = await findOne(OtherVariants, {product:id});
-        const {store} = await findById(Product, id);
-        const {moeda} = await findById(Store, store);
-        const prices =  compareVariants(options, variants.variants, true);
+        const product = await findById(Product, id);
+        const buyer = await buyerContext(product, country);
+        const localized = localizeVariants(variants?.variants, buyer.country);
+        const prices =  compareVariants(options, localized, true);
+        // a variante escolhida, se tiver cache do país, define a moeda; sem cache fica a da loja (base)
+        const match = (localized.variant_values || []).find(value=> value.id_shopify == compareVariants(options, localized));
+        const currency = match?.currency || buyer.currency;
 
-        return statusHandler.newResponse(200, {prices, moeda})
+        // moeda já vem como símbolo (antes era a chave euro/dolar/libra)
+        return statusHandler.newResponse(200, {prices, moeda:symbolOf(currency), currency, country:buyer.country})
     }catch(error){
         throw(statusHandler.serviceError(error));
     }
@@ -605,5 +748,11 @@ module.exports = {
     changeStatusProduct,
     changeStatusCollection,
     removeBundle,
-    getPriceByVariants
+    getPriceByVariants,
+    applyProductLayout,
+    productLayoutFields,
+    removeProduct,
+    removeCollection,
+    localizeVariants,
+    countryRatio
 };

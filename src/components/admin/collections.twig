@@ -38,7 +38,7 @@
                     </div>
                 </div>
                 <div class="col-lg-3">
-                    <button c-id="btn-link" class="btn-add-product">Copiar link</button>
+                    <div class="row-actions"><button c-id="btn-link" class="btn-add-product">Copiar link</button><button c-id="btn-delete" class="btn-delete" title="Excluir coleção"><i class="bi bi-trash3"></i></button></div>
                 </div>
             </div>
         </div>
@@ -65,7 +65,7 @@
                             </div>
                         </div>
                         <div class="col-lg-3">
-                            <button c-id="btn-link" class="btn-add-product">Copiar link</button>
+                            <div class="row-actions"><button c-id="btn-link" class="btn-add-product">Copiar link</button><button c-id="btn-delete" class="btn-delete" title="Excluir coleção"><i class="bi bi-trash3"></i></button></div>
                         </div>
                     </div>
                 </div>
@@ -77,103 +77,85 @@
     
 </div>
 
-<div c-id="modal-collection" class="modal fade modal-product-style" tabindex="-1" aria-labelledby="exampleModalFullscreenLabel"  aria-modal="true" role="dialog">
-  <div class="modal-dialog modal-fullscreen" >
-    <div c-id="form" class="modal-content bk-modal" >
-      <div class="modal-header rm-border" >
-        <div class="container">
-            <h1 class="modal-title fs-5 ms-3" >
-                <b c-id="name-collection"></b>
-                
-            </h1>
+
+<div c-id="modal-collection" class="modal fade modal-product-style" tabindex="-1" aria-modal="true" role="dialog">
+  <div class="modal-dialog modal-fullscreen">
+    <div c-id="form" class="modal-content bk-modal">
+      <div class="modal-header rm-border">
+        <div class="container-fluid px-3">
+            <h1 class="modal-title fs-5"><i class="bi bi-tags me-1"></i><b c-id="name-collection"></b><span class="modal-title-fallback">Nova coleção</span></h1>
+            <p class="modal-subtitle">A coleção agrupa produtos de uma loja e aparece no menu e na home da vitrine.</p>
         </div>
         <button c-id="close-modal" class="btn-modal">Fechar</button>
       </div>
-      <div class="modal-body" >
-        <div class="container">
-            <div class="row form-default">
+      <div class="modal-body">
+        <div class="container-xl">
+            <div class="row g-3">
                 <div class="col-lg-6">
-                    <div class="mb-3">
-                        <label class="form-label">Título</label>
-                        <input c-id="name" type="text" class="form-control"  placeholder="Coleção de verão">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Loja</label>
-                        <select c-id="store-config" class="form-select"></select>
-                    </div>
-                   
+                    <section class="modal-section">
+                        <h6 class="modal-section-title"><i class="bi bi-info-circle"></i> Informações</h6>
+                        <div class="mb-3">
+                            <label class="form-label">Título</label>
+                            <input c-id="name" type="text" class="form-control" placeholder="Coleção de verão">
+                        </div>
+                        <div>
+                            <label class="form-label">Loja</label>
+                            <select c-id="store-config" class="form-select"></select>
+                        </div>
+                    </section>
                 </div>
-
-               
-
-
-                 <div class="col-lg-6">
-                    <div class="mb-3">
-
-                        <label class="form-label">Mídia</label>
-                        <input c-id="images" type="file" class="form-control">
-
-                        <div class="model-img none mt-2 col-lg-3" c-id="model-img">
-                            <img>
-                            <button c-id="remove-img">Remover</button>
-                                
-                            
-                            
-                        </div>            
-                        
-                        <div c-id="image-list" class="row mt-2"></div> 
-                    
-                    </div>
-                    
-                </div>
-
-            </div>
-            <button c-id="save-collection" class="btn-modal mt-4 float-end">Salvar</button>
-            <div class="clearfix">
-                <div c-id="loading-btn" class="spinner-border float-end mt-4 none" role="status">
-                    <span class="visually-hidden">Loading...</span>
+                <div class="col-lg-6">
+                    <section class="modal-section">
+                        <h6 class="modal-section-title"><i class="bi bi-image"></i> Imagem</h6>
+                        <p class="modal-section-hint">Uma imagem, usada no menu e nos cards de coleção. Redimensionada no navegador para até 1600px.</p>
+                        <div class="media-field">
+                            <label class="dropzone" c-id="dropzone-images">
+                                <input c-id="images" type="file" accept="image/*" class="dropzone-input">
+                                <i class="bi bi-cloud-arrow-up"></i>
+                                <span class="dropzone-title">Arraste a imagem aqui ou clique para escolher</span>
+                                <span class="dropzone-hint">JPG, PNG, WEBP ou GIF</span>
+                            </label>
+                            <div class="ai-bar" c-id="ai-bar-images" data-aspect="1:1">
+                                <i class="bi bi-stars"></i>
+                                <input c-id="ai-prompt" type="text" class="form-control" placeholder="Ou descreva a imagem da coleção para gerar com IA...">
+                                <button type="button" c-id="ai-generate" class="btn-modal">Gerar</button>
+                            </div>
+                            <div class="model-img none" c-id="model-img">
+                                <img alt="">
+                                <div class="media-actions">
+                                    <button type="button" c-id="remove-img" title="Remover"><i class="bi bi-trash3"></i></button>
+                                </div>
+                            </div>
+                            <div c-id="image-list" class="media-grid media-grid-single"></div>
+                        </div>
+                    </section>
                 </div>
             </div>
-            <br>
-            <br>
-            <br>
-
         </div>
-
       </div>
-    
+      <div class="modal-footer rm-border">
+        <div c-id="loading-btn" class="spinner-border none" role="status"><span class="visually-hidden">Loading...</span></div>
+        <button c-id="save-collection" class="btn-modal">Salvar</button>
+      </div>
     </div>
   </div>
 </div>
 
-
-
-<div c-id="modal-link" class="modal fade modal-product-style"  tabindex="-1"   aria-modal="true" role="dialog">
-  <div class="modal-dialog modal-lg">
-    <div c-id="form" class="modal-content bk-modal">
+<div c-id="modal-link" class="modal fade" tabindex="-1" aria-modal="true" role="dialog">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content bk-modal">
       <div class="modal-header rm-border">
-         <button c-id="close-modal-link" class="btn-modal">Fechar</button>
+        <h1 class="modal-title fs-5"><i class="bi bi-link-45deg me-1"></i>Links da coleção</h1>
+        <button c-id="close-modal-link" class="btn-modal">Fechar</button>
       </div>
       <div class="modal-body">
-        <div class="container">
-            <div c-id="model-link" class="col-lg-12 none model-link mt-2">
-                <div class="d-flex justify-content-start">
-                    <a target="_blank"></a>
-                    <button c-id="copy" class="btn-modal ms-2">Copiar</button>
-                </div>
-            </div>  
-
-            <div c-id="all-links" class="row form-default">
-                
-            </div>
-
-            <br>
-            <br>
-            <br>
-
+        <p class="modal-section-hint">Um link por domínio ativo.</p>
+        <div c-id="model-link" class="link-row none">
+            <a target="_blank"></a>
+            <button c-id="copy" class="btn-modal">Copiar</button>
         </div>
+        <div c-id="all-links" class="link-list"></div>
       </div>
-      
     </div>
   </div>
 </div>

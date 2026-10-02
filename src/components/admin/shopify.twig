@@ -14,10 +14,10 @@
                 <label class="mt-1"><b>Shopify</b></label>
             </div>
             <div class="col-lg-4">
-                <label class="mt-1"><b>Token Storefront</b></label>
+                <label class="mt-1"><b>Client ID</b></label>
             </div>
             <div class="col-lg-4">
-                <label class="mt-1"><b>Token Admin</b></label>
+                <label class="mt-1"><b>Token Admin (legado)</b></label>
             </div>
         </div>
 
@@ -27,10 +27,10 @@
                     <a class="ms-2"></a>
                 </div>
                 <div class="col-lg-4">
-                    <label c-id="storefront" class="ms-2"></label>
+                    <label c-id="client_id" class="ms-2"></label>
                 </div>
                 <div class="col-lg-4">
-                    <label c-id="admin" class="ms-2"></label>
+                    <div class="row-actions"><label c-id="admin" class="ms-2"></label><button c-id="btn-delete" class="btn-delete" title="Excluir Shopify"><i class="bi bi-trash3"></i></button></div>
                 </div>
             </div>
         </div>
@@ -44,10 +44,10 @@
                             <a class="ms-2">{{loja.url}}</a>
                         </div>
                         <div class="col-lg-4">
-                            <label class="ms-2">{{loja.token_storefront}}</label>
+                            <label class="ms-2">{{loja.client_id}}</label>
                         </div>
                         <div class="col-lg-4">
-                            <label class="ms-2">{{loja.token_admin}}</label>
+                            <div class="row-actions"><label class="ms-2">{{loja.token_admin}}</label><button c-id="btn-delete" class="btn-delete" title="Excluir Shopify"><i class="bi bi-trash3"></i></button></div>
                         </div>
                     </div>
                 </div>
@@ -59,67 +59,65 @@
     
 </div>
 
-<div c-id="modal-store" class="modal fade modal-product-style" tabindex="-1" aria-labelledby="exampleModalFullscreenLabel"  aria-modal="true" role="dialog">
-  <div class="modal-dialog modal-fullscreen" >
-    <div c-id="form" class="modal-content bk-modal" >
-      <div class="modal-header rm-border" >
-        <div class="container">
-            <h1 class="modal-title fs-5 ms-3" >
-                <b c-id="name-store"></b>
-                
-            </h1>
+
+<div c-id="modal-store" class="modal fade" tabindex="-1" aria-modal="true" role="dialog">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div c-id="form" class="modal-content bk-modal">
+      <div class="modal-header rm-border">
+        <div class="container-fluid px-3">
+            <h1 class="modal-title fs-5"><i class="bi bi-shop me-1"></i><b c-id="name-store"></b><span class="modal-title-fallback">Nova Shopify</span></h1>
+            <p class="modal-subtitle">Credenciais da loja Shopify que fornece produtos, variantes, preços e checkout.</p>
         </div>
         <button c-id="close-modal" class="btn-modal">Fechar</button>
       </div>
-      <div class="modal-body" >
-        <div class="container">
-            <div class="row form-default">
-
-                <div class="col-lg-4">
+      <div class="modal-body">
+        <div class="row g-3">
+            <div class="col-lg-4">
+                <section class="modal-section h-100">
+                    <h6 class="modal-section-title"><i class="bi bi-link-45deg"></i> Loja</h6>
                     <div class="mb-3">
-                        <label class="form-label">Url</label>
-                        <input c-id="url" type="text" class="form-control"  placeholder="hjauds-08.myshopify.com">
+                        <label class="form-label">URL</label>
+                        <input c-id="url" type="text" class="form-control" placeholder="hjauds-08.myshopify.com">
                     </div>
-                   <div class="mb-3">
-                        <label class="form-label">Loja</label>
+                    <div>
+                        <label class="form-label">Loja do TDR</label>
                         <select c-id="store-config" class="form-select"></select>
                     </div>
-                </div>
-
-                <div class="col-lg-4">
-                    <div class="mb-3">
-                        <label class="form-label">Token Storefront</label>
-                        <input c-id="token_storefront" type="text" class="form-control"  ">
-                    </div>
-                   
-                </div>
-
-                <div class="col-lg-4">
-                    <div class="mb-3">
-                        <label class="form-label">Token Admin</label>
-                        <input c-id="token_admin" type="text" class="form-control" >
-                    </div>
-                   
-                </div>
-
-               
-
-
+                </section>
             </div>
-            <button c-id="save-store" class="btn-modal mt-4 float-end">Salvar</button>
-            <div class="clearfix">
-                <div c-id="loading-btn" class="spinner-border float-end mt-4 none" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
+            <div class="col-lg-4">
+                <section class="modal-section h-100">
+                    <h6 class="modal-section-title"><i class="bi bi-key"></i> App do Dev Dashboard</h6>
+                    <p class="modal-section-hint">Client credentials: o token Admin é gerado e renovado automaticamente.</p>
+                    <div class="mb-3">
+                        <label class="form-label">Client ID</label>
+                        <input c-id="client_id" type="text" class="form-control">
+                    </div>
+                    <div>
+                        <label class="form-label">Client Secret</label>
+                        <input c-id="client_secret" type="password" class="form-control" autocomplete="new-password">
+                    </div>
+                </section>
             </div>
-            <br>
-            <br>
-            <br>
-
+            <div class="col-lg-4">
+                <section class="modal-section h-100">
+                    <h6 class="modal-section-title"><i class="bi bi-shield-check"></i> Tokens</h6>
+                    <div class="mb-3">
+                        <label class="form-label">Token Storefront <small>(opcional, gerado automaticamente)</small></label>
+                        <input c-id="token_storefront" type="text" class="form-control">
+                    </div>
+                    <div>
+                        <label class="form-label">Token Admin <small>(apenas apps legados)</small></label>
+                        <input c-id="token_admin" type="text" class="form-control">
+                    </div>
+                </section>
+            </div>
         </div>
-
       </div>
-    
+      <div class="modal-footer rm-border">
+        <div c-id="loading-btn" class="spinner-border none" role="status"><span class="visually-hidden">Loading...</span></div>
+        <button c-id="save-store" class="btn-modal">Salvar</button>
+      </div>
     </div>
   </div>
 </div>

@@ -4,10 +4,17 @@ const {
     getAllStores,
     getStoreById,
     changeStore,
+    removeStore,
     getFile,
-    changeFile
+    changeFile,
+    getPolicy,
+    changePolicy
 } = require("./store.service");
 const router = require("express").Router();
+const { requireAdminApi } = require("../auth/auth.service");
+
+// todas as rotas de configuração de loja são do painel admin
+router.use("/store-config", requireAdminApi);
 const statusHandler = require("../helpers/helpers.statusHandler");
 
 router.post("/store-config", async({body}, res)=>{
@@ -58,10 +65,10 @@ router.get("/store-config/:id", async({params}, res)=>{
     }
 });
 
-router.get("/store-config/:idStore/:idFile", async({params}, res)=>{
+router.get("/store-config/:idStore/:idFile", async({params, query}, res)=>{
     try{    
 
-        const response = await getFile(params);
+        const response = await getFile(params, query.layout);
 
         return res.status(response.status).send(response);
     }catch(error){
@@ -70,10 +77,10 @@ router.get("/store-config/:idStore/:idFile", async({params}, res)=>{
     }
 });
 
-router.put("/store-config/:idStore/:idFile", async({params, body}, res)=>{
+router.put("/store-config/:idStore/:idFile", async({params, body, query}, res)=>{
     try{    
 
-        const response = await changeFile(params, body);
+        const response = await changeFile(params, body, query.layout);
 
         return res.status(response.status).send(response);
     }catch(error){
@@ -82,5 +89,42 @@ router.put("/store-config/:idStore/:idFile", async({params, body}, res)=>{
     }
 });
 
+
+// políticas da loja (privacy | shipping | return | terms)
+router.get("/store-config/:idStore/policy/:key", async({params}, res)=>{
+    try{    
+
+        const response = await getPolicy(params);
+
+        return res.status(response.status).send(response);
+    }catch(error){
+
+        return statusHandler.responseError(error, res);
+    }
+});
+
+router.put("/store-config/:idStore/policy/:key", async({params, body}, res)=>{
+    try{    
+
+        const response = await changePolicy(params, body);
+
+        return res.status(response.status).send(response);
+    }catch(error){
+
+        return statusHandler.responseError(error, res);
+    }
+});
+
+router.delete("/store-config/:id", async({params}, res)=>{
+    try{    
+
+        const response = await removeStore(params.id);
+
+        return res.status(response.status).send(response);
+    }catch(error){
+
+        return statusHandler.responseError(error, res);
+    }
+});
 
 module.exports = router;

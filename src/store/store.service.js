@@ -1,13 +1,21 @@
 const { Domain } = require("../domain/domain.schema");
 const statusHandler = require("../helpers/helpers.statusHandler");
 const { Product, Collection } = require("../product/product.schema");
-const { findAll, findById, save, findOne, updateById } = require("../query");
-const { Store } = require("./store.schema");
+const { findAll, findById, save, findOne, updateById, removeOne, countDocuments } = require("../query");
+const { Shopify } = require("../shopify/shopify.schema");
+const { countries, legacyMoeda, symbolOf, pickBuyerCountry } = require("../helpers/helpers.countries");
+const { Store, defaultLayout, layoutNames } = require("./store.schema");
 const Twig = require('twig');
 
 
 const createStore = async(store)=>{
     try{
+
+        // cada loja nasce com os dois layouts materializados a partir dos padrões
+        store.layouts = {
+            first:{...defaultLayout, ...(store.layouts?.first || {})},
+            second:{...defaultLayout, ...(store.layouts?.second || {})}
+        };
 
         await save(Store, store);
 
@@ -36,6 +44,38 @@ const getStoreById = async(id)=>{
         const store = await findById(Store, id);
 
         return statusHandler.newResponse(200, store);
+
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
+
+// Exclusão definitiva da loja; bloqueada enquanto houver domínios, produtos, coleções ou Shopifys vinculados
+const removeStore = async(id)=>{
+    try{
+
+        const store = await findById(Store, id);
+
+        if(!store){
+            throw(statusHandler.newResponse(404, "Loja não encontrada"));
+        }
+
+        const linked = [
+            [await countDocuments(Domain, {store:id}), "domínio(s)"],
+            [await countDocuments(Product, {store:id}), "produto(s)"],
+            [await countDocuments(Collection, {store:id}), "coleção(ões)"],
+            [await countDocuments(Shopify, {store:id}), "Shopify(s)"]
+        ].filter(([total])=> total);
+
+        if(linked.length){
+            const list = linked.map(([total, name])=> `${total} ${name}`).join(", ");
+
+            throw(statusHandler.newResponse(400, `A loja ainda tem ${list} vinculado(s). Exclua ou troque a loja desses itens antes.`));
+        }
+
+        await removeOne(Store, id);
+
+        return statusHandler.newResponse(200, "Loja excluída");
 
     }catch(error){
         throw(statusHandler.serviceError(error));
@@ -377,6 +417,65 @@ const moeda = {
 
 
 
+// Nome de layout válido ou `fallback` (vitrine: valor inválido na query cai no layout da loja)
+const pickLayoutName = (layout, fallback = "first")=>{
+    return layoutNames.includes(layout) ? layout : fallback;
+};
+
+// Nome de layout vindo da API admin: ausente -> "first" (compatível com chamadas antigas); inválido -> 400
+const getLayoutName = (layout)=>{
+    if(layout === undefined || layout === null || layout === ""){
+        return "first";
+    }
+
+    if(!layoutNames.includes(layout)){
+        throw(statusHandler.newResponse(400, `Layout inválido: ${layout}`));
+    }
+
+    return layout;
+};
+
+const isTemplateId = (idFile)=> files.some(file=> file.id == idFile);
+
+// Monta o conjunto de templates de um layout.
+// Prioridade: layouts.<name>.<campo> -> (só para "first") campo legado na raiz -> padrão do schema.
+const resolveLayout = (store, name)=>{
+    const doc = typeof store.toJSON == "function" ? store.toJSON() : store;
+    const own = doc.layouts?.[name] || {};
+
+    let templates = {};
+
+    Object.keys(defaultLayout).forEach(key=>{
+        templates[key] = own[key] ?? (name == "first" ? doc[key] : undefined) ?? defaultLayout[key];
+    });
+
+    return templates;
+};
+
+// Aplica um layout em `config` (vindo de getConfigStore): os templates vão para a raiz e `config.layout` guarda o nome.
+// Pode ser chamado de novo para trocar o layout (ex.: visitante filtrado -> "second"). Nome inválido/ausente -> "first".
+const useLayout = (config, name)=>{
+    const layoutName = pickLayoutName(name, "first");
+
+    Object.assign(config, config.layouts[layoutName]);
+    config.layout = layoutName;
+
+    return config;
+};
+
+// Define o país e a moeda da visita em `config`: país do visitante se a loja o atende, senão o primeiro país da loja.
+// O símbolo (config.moeda) segue a moeda que a Shopify devolveu para o país no refresh de preços; sem refresh, a moeda base.
+const useCountry = (config, countryCode)=>{
+    const buyerCountry = pickBuyerCountry(config.country, countryCode);
+    const currency = (buyerCountry && config.market_currencies?.[buyerCountry]) || legacyMoeda[config.moeda_base] || "EUR";
+
+    config.buyer_country = buyerCountry;
+    config.currency = currency;
+    config.moeda = symbolOf(currency);
+
+    return config;
+};
+
 const getConfigStore = async(id, type)=>{
     try{
 
@@ -401,8 +500,22 @@ const getConfigStore = async(id, type)=>{
             let config = await findById(Store, idStore);
             config = config.toJSON();
 
+            // os dois layouts já resolvidos (com fallback) ficam em config.layouts;
+            // useLayout() copia os templates de um deles para a raiz de config. Começa em "first".
+            config.layouts = {
+                first:resolveLayout(config, "first"),
+                second:resolveLayout(config, "second")
+            };
+            useLayout(config, "first");
+
+            // políticas da loja já resolvidas (texto próprio ou padrão do país); usa o idioma ainda como código
+            config.policies = resolvePolicies(config);
+
+            config.idioma_code = config['idioma'];
             config.idioma = idioma[config['idioma']];
-            config.moeda = moeda[config['moeda']];
+            // moeda legada da loja fica como base; useCountry() define país/moeda da visita (padrão: primeiro país)
+            config.moeda_base = config['moeda'];
+            useCountry(config, null);
             config.title = config['name'];
 
             delete config['name'];
@@ -416,10 +529,25 @@ const getConfigStore = async(id, type)=>{
     }
 }
 
-const getFile = async({idStore, idFile})=>{
+const getFile = async({idStore, idFile}, layout)=>{
   try{  
 
-    const file = await findById(Store, idStore, `${idFile}`); 
+    const layoutName = getLayoutName(layout);
+
+    if(!isTemplateId(idFile)){
+      throw(statusHandler.newResponse(400, `Arquivo inválido: ${idFile}`));
+    }
+
+    const store = await findById(Store, idStore);
+
+    if(!store){
+      throw(statusHandler.newResponse(404, "Loja não encontrada"));
+    }
+
+    const templates = resolveLayout(store, layoutName);
+
+    let file = {_id:store._id, layout:layoutName};
+    file[idFile] = templates[idFile];
 
     return statusHandler.newResponse(200, file)
 
@@ -428,8 +556,14 @@ const getFile = async({idStore, idFile})=>{
   }
 };
 
-const changeFile = async({idStore, idFile}, {file})=>{
+const changeFile = async({idStore, idFile}, {file}, layout)=>{
   try{
+
+      const layoutName = getLayoutName(layout);
+
+      if(!isTemplateId(idFile)){
+        throw(statusHandler.newResponse(400, `Arquivo inválido: ${idFile}`));
+      }
 
       const render = Twig.twig({ data: file });
       
@@ -438,7 +572,7 @@ const changeFile = async({idStore, idFile}, {file})=>{
       }
       
       let update = {};
-      update[idFile] = file;
+      update[`layouts.${layoutName}.${idFile}`] = file;
       await updateById(Store, idStore, update);
 
       return statusHandler.newResponse(200, "ok");
@@ -449,36 +583,8 @@ const changeFile = async({idStore, idFile}, {file})=>{
 }
 
 
-const options_country = [
-    {
-        key:"França",
-        value:"FR"
-    },
-    {
-        key:"Belgica",
-        value:"BE"
-    },
-    {
-        key:"Reino Unido",
-        value:"GB"
-    },
-    {
-        key:"Estados Unidos",
-        value:"US"
-    },
-    {
-        key:"Alemanha",
-        value:"DE"
-    },
-    {
-        key:"Suiça",
-        value:"CH"
-    },
-    {
-        key:"Holanda",
-        value:"NL"
-    },
-];
+// países disponíveis no admin (catálogo em helpers.countries.js)
+const options_country = countries.map(country=> ({key:country.name, value:country.code}));
 
 
 const options_moeda = [
@@ -1660,17 +1766,112 @@ const files = [
   {name:"Order", id:"order_template"},
 ]
 
+const options_layout = [
+  {key:"First (visitante liberado)", value:"first"},
+  {key:"Second (visitante filtrado)", value:"second"},
+];
+
+// ---------------------------------------------------------------- políticas por loja
+const policy_files = [
+  {id:"privacy", name:"Privacidade"},
+  {id:"shipping", name:"Envio"},
+  {id:"return", name:"Devolução e reembolso"},
+  {id:"terms", name:"Termos de serviço"},
+];
+
+const isPolicyKey = (key)=> policy_files.some(file=> file.id == key);
+
+// Padrão por país da loja; sem texto para o país (CH, DE, BE...) usa o do idioma; por último, GB
+const defaultPoliciesFor = (store)=>{
+    const byIdioma = {FR:"FR", EN:"GB", DE:"GB", NL:"GB"};
+    const countryCode = store.country?.[0];
+
+    return policies[countryCode] || policies[byIdioma[store.idioma]] || policies["GB"];
+};
+
+// Monta as quatro políticas da loja: texto gravado em `policies.<chave>` ou, se vazio, o padrão.
+// `source` diz de onde veio ("store" | "default") para o admin mostrar.
+const resolvePolicies = (store)=>{
+    const defaults = defaultPoliciesFor(store);
+    const own = store.policies || {};
+    let result = {};
+
+    policy_files.forEach(({id})=>{
+        const custom = own[id];
+        const base = defaults[id] || {title_policy:"", text_policy:""};
+
+        result[id] = custom?.text_policy
+            ? {title_policy:custom.title_policy || base.title_policy, text_policy:custom.text_policy, source:"store"}
+            : {...base, source:"default"};
+    });
+
+    return result;
+};
+
+const getPolicy = async({idStore, key})=>{
+    try{
+
+        if(!isPolicyKey(key)){
+            throw(statusHandler.newResponse(400, `Política inválida: ${key}`));
+        }
+
+        const store = await findById(Store, idStore);
+
+        if(!store){
+            throw(statusHandler.newResponse(404, "Loja não encontrada"));
+        }
+
+        const policy = resolvePolicies(store.toJSON())[key];
+
+        return statusHandler.newResponse(200, {key, name:policy_files.find(file=> file.id == key).name, ...policy});
+
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
+
+// Grava a política da loja; título e texto vazios removem a personalização (volta ao padrão do país)
+const changePolicy = async({idStore, key}, {title_policy = "", text_policy = ""} = {})=>{
+    try{
+
+        if(!isPolicyKey(key)){
+            throw(statusHandler.newResponse(400, `Política inválida: ${key}`));
+        }
+
+        const empty = !String(text_policy).trim() && !String(title_policy).trim();
+        const update = empty
+            ? {$unset:{[`policies.${key}`]:""}}
+            : {[`policies.${key}`]:{title_policy:String(title_policy).trim(), text_policy}};
+
+        await updateById(Store, idStore, update);
+
+        return statusHandler.newResponse(200, empty ? "Política restaurada para o padrão" : "Política salva");
+
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
+
 module.exports = {
     createStore,
     getAllStores,
     getStoreById,
     getConfigStore,
     changeStore,
+    removeStore,
     getFile,
     changeFile,
     options_country,
     options_moeda,
     options_idioma,
     policies,
-    files
+    files,
+    options_layout,
+    resolveLayout,
+    useLayout,
+    useCountry,
+    policy_files,
+    resolvePolicies,
+    getPolicy,
+    changePolicy
 };

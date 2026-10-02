@@ -1,4 +1,8 @@
 const router = require("express").Router();
+const { requireAdminApi } = require("../auth/auth.service");
+
+// todas as rotas de lojas Shopify são do painel admin
+router.use("/store", requireAdminApi);
 const statusHandler = require("../helpers/helpers.statusHandler");
 
 const {
@@ -6,7 +10,8 @@ const {
     getAllShopify,
     removeStore,
     getShopifyById,
-    changeShopify
+    changeShopify,
+    removeShopify
 } = require("./shopify.service");
 
 
@@ -52,6 +57,18 @@ router.put("/store/:id", async({body, params}, res)=>{
     try{
 
         const response = await changeShopify(params, body);
+
+        return res.status(response.status).send(response);
+    }catch(error){  
+
+        return statusHandler.responseError(error, res);
+    }
+});
+
+router.delete("/store/:id", async({params}, res)=>{
+    try{
+
+        const response = await removeShopify(params);
 
         return res.status(response.status).send(response);
     }catch(error){  

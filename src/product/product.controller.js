@@ -1,4 +1,8 @@
 const router = require("express").Router();
+const { requireAdminApi } = require("../auth/auth.service");
+
+// coleções são do painel admin; em /product só carrinho (/product/cart) e variantes (/product/variant) ficam públicos
+router.use("/collection", requireAdminApi);
 const statusHandler = require("../helpers/helpers.statusHandler");
 
 const {
@@ -15,7 +19,9 @@ const {
     changeStatusProduct,
     changeStatusCollection,
     removeBundle,
-    getPriceByVariants
+    getPriceByVariants,
+    removeProduct,
+    removeCollection
 } =require("./product.service");
 
 router.post("/collection", async({body}, res)=>{
@@ -66,7 +72,7 @@ router.get("/collection/:id", async({params}, res)=>{
     }
 });
 
-router.post("/product", async({body}, res)=>{
+router.post("/product", requireAdminApi, async({body}, res)=>{
     try{
 
         const response = await createProduct(body);
@@ -91,7 +97,7 @@ router.post("/product/cart/:id", async({params, body}, res)=>{
     }
 });
 
-router.get("/product", async({body}, res)=>{
+router.get("/product", requireAdminApi, async({body}, res)=>{
     try{
 
         const response = await getAllProducts();
@@ -103,7 +109,7 @@ router.get("/product", async({body}, res)=>{
     }
 });
 
-router.get("/product/:id", async({params}, res)=>{
+router.get("/product/:id", requireAdminApi, async({params}, res)=>{
     try{
 
         const response = await getProductById(params.id, true);
@@ -115,10 +121,10 @@ router.get("/product/:id", async({params}, res)=>{
     }
 });
 
-router.post("/product/variant/:id", async({params, body}, res)=>{
+router.post("/product/variant/:id", async({params, body, query}, res)=>{
     try{
 
-        const response = await getPriceByVariants(params, body);
+        const response = await getPriceByVariants(params, body, query.country);
 
         return res.status(response.status).send(response);
     }catch(error){  
@@ -127,7 +133,7 @@ router.post("/product/variant/:id", async({params, body}, res)=>{
     }
 });
 
-router.put("/product/:id", async({params, body}, res)=>{
+router.put("/product/:id", requireAdminApi, async({params, body}, res)=>{
     try{
 
         const response = await changeProduct(params, body);
@@ -139,7 +145,7 @@ router.put("/product/:id", async({params, body}, res)=>{
     }
 });
 
-router.delete("/product/store/:id", async({params}, res)=>{
+router.delete("/product/store/:id", requireAdminApi, async({params}, res)=>{
     try{
 
         const response = await removeStore(params);
@@ -151,7 +157,7 @@ router.delete("/product/store/:id", async({params}, res)=>{
     }
 });
 
-router.put("/product/status/:id", async({params, body}, res)=>{
+router.put("/product/status/:id", requireAdminApi, async({params, body}, res)=>{
     try{
 
         const response = await changeStatusProduct(params, body);
@@ -175,10 +181,35 @@ router.put("/collection/status/:id", async({params, body}, res)=>{
     }
 });
 
-router.delete("/product/bundle/:id", async({params}, res)=>{
+router.delete("/product/bundle/:id", requireAdminApi, async({params}, res)=>{
     try{
 
         const response = await removeBundle(params);
+
+        return res.status(response.status).send(response);
+    }catch(error){  
+
+        return statusHandler.responseError(error, res);
+    }
+});
+
+// exclusões definitivas (com confirmação no admin)
+router.delete("/product/:id", requireAdminApi, async({params}, res)=>{
+    try{
+
+        const response = await removeProduct(params);
+
+        return res.status(response.status).send(response);
+    }catch(error){  
+
+        return statusHandler.responseError(error, res);
+    }
+});
+
+router.delete("/collection/:id", async({params}, res)=>{
+    try{
+
+        const response = await removeCollection(params);
 
         return res.status(response.status).send(response);
     }catch(error){  

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { countryCodes } = require('../helpers/helpers.countries');
 
 const defaultHeader = `
     <meta charset="UTF-8">
@@ -602,232 +603,225 @@ const defaultProduct = `
 `;
 
 const defaultOrder = `
-{# order-summary.twig — Admin API avec messages conditionnels #}
+{# pedido: dados reais da Shopify (order enriquecido em order.service.js) + chat de suporte (order.js) #}
 
 {% set orderLabel = order.name|default('#' ~ order.legacyResourceId) %}
-{% set created = order.createdAt|date('U') %}
+{% set created = order.createdAtISO|date('U') %}
 {% set now_ts = now|date('U') %}
 {% set diff_hours = ((now_ts - created) / 3600)|round(0, 'floor') %}
+{% set money = order.totalPriceSet.shopMoney.currencyCode %}
 
 <section class="order-container">
   <header class="order-header">
     <h1 class="order-title">{{idioma.order.title}}</h1>
     <div class="order-meta">
-      <span class="order-number">
-        {{idioma.order.order}} {{ orderLabel }}
-      </span>
-      <span class="order-date">
-        {{idioma.order.approved}} {{ order.createdAt|date('d/m/Y à H:i') }}
-      </span>
+      <span class="order-number">{{idioma.order.order}} {{ orderLabel }}</span>
+      <span class="order-date">{{idioma.order.approved}} {{ order.createdAt }}</span>
+    </div>
+    <div class="order-chips">
+      <span class="status status-{{ order.displayFinancialStatus|lower }}">{{ order.displayFinancialStatus|replace({'_':' '})|capitalize }}</span>
+      <span class="status status-{{ order.displayFulfillmentStatus|lower }}">{{ order.displayFulfillmentStatus|replace({'_':' '})|capitalize }}</span>
     </div>
   </header>
+
+  <section class="order-progress">
+    <ol class="order-timeline{% if order.timeline_cancelled %} is-cancelled{% endif %}">
+      {% for step in order.timeline %}
+        <li class="timeline-step{% if step.done %} done{% endif %}{% if step.current %} current{% endif %}">
+          <span class="timeline-dot"></span>
+          <span class="timeline-label">{{ step.label }}</span>
+        </li>
+      {% endfor %}
+    </ol>
+    {% if order.timeline_cancelled %}
+      <p class="timeline-cancelled">{{ order.stage_label }}</p>
+    {% endif %}
+  </section>
 
   <section class="order-items">
     {% for edge in order.lineItems.edges %}
       {% set item = edge.node %}
       <div class="item-row">
-        {% if item.variant.image.url is defined %}
+        {% if item.variant.image.url is defined and item.variant.image.url %}
           <div class="item-image">
-            <img src="{{ item.variant.image.url }}"
-                 alt="{{ item.variant.image.altText|default(item.title) }}">
+            <img src="{{ item.variant.image.url }}" alt="{{ item.variant.image.altText|default(item.title) }}">
           </div>
         {% endif %}
         <div class="item-info">
           <h3 class="item-title">{{ item.title }}</h3>
-
-          <p class="item-qty">{{idioma.order.quantity}} : {{ item.quantity }}</p>
-          <p class="item-price">
-            {{ item.originalUnitPriceSet.shopMoney.amount }}
-            {{ item.originalUnitPriceSet.shopMoney.currencyCode }}
-          </p>
+          {% if item.variant.title is defined and item.variant.title and item.variant.title != 'Default Title' %}
+            <p class="item-sku">{{ item.variant.title }}</p>
+          {% endif %}
+          <p class="item-qty">{{idioma.order.quantity}} : {{ item.quantity }} × {{ item.originalUnitPriceSet.shopMoney.amount }} {{ money }}</p>
         </div>
+        <div class="item-total">{{ item.discountedTotalSet.shopMoney.amount }} {{ money }}</div>
       </div>
     {% endfor %}
   </section>
 
   <section class="order-summary">
-    <div class="summary-line">
-      <span>{{idioma.order.total}}</span>
-      <span>{{ order.totalPriceSet.shopMoney.amount }}
-            {{ order.totalPriceSet.shopMoney.currencyCode }}</span>
-    </div>
-
-    <div class="summary-line">
-      <span>{{idioma.order.payment_status}}</span>
-      <span class="status status-{{ order.displayFinancialStatus|lower }}">
-        {{ order.displayFinancialStatus|capitalize }}
-      </span>
-    </div>
-
-    <div class="summary-line">
-      <span>{{idioma.order.shipping_status}}</span>
-      <span class="status status-{{ order.displayFulfillmentStatus|lower }}">
-        {{ order.displayFulfillmentStatus|replace({'_':' '})|capitalize }}
-      </span>
-    </div>
+    <div class="summary-line"><span>{{ order.labels.subtotal }}</span><span>{{ order.subtotalPriceSet.shopMoney.amount }} {{ money }}</span></div>
+    <div class="summary-line"><span>{{ order.labels.shipping }}</span><span>{{ order.totalShippingPriceSet.shopMoney.amount }} {{ money }}</span></div>
+    {% if order.totalTaxSet.shopMoney.amount > 0 %}
+      <div class="summary-line"><span>{{ order.labels.taxes }}</span><span>{{ order.totalTaxSet.shopMoney.amount }} {{ money }}</span></div>
+    {% endif %}
+    {% if order.totalDiscountsSet.shopMoney.amount > 0 %}
+      <div class="summary-line"><span>{{ order.labels.discounts }}</span><span>- {{ order.totalDiscountsSet.shopMoney.amount }} {{ money }}</span></div>
+    {% endif %}
+    <div class="summary-line summary-total"><span>{{ order.labels.total }}</span><span>{{ order.totalPriceSet.shopMoney.amount }} {{ money }}</span></div>
+    {% if order.paymentGatewayNames|length > 0 %}
+      <div class="summary-line summary-muted"><span>{{ order.labels.paid_with }}</span><span>{{ order.paymentGatewayNames|join(', ') }}</span></div>
+    {% endif %}
   </section>
 
-  <section class="order-tracking">
-  <h2>{{idioma.order.tracking}}</h2>
+  {% if order.shippingAddress %}
+  <section class="order-address">
+    <h2>{{ order.labels.address }}</h2>
+    <p>
+      {{ order.shippingAddress.name }}<br>
+      {{ order.shippingAddress.address1 }}<br>
+      {{ order.shippingAddress.zip }} {{ order.shippingAddress.city }}{% if order.shippingAddress.province %}, {{ order.shippingAddress.province }}{% endif %}<br>
+      {{ order.shippingAddress.country }}
+    </p>
+  </section>
+  {% endif %}
 
-  {% set anyTracking = false %}
-  {% for fulfillment in order.fulfillments %}
-    {% for track in fulfillment.trackingInfo %}
-      {% if track.url is defined and track.url %}
-        {% set anyTracking = true %}
+  <section class="order-tracking">
+    <h2>{{idioma.order.tracking}}</h2>
+
+    {% if order.tracking|length > 0 %}
+      {% for track in order.tracking %}
         <div class="tracking-card">
           <div class="tracking-icon">📦</div>
           <div class="tracking-content">
-            
-
-            <p class="tracking-label">{{idioma.order.tracking_code}} :</p>
+            <p class="tracking-label">{{idioma.order.tracking_code}}{% if track.company %} · {{ track.company }}{% endif %} :</p>
             <p class="tracking-value">
-              <a href="{{ track.url }}" target="_blank">{{ track.number }}</a>
+              {% if track.url %}<a href="{{ track.url }}" target="_blank" rel="noopener">{{ track.number }}</a>{% else %}{{ track.number }}{% endif %}
+              <button type="button" class="btn-copy" c-id="copy-tracking" data-code="{{ track.number }}" data-copied="{{ order.labels.copied }}">{{ order.labels.copy }}</button>
             </p>
+            {% if order.estimated_delivery_fmt %}
+              <p class="tracking-eta">{{ order.labels.estimated_delivery }}: <b>{{ order.estimated_delivery_fmt }}</b></p>
+            {% endif %}
+            {% if order.last_event %}
+              <p class="tracking-event">{{ order.labels.last_update }}: {{ order.last_event.status|replace({'_':' '})|capitalize }}{% if order.last_event.city %} · {{ order.last_event.city }}{% endif %} · {{ order.last_event.date }}</p>
+            {% endif %}
           </div>
         </div>
-      {% endif %}
-    {% endfor %}
-  {% endfor %}
-
-  {% if not anyTracking %}
-    <div class="tracking-card tracking-status">
-      <div class="tracking-icon">⌛</div>
-      <div class="tracking-content">
-        {% if diff_hours < 6 %}
-          <p class="tracking-message">{{idioma.order.tracking_message_1}}</p>
-        {% elseif diff_hours < 24 %}
-          <p class="tracking-message">{{idioma.order.tracking_message_2}}</p>
-        {% else %}
-          <p class="tracking-message">{{idioma.order.tracking_message_3}}</p>
-        {% endif %}
+      {% endfor %}
+    {% else %}
+      <div class="tracking-card tracking-status">
+        <div class="tracking-icon">⌛</div>
+        <div class="tracking-content">
+          {% if diff_hours < 6 %}
+            <p class="tracking-message">{{idioma.order.tracking_message_1}}</p>
+          {% elseif diff_hours < 24 %}
+            <p class="tracking-message">{{idioma.order.tracking_message_2}}</p>
+          {% else %}
+            <p class="tracking-message">{{idioma.order.tracking_message_3}}</p>
+          {% endif %}
+        </div>
       </div>
-    </div>
-  {% endif %}
-</section>
-
+    {% endif %}
+  </section>
 
   <footer class="order-footer">
     <div class="d-flex justify-content-around">
       <a href="/" class="btn-return">← {{idioma.order.return_store}}</a>
       <button c-id="btn-problem-order" class="btn-problem-order">{{idioma.order.order_problems}}</button>
     </div>
-    
   </footer>
 </section>
 
 
-<div c-id="modal-problem-order" class="modal fade" tabindex="-1" aria-labelledby="exampleModalFullscreenLabel"  aria-modal="true" role="dialog">
-  <div class="modal-dialog modal-fullscreen" >
-    <div class="modal-content" >
-      <div class="modal-header rm-border" >
-        <span class="order-number">
-        {{idioma.order.order}} {{ orderLabel }}
-      </span>
+<div c-id="modal-problem-order" class="modal fade" tabindex="-1" aria-modal="true" role="dialog">
+  <div class="modal-dialog modal-fullscreen">
+    <div class="modal-content">
+      <div class="modal-header rm-border">
+        <span class="order-number">{{idioma.order.order}} {{ orderLabel }}</span>
         <button c-id="close-modal" class="btn-modal">{{idioma.order.close}}</button>
       </div>
-      <div class="modal-body" >
+      <div class="modal-body">
         <div class="container">
 
-            {% if charges == false  %}
+          {% if charges == false %}
+            <div c-id="chat-root"></div>
 
-            <label>{{idioma.order.title_options_problem}}</label>
-            <select c-id="option-problem" class="select-problem mt-2">
-              {% for option in idioma.order.options_problem %}
-                    <option value="{{option.value}}">{{option.title}}</option>
-              {% endfor %}
-            </select>
-            
-            <div c-id="box-info">
-              <h5 class="mt-4" c-id="text-option"></h5>
-              <div class="d-flex justify-content-start">
-                <div c-id="spinner-option" class="spinner-grow text-secondary none me-2" role="status">
-                  <span class="visually-hidden">Loading...</span>
-                </div>
-                <div>
-                  <label c-id="text-loading" class=" none mt-2">Rechercher des informations</label>
-                </div>
-              </div>
-              
-             
-              <p class="mt-2" c-id="chat"></p>
-            </div>
-
-            <div style="margin-top: -2rem;" class="none" c-id="form">
-
+            <div class="none order-form" c-id="form">
               <div>
                 <label>{{idioma.order.label_email}}:</label>
-                <input c-id="email" placeholder="jean@gmail.com" type="text" class="select-problem"/>
+                <input c-id="email" placeholder="jean@gmail.com" type="email" class="select-problem"/>
               </div>
-              
               <div class="mt-3">
                 <label>{{idioma.order.label_image}}:</label>
-                <input c-id="images" multiple="multiple" type="file" class="select-problem p-2"/>
+                <input c-id="images" multiple="multiple" type="file" accept="image/*" class="select-problem p-2"/>
               </div>
-
               <div class="mt-3">
                 <label>{{idioma.order.label_details}}</label>
                 <textarea c-id="justification" rows="5" class="form-control"></textarea>
               </div>
-              <button c-id="save-form" class="btn-modal mt-4 float-end"> {{idioma.order.btn_form}}</button>
+              <button c-id="save-form" class="btn-modal mt-4 float-end">{{idioma.order.btn_form}}</button>
             </div>
           {% endif %}
+
           {% for charge in charges %}
             <div class="card-status">
-              <small><b>• {{charge.date|date('d/m/Y') }}</b></small>
-              <h5 class="ms-3">{{charge.title}}</h5>
-              <p class="ms-3">{{charge.description}}</p>
+              <small><b>• {{ charge.date|date('d/m/Y') }}</b></small>
+              <h5 class="ms-3">{{ charge.title }}</h5>
+              <p class="ms-3">{{ charge.description }}</p>
             </div>
           {% endfor %}
 
-          {% if charges != false  %}
+          {% if charges != false %}
             <div class="card-status">
-              <small><b>• {{now|date('d/m/Y') }}</b></small>
+              <small><b>• {{ now|date('d/m/Y') }}</b></small>
               <div class="d-flex justify-content-start ms-2">
-                <div  class="spinner-grow text-secondary me-2" role="status">
-                  <span class="visually-hidden">Loading...</span>
-                </div>
-                <div>
-                  <label  class=" mt-2">{{idioma.order.await_update}}</label>
-                </div>
+                <div class="spinner-grow text-secondary me-2" role="status"><span class="visually-hidden">Loading...</span></div>
+                <div><label class="mt-2">{{idioma.order.await_update}}</label></div>
               </div>
             </div>
           {% endif %}
 
         </div>
-
-      </div>
-      <div class="modal-footer">
-          {% if charges == false  %}
-          <button c-id="check" class="btn-modal mt-4 float-end">{{idioma.order.btn_modal}}</button>
-          {% endif %}
       </div>
     </div>
   </div>
 </div>
 
-
+{% if idioma.order is defined and idioma.order.scripts_var is defined %}
 <script>
-
-    {% for txt in idioma.order.scripts_var.texts %}
-
-        window.{{txt.name}} = [
-            {% for vl in txt.values %}
-                "{{vl}}",
-            {% endfor %}
-        ];
-
-    {% endfor %}
-
-  window.{{idioma.order.scripts_var.default_text.name}} = '{{idioma.order.scripts_var.default_text.value}}';
   window.attendant = '{{idioma.order.scripts_var.attendant}}';
   window.default_message = '{{idioma.order.scripts_var.default_message}}';
 </script>
-
-
-
+{% endif %}
 
 `
+
+// Campos de template que compõem um layout da vitrine.
+// Sem `default` aqui de propósito: os padrões ficam em `defaultLayout` e são aplicados
+// por `createStore` (novas lojas) e por `resolveLayout` (fallback) em store.service.js.
+const templateFields = ()=>({
+    header_template:String,
+    menu_store:String,
+    cart_template:String,
+    footer_template:String,
+    home_template:String,
+    collection_template:String,
+    product_template:String,
+    order_template:String
+});
+
+const layoutNames = ["first", "second"];
+
+const defaultLayout = {
+    header_template:defaultHeader,
+    menu_store:defaultMenuStore,
+    cart_template:defaultCart,
+    footer_template:defaultFooter,
+    home_template:defaultHome,
+    collection_template:defaultCollection,
+    product_template:defaultProduct,
+    order_template:defaultOrder
+};
 
 const Store = mongoose.model("store", {
     name:{
@@ -851,9 +845,15 @@ const Store = mongoose.model("store", {
         type:String,
         enum:['dolar', 'euro', 'libra']
     },
+    // países atendidos (catálogo em helpers.countries.js); o primeiro é o padrão de moeda e checkout
     country:{
         type:[String],
-        enum:["FR", "CH", "GB", "DE", "US", "BE"]
+        enum:countryCodes
+    },
+    // moeda que a Shopify devolveu por país no último refresh de preços ({ FR:"EUR", GB:"GBP" }); define o símbolo na vitrine
+    market_currencies:{
+        type:mongoose.Schema.Types.Mixed,
+        default:{}
     },
     status:{
         type:Boolean,
@@ -876,41 +876,32 @@ const Store = mongoose.model("store", {
     color_icons:String,
     color_n_items_cart:String,
     css:String,
-    header_template:{
-        type:String,
-        default:defaultHeader
+    // chat de suporte da página do pedido: nome da assistente, cupom de fidelidade oferecido e instruções extras
+    support:{
+        assistant_name:String,
+        loyalty_code:String,
+        instructions:String
     },
-    menu_store:{
-        type:String,
-        default:defaultMenuStore
+    // políticas da loja (HTML editável no admin). Chave sem texto cai no padrão por país de store.service.js
+    policies:{
+        privacy:{ title_policy:String, text_policy:String },
+        shipping:{ title_policy:String, text_policy:String },
+        return:{ title_policy:String, text_policy:String },
+        terms:{ title_policy:String, text_policy:String }
     },
-    cart_template:{
-        type:String,
-        default:defaultCart
+    // dois layouts configuráveis, cada um com o conjunto completo de templates
+    layouts:{
+        first:templateFields(),
+        second:templateFields()
     },
-    footer_template:{
-        type:String,
-        default:defaultFooter
-    },
-    home_template:{
-        type:String,
-        default:defaultHome
-    },
-    collection_template:{
-        type:String,
-        default:defaultCollection
-    },
-    product_template:{
-        type:String,
-        default:defaultProduct
-    },
-    order_template:{
-        type:String,
-        default:defaultOrder
-    }
+    // legado: templates do layout "first" gravados na raiz do documento antes de `layouts` existir.
+    // resolveLayout() ainda os lê como fallback; novas lojas não os preenchem.
+    ...templateFields()
 });
 
 
 module.exports = {
-    Store
+    Store,
+    defaultLayout,
+    layoutNames
 }

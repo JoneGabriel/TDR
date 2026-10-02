@@ -6,6 +6,7 @@ const {
     findById,
     populate,
     updateById,
+    removeOne,
 } =require("../query");
 
 const {
@@ -90,7 +91,27 @@ const changeDomain = async({id}, domain)=>{
     }
 }
 
+// Exclusão definitiva do domínio (nada depende dele além das sessões já gravadas)
+const removeDomain = async({id})=>{
+    try{
+
+        const domain = await findById(Domain, id);
+
+        if(!domain){
+            throw(statusHandler.newResponse(404, "Domínio não encontrado"));
+        }
+
+        await removeOne(Domain, id);
+
+        return statusHandler.newResponse(200, "Domínio excluído");
+
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
+
 module.exports = {
+    removeDomain,
     getAllDomains,
     createDomain,
     changeStatusDomain,

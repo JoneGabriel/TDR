@@ -3,10 +3,15 @@ const {
     createDomain,
     changeStatusDomain,
     getDomainById,
-    changeDomain
+    changeDomain,
+    removeDomain
 } = require("./domain.service");
 
 const router = require("express").Router();
+const { requireAdminApi } = require("../auth/auth.service");
+
+// todas as rotas de domínio são do painel admin
+router.use("/domain", requireAdminApi);
 const statusHandler = require("../helpers/helpers.statusHandler");
 
 router.post("/domain", async({body}, res)=>{
@@ -62,6 +67,18 @@ router.put("/domain/status/:id", async({body, params}, res)=>{
     try{
 
         const response = await changeStatusDomain(params, body);
+
+        return res.status(response.status).send(response);
+    }catch(error){  
+
+        return statusHandler.responseError(error, res);
+    }
+});
+
+router.delete("/domain/:id", async({params}, res)=>{
+    try{
+
+        const response = await removeDomain(params);
 
         return res.status(response.status).send(response);
     }catch(error){  

@@ -10,7 +10,75 @@ const {
     save,
     findOne,
     findAll,
+    updateById
 } = require("../query");
+const crypto = require("crypto");
+const geoip = require("geoip-lite");
+const { isbot } = require("isbot");
+
+const VISITOR_COOKIE = "tdr_vid";
+const SESSION_WINDOW_MS = 30 * 60 * 1000;        // 30 min sem atividade = nova sessão
+const BRAZIL_OFFSET_MS = 3 * 60 * 60 * 1000;     // datas gravadas em horário de Brasília (convenção do projeto)
+
+const nowBrazil = ()=> new Date(Date.now() - BRAZIL_OFFSET_MS);
+
+// Identidade do visitante: cookie first-party de 1 ano, criado aqui quando não existe.
+// HttpOnly: o JS da vitrine não precisa dele, o navegador envia sozinho em fetch same-origin.
+const getVisitorId = (req, res)=>{
+    let visitor = req.cookies?.[VISITOR_COOKIE];
+
+    if(!visitor || !/^[a-f0-9]{32}$/.test(visitor)){
+        visitor = crypto.randomBytes(16).toString("hex");
+
+        res && res.cookie(VISITOR_COOKIE, visitor, {
+            httpOnly:true,
+            sameSite:"lax",
+            secure:req.secure,
+            path:"/",
+            maxAge:365 * 24 * 60 * 60 * 1000
+        });
+    }
+
+    return visitor;
+};
+
+// Sessão ativa do visitante neste domínio (última atividade dentro da janela)
+const findActiveSession = async(visitor, domain)=>{
+    try{
+
+        if(!visitor || !domain){
+            return null;
+        }
+
+        return await findOne(Trail, {
+            visitor,
+            domain,
+            lastSeenAt:{$gte:new Date(nowBrazil().getTime() - SESSION_WINDOW_MS)}
+        });
+
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
+
+// Renova a sessão; com `path` conta uma pageview e guarda o caminho (últimos 20)
+const touchSession = async(session, path = null, extra = {})=>{
+    try{
+
+        let update = {lastSeenAt:nowBrazil(), ...extra};
+
+        if(path){
+            update.last_path = path;
+            update.$inc = {pageviews:1};
+            update.$push = {pages:{$each:[path], $slice:-20}};
+        }
+
+        await updateById(Trail, session._id, update);
+
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
 
 const {
     Trail
@@ -73,70 +141,112 @@ const getCountry = async(ip)=>{
     }
 };
 
-const saveSession = async(req, country = [])=>{
+// Registra a visita e decide o filtro do cloaker. Devolve true = visitante liberado (layout first).
+// Chamada: saveSession(req, res, config.country). `res` é usado para gravar o cookie do visitante.
+const saveSession = async(req, res, country = [])=>{
     try{
 
+        // compatibilidade com a assinatura antiga saveSession(req, country)
+        if(Array.isArray(res)){
+            country = res;
+            res = null;
+        }
+
+        const ip = req.ip || req.connection?.remoteAddress;
         const whiteList = await findAll(WhiteList, {
             $or: [
                 { ip: req.ip },
-                { ip: req.connection.remoteAddress }
+                { ip: req.connection?.remoteAddress }
             ]
         });
 
-    
-        if(whiteList.length || process.env.ENV == "DEV"){
+        // IPs da white list (equipe) passam direto e não entram nas métricas
+        if(whiteList.length){
             return true;
         }
 
-    
+        const isDev = process.env.ENV == "DEV";
+        const visitor = getVisitorId(req, res);
+        const domain = req.headers.host;
+        const path = (req.originalUrl || "/").split("?")[0];
 
-        let object = {};
+        // sessão em andamento: só conta a pageview e mantém a decisão já tomada
+        // (mesmo layout durante toda a sessão e nenhuma consulta de IP repetida)
+        const current = await findActiveSession(visitor, domain);
 
-        object["domain"] = req.headers.host;
-        object["isMobile"] = req.useragent.isMobile;
-        object["browser"] = req.useragent.browser;
-        object["os"] = req.useragent.os;
-        object["cookies"] = req.headers.cookie;
-        object["language"] = req.headers['accept-language'];
-        object["last_page"] = req.headers['referer'];
-        object["ip"] = req.ip || req.connection.remoteAddress;
+        if(current){
+            await touchSession(current, path);
+            req.visitorCountry = current.country_code;
 
-        const nowUTC = new Date();
-        const offsetMs = 3 * 60 * 60 * 1000; // 3 horas em milissegundos
-        const nowBrazil = new Date(nowUTC.getTime() - offsetMs);
-
-        object["createdAt"] = nowBrazil;
-
-        const location = await getInfosAboutIp(object["ip"]);
-
-        if(!isEmpty(location)){
-            object  = {
-                ...object,
-                ...location
-            };
-        }
-        
-        const regex = /google\s*l+\.?l+\.?c+/i;
-
-        const conditionCountry =  !(country.find(val=> val == object["country_code"]));
-        const conditionSecurity = object.proxy || object.vpn || object.hosting || !object["isMobile"] || regex.test(object.org);
-
-        (conditionCountry || conditionSecurity) ? (object['page'] = 'white') : (object['page'] = 'black')
-
-        const check = await checkSession(object["ip"]);
-        
-        if(!check){
-            await save(Trail, object);
+            return isDev || current.page == "black";
         }
 
+        const now = nowBrazil();
 
-        if(conditionCountry || conditionSecurity){
+        let object = {
+            visitor,
+            domain,
+            ip,
+            isMobile:req.useragent?.isMobile,
+            browser:req.useragent?.browser,
+            os:req.useragent?.os,
+            cookies:req.headers.cookie,
+            language:req.headers['accept-language'],
+            last_page:req.headers['referer'],
+            entry_page:path,
+            last_path:path,
+            pages:[path],
+            pageviews:1,
+            createdAt:now,
+            startedAt:now,
+            lastSeenAt:now,
+            is_bot:isbot(req.headers['user-agent'] || "")
+        };
 
-            return false
+        if(isDev){
+            // em DEV todo visitante é liberado e não há consulta de IP; a sessão é gravada para o painel
+            object.page = "black";
+        }else{
+            const location = await getInfosAboutIp(object["ip"]);
+
+            if(!isEmpty(location)){
+                object = {
+                    ...object,
+                    ...location,
+                    geo_source:"ipwhois"
+                };
+            }else{
+                // ipwhois indisponível: geoip-lite (base local) preenche país/cidade só para as métricas
+                const geo = geoip.lookup(object["ip"]);
+
+                if(geo){
+                    object = {
+                        ...object,
+                        country:geo.country,
+                        country_code:geo.country,
+                        region:geo.region,
+                        city:geo.city,
+                        geo_source:"geoip-lite"
+                    };
+                }
+            }
+
+            // decisão do cloaker: só confia no ipwhois (sem ele o visitante continua filtrado, como antes)
+            const known = isEmpty(location) ? {} : location;
+            const regex = /google\s*l+\.?l+\.?c+/i;
+
+            const conditionCountry = !(country.find(val=> val == known["country_code"]));
+            const conditionSecurity = known.proxy || known.vpn || known.hosting || !object["isMobile"] || regex.test(known.org);
+
+            object.page = (conditionCountry || conditionSecurity) ? "white" : "black";
         }
 
+        object.layout = object.page == "black" ? "first" : "second";
+        req.visitorCountry = object.country_code;
 
-        return true;
+        await save(Trail, object);
+
+        return object.page == "black";
 
     }catch(error){
         throw(statusHandler.serviceError(error));
@@ -145,5 +255,11 @@ const saveSession = async(req, country = [])=>{
 
 module.exports = {
     saveSession,
-    getCountry
+    getCountry,
+    getVisitorId,
+    findActiveSession,
+    touchSession,
+    nowBrazil,
+    VISITOR_COOKIE,
+    SESSION_WINDOW_MS
 };

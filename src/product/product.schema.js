@@ -21,6 +21,24 @@ const Product = mongoose.model("Product", {
    
     description:String,
     lp:String,
+    // cache de preços por país (pricing.service): { FR:{price,last_price,currency} } com o menor preço entre as variantes
+    prices:mongoose.Schema.Types.Mixed,
+    prices_updated_at:Date,
+    // Versão "second" do produto (vitrine para visitante filtrado). A raiz do documento é a versão "first".
+    // Campo vazio aqui cai no valor da raiz; ver applyProductLayout em product.service.js.
+    layouts:{
+        second:{
+            name:String,
+            last_price:Number,
+            price:Number,
+            images:[
+                {
+                    base64:String
+                }
+            ],
+            description:String
+        }
+    },
     collection_: { type: mongoose.Schema.Types.ObjectId, ref: 'Collection' },
     status:{
         type:Boolean,
@@ -76,6 +94,8 @@ const OtherVariants = mongoose.model("OTHER_VARIANT", {
                     img:String,
                     last_price:Number,
                     price:Number,
+                    // preços por país na moeda do mercado Shopify: { FR:{price,last_price,currency} }
+                    prices:mongoose.Schema.Types.Mixed,
                 }
             ]
             
@@ -83,6 +103,8 @@ const OtherVariants = mongoose.model("OTHER_VARIANT", {
         
         }
     ,
+    prices_updated_at:Date,
+    prices_countries:[String]
 });
 
 
