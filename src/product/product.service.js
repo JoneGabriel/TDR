@@ -4,6 +4,7 @@ const {
     OtherVariants,
     Bundle
 } = require("../product/product.schema");
+const mongoose = require("mongoose");
 
 const {
     save,
@@ -354,12 +355,33 @@ const createOtherVariants = async(otherShopify, idProduct)=>{
     }
 };
 
+// Todo produto precisa de loja: sem `store` no body, herda a da coleção; sem coleção com loja, recusa.
+// (Um produto sem loja derrubava a vitrine com TypeError em getConfigStore.)
+const ensureProductStore = async(product, id = null)=>{
+    if(product.store) return;
+
+    const current = id ? await findById(Product, id, {store:1, collection_:1}) : null;
+
+    if(current?.store) return;
+
+    const collectionId = product.collection_ || current?.collection_;
+    const collection = collectionId && mongoose.isValidObjectId(collectionId) ? await findById(Collection, collectionId, {store:1}) : null;
+
+    if(collection?.store){
+        product.store = collection.store;
+        return;
+    }
+
+    throw(statusHandler.newResponse(400, "Selecione a loja do produto"));
+};
+
 const createProduct = async(product)=>{
     try{
         
         const shopify = product["other_shopify"];
         const bundles = product["bundles"];
 
+        await ensureProductStore(product);
         normalizeProductLayouts(product);
 
         const idProduct = await save(Product, product);
@@ -640,6 +662,7 @@ const changeProduct = async({id}, product)=>{
             await createBundles(bundles, id);
         }
 
+        await ensureProductStore(product, id);
         normalizeProductLayouts(product);
 
         await updateById(Product, id, product)

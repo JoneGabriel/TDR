@@ -35,8 +35,10 @@ app.get("/health", (req, res)=> res.status(200).send({status:200, content:"ok"})
 
 app.use(require("./src/controller"));
 
+// rota inexistente: vitrine volta para a home; domínio do painel (ADMIN_HOSTS) vai para o login
+const { isAdminHost, LOGIN_PATH } = require("./src/auth/auth.service");
 app.use((req, res) => {
-    res.redirect('/');
+    res.redirect(isAdminHost(req) ? LOGIN_PATH : '/');
 });
 
 const { startPricesRefreshJob } = require("./src/pricing/pricing.service");

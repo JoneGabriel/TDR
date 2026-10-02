@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex">
-    <title>{{ title|default('Error') }}</title>
+    <title>{{ title|default(status == 404 ? 'Not found' : 'Error') }}</title>
     <link href="/assets/styles/bootstrap.min.css" rel="stylesheet">
     <style>
         body{margin:0;padding:16px;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#fff;color:#222;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
@@ -20,8 +20,13 @@
         {% if logo %}
             <a href="/"><img src="{{ logo }}" alt="{{ title|default('') }}"></a>
         {% endif %}
-        <h1>Something went wrong</h1>
-        <p>We couldn't load this page. Please try again in a moment.</p>
+        {% if status == 404 %}
+            <h1>Page not found</h1>
+            <p>The page you are looking for doesn't exist or is no longer available.</p>
+        {% else %}
+            <h1>Something went wrong</h1>
+            <p>We couldn't load this page. Please try again in a moment.</p>
+        {% endif %}
         <a class="btn btn-dark" href="/">Back to home</a>
     </div>
 </body>

@@ -4,17 +4,18 @@ const { Product, Collection } = require("../product/product.schema");
 const { findAll, findById, save, findOne, updateById, removeOne, countDocuments } = require("../query");
 const { Shopify } = require("../shopify/shopify.schema");
 const { countries, legacyMoeda, symbolOf, pickBuyerCountry } = require("../helpers/helpers.countries");
-const { Store, defaultLayout, layoutNames } = require("./store.schema");
+const { Store, defaultLayout, layoutNames, visualFieldNames } = require("./store.schema");
 const Twig = require('twig');
+const mongoose = require('mongoose');
 
 
 const createStore = async(store)=>{
     try{
 
-        // cada loja nasce com os dois layouts materializados a partir dos padrões
+        // cada loja nasce com os dois layouts materializados a partir dos padrões (campos visuais vazios ficam de fora)
         store.layouts = {
-            first:{...defaultLayout, ...(store.layouts?.first || {})},
-            second:{...defaultLayout, ...(store.layouts?.second || {})}
+            first:{...defaultLayout, ...cleanLayoutInput(store.layouts?.first)},
+            second:{...defaultLayout, ...cleanLayoutInput(store.layouts?.second)}
         };
 
         await save(Store, store);
@@ -82,10 +83,57 @@ const removeStore = async(id)=>{
     }
 };
 
+// Só chaves conhecidas de um layout (templates e campos visuais), sem valores vazios
+const layoutKeys = [...Object.keys(defaultLayout), ...visualFieldNames];
+const cleanLayoutInput = (own)=>{
+    if(!own || typeof own != "object") return {};
+
+    return Object.fromEntries(Object.entries(own).filter(([key, value])=> layoutKeys.includes(key) && value !== "" && value !== null && value !== undefined));
+};
+
+// `layouts` chega do admin como objeto aninhado. Gravá-lo como está substituiria o subdocumento inteiro (apagando os
+// templates do layout), então vira caminhos pontuados: valor preenchido -> $set, vazio -> $unset (volta a herdar).
+const layoutsToUpdate = (store = {})=>{
+    const {layouts, ...rest} = store;
+    const set = {...rest};
+    const unset = {};
+
+    if(layouts && typeof layouts == "object"){
+        layoutNames.forEach(name=>{
+            const own = layouts[name];
+
+            if(!own || typeof own != "object") return;
+
+            Object.entries(own).forEach(([key, value])=>{
+                if(!layoutKeys.includes(key)) return;
+
+                if(value === "" || value === null || value === undefined){
+                    unset[`layouts.${name}.${key}`] = "";
+                }else{
+                    set[`layouts.${name}.${key}`] = value;
+                }
+            });
+        });
+    }
+
+    const update = {};
+
+    if(Object.keys(set).length) update.$set = set;
+    if(Object.keys(unset).length) update.$unset = unset;
+
+    return update;
+};
+
 const changeStore = async(id, store)=>{
     try{
 
-        await updateById(Store, id, store);
+        const update = layoutsToUpdate(store);
+
+        if(!Object.keys(update).length){
+            throw(statusHandler.newResponse(400, "Nada para atualizar"));
+        }
+
+        await updateById(Store, id, update);
 
         return statusHandler.newResponse(200, 'ok')
 
@@ -449,6 +497,11 @@ const resolveLayout = (store, name)=>{
         templates[key] = own[key] ?? (name == "first" ? doc[key] : undefined) ?? defaultLayout[key];
     });
 
+    // visuais (logo, posição, banners, CSS): valor próprio do layout ou o da raiz da loja (valores do "first")
+    visualFieldNames.forEach(key=>{
+        templates[key] = own[key] || doc[key];
+    });
+
     return templates;
 };
 
@@ -476,29 +529,51 @@ const useCountry = (config, countryCode)=>{
     return config;
 };
 
+// Loja da visita a partir do host ('domain'), de um produto ('product') ou de uma coleção ('collection').
+// Qualquer elo faltando (id inválido, documento inexistente, sem loja vinculada, loja apagada) vira 404,
+// que renderError() mostra como "página não encontrada" em vez de estourar TypeError no log.
 const getConfigStore = async(id, type)=>{
     try{
 
         let idStore = null;
+        const notFound = (message)=> statusHandler.newResponse(404, message);
 
-        if(type == "product"){
-            const {store} = await findById(Product, id, {store:1});
-            idStore = store;
-        }
+        if(type == "product" || type == "collection"){
+            if(!mongoose.isValidObjectId(id)){
+                throw(notFound(`${type} inválido: ${id}`));
+            }
 
-        if(type == "collection"){
-            const {store} = await findById(Collection, id, {store:1});
-            idStore = store;
+            const doc = await findById(type == "product" ? Product : Collection, id, {store:1});
+
+            if(!doc){
+                throw(notFound(`${type} não encontrado: ${id}`));
+            }
+
+            idStore = doc.store;
         }
 
         if(type == 'domain'){
-            const {store} = await findOne(Domain, {domain:id}, {store:1});
-            idStore = store;
+            const domain = await findOne(Domain, {domain:id});
+
+            if(!domain){
+                throw(notFound(`domínio não cadastrado: ${id}`));
+            }
+
+            idStore = domain.store;
         }
 
-        if(idStore){
-            let config = await findById(Store, idStore);
-            config = config.toJSON();
+        if(!idStore){
+            throw(notFound(`${type} ${id} sem loja vinculada`));
+        }
+
+        const store = await findById(Store, idStore);
+
+        if(!store){
+            throw(notFound(`loja ${idStore} não encontrada (${type} ${id})`));
+        }
+
+        {
+            let config = store.toJSON();
 
             // os dois layouts já resolvidos (com fallback) ficam em config.layouts;
             // useLayout() copia os templates de um deles para a raiz de config. Começa em "first".
@@ -1853,6 +1928,7 @@ const changePolicy = async({idStore, key}, {title_policy = "", text_policy = ""}
 };
 
 module.exports = {
+    layoutsToUpdate,
     createStore,
     getAllStores,
     getStoreById,

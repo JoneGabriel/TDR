@@ -1760,3 +1760,16 @@ input[type="color"].form-control,
     color:#04070d;
     box-shadow:inset 0 0 18px rgba(255, 255, 255, .35);
 }
+
+
+/* ---------- loja: layout (first/second) dos campos visuais e imagens herdadas ---------- */
+.layout-switch{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding:10px 12px;border:1px solid rgba(0, 240, 255, .25);border-radius:6px;background:rgba(0, 240, 255, .04)}
+.layout-switch-label{font-family:'Share Tech Mono', monospace;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cy-cyan)}
+.layout-switch .btn-check + .btn{border:1px solid rgba(255, 255, 255, .25);border-radius:4px;color:#cfd8e3;background:transparent;font-family:'Rajdhani', sans-serif;font-weight:600;letter-spacing:.04em;padding:4px 16px}
+.layout-switch .btn-check + .btn:hover{border-color:var(--cy-cyan);color:#fff}
+.layout-switch .btn-check:checked + .btn{background:var(--cy-cyan);border-color:var(--cy-cyan);color:#04070d;box-shadow:0 0 12px rgba(0, 240, 255, .45)}
+.layout-switch .modal-section-hint{flex-basis:100%;margin:0}
+.image-picker-preview .inherited-badge{display:none;position:absolute;left:8px;bottom:8px;padding:2px 8px;border-radius:3px;background:rgba(4, 7, 13, .85);border:1px solid rgba(255, 43, 214, .5);color:var(--cy-magenta);font-family:'Share Tech Mono', monospace;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;pointer-events:none}
+.image-picker-preview.is-inherited img{opacity:.45;filter:grayscale(.35)}
+.image-picker-preview.is-inherited .inherited-badge{display:inline-block}
+.image-picker-preview.is-inherited button{display:none}

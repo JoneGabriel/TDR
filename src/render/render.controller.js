@@ -51,16 +51,23 @@ const {
     policy_files
 } = require("../store/store.service");
 const Twig = require('twig');
-const { requireAdminPage } = require("../auth/auth.service");
+const { requireAdminPage, notOnAdminHost } = require("../auth/auth.service");
 
 // Página de erro da vitrine, usada no catch das rotas da loja.
 // `config` pode estar indefinido se a loja nem chegou a carregar (ex.: domínio não cadastrado).
+// Página de erro da vitrine. Erros de negócio com status (404 de loja/produto/coleção inexistente) saem com esse
+// status e sem stack no log (serviceError já registrou uma linha); o resto é 500 com o erro completo.
 const renderError = (res, error, config)=>{
-    console.error(error);
+    const status = Number.isInteger(error?.status) && error.status >= 400 && error.status < 600 ? error.status : 500;
 
-    return res.status(500).render(errorPage, {
+    if(status >= 500){
+        console.error(error);
+    }
+
+    return res.status(status).render(errorPage, {
         title:config?.title,
-        logo:config?.logo
+        logo:config?.logo,
+        status
     });
 };
 
@@ -238,7 +245,7 @@ router.get("/admin/integrations", requireAdminPage, async(req, res)=>{
 });
 
 // rotas loja
-router.get("/", async(req, res)=>{
+router.get("/", notOnAdminHost, async(req, res)=>{
     let config;
 
     try{
@@ -299,7 +306,7 @@ router.get("/", async(req, res)=>{
     }
 });
 
-router.get("/collections/:id", async(req, res)=>{
+router.get("/collections/:id", notOnAdminHost, async(req, res)=>{
     let config;
 
     try{    
@@ -358,7 +365,7 @@ router.get("/collections/:id", async(req, res)=>{
     }
 });
 
-router.get("/products/:id", async(req, res)=>{
+router.get("/products/:id", notOnAdminHost, async(req, res)=>{
     let config;
 
     try{    
@@ -461,7 +468,7 @@ router.get("/products/:id", async(req, res)=>{
     }
 });
 
-router.get("/order/:id", async(req, res)=>{
+router.get("/order/:id", notOnAdminHost, async(req, res)=>{
     let config;
 
     try{    
@@ -529,7 +536,7 @@ router.get("/order/:id", async(req, res)=>{
     }
 });
 
-router.get("/privacy-policy", async(req, res)=>{
+router.get("/privacy-policy", notOnAdminHost, async(req, res)=>{
     let config;
 
     try{
@@ -584,7 +591,7 @@ router.get("/privacy-policy", async(req, res)=>{
 });
 
 
-router.get("/shipping-policy", async(req, res)=>{
+router.get("/shipping-policy", notOnAdminHost, async(req, res)=>{
     let config;
 
     try{
@@ -638,7 +645,7 @@ router.get("/shipping-policy", async(req, res)=>{
 });
 
 
-router.get("/return-refund", async(req, res)=>{
+router.get("/return-refund", notOnAdminHost, async(req, res)=>{
     let config;
 
     try{
@@ -692,7 +699,7 @@ router.get("/return-refund", async(req, res)=>{
 });
 
 
-router.get("/terms-of-service", async(req, res)=>{
+router.get("/terms-of-service", notOnAdminHost, async(req, res)=>{
     let config;
 
     try{

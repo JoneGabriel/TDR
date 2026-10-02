@@ -222,6 +222,15 @@
                 </div>
 
                 <div class="col-lg-5">
+                    <div class="layout-switch" c-id="visual-layout">
+                        <span class="layout-switch-label"><i class="bi bi-layers"></i> Layout</span>
+                        <input type="radio" class="btn-check" name="visual_layout" id="visual-layout-first" value="first" data-keep="1" checked>
+                        <label class="btn btn-sm" for="visual-layout-first">First</label>
+                        <input type="radio" class="btn-check" name="visual_layout" id="visual-layout-second" value="second" data-keep="1">
+                        <label class="btn btn-sm" for="visual-layout-second">Second</label>
+                        <p class="modal-section-hint" c-id="visual-hint">Logo, posição, banners e CSS abaixo pertencem ao layout selecionado.</p>
+                    </div>
+
                     <section class="modal-section">
                         <h6 class="modal-section-title"><i class="bi bi-image"></i> Logo</h6>
                         <div class="row g-3">
@@ -239,6 +248,7 @@
                             </div>
                                     <div class="image-picker-preview none">
                                         <img c-id="img-logo" alt="">
+                                        <span class="inherited-badge">herdado do first</span>
                                         <button type="button" c-id="remove-img" title="Remover"><i class="bi bi-trash3"></i></button>
                                     </div>
                                 </div>
@@ -261,7 +271,7 @@
 
                     <section class="modal-section">
                         <h6 class="modal-section-title"><i class="bi bi-images"></i> Banners</h6>
-                        <p class="modal-section-hint">Usados pelo template da home como banner_1, banner_2 e banner_3.</p>
+                        <p class="modal-section-hint">Usados pelo template da home como banner_1, banner_2 e banner_3, no layout selecionado.</p>
                         <div class="row g-3">
                             {% for n in 1..3 %}
                             <div class="col-md-4">
@@ -278,6 +288,7 @@
                                     </div>
                                     <div class="image-picker-preview none">
                                         <img c-id="banner-{{n}}" alt="">
+                                        <span class="inherited-badge">herdado do first</span>
                                         <button type="button" c-id="remove-img" title="Remover"><i class="bi bi-trash3"></i></button>
                                     </div>
                                 </div>
@@ -288,7 +299,7 @@
 
                     <section class="modal-section">
                         <h6 class="modal-section-title"><i class="bi bi-filetype-css"></i> CSS da vitrine</h6>
-                        <p class="modal-section-hint">Injetado em todas as páginas da loja.</p>
+                        <p class="modal-section-hint">Injetado em todas as páginas da loja no layout selecionado. No second, vazio usa o CSS do first.</p>
                         <div id="editor" style="width:100%;height:360px;"></div>
                     </section>
                 </div>

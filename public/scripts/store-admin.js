@@ -1,11 +1,93 @@
 let editor;
 let edit_twig;
 
+// ---------------------------------------------------------------- visual por layout (logo, posição, banners, CSS)
+// A aba First edita os valores da raiz da loja; a aba Second edita layouts.second.* (vazio = herda do first).
+const VISUAL_KEYS = ["logo", "position_logo", "banner_1", "banner_2", "banner_3", "css"];
+const VISUAL_IMG = {logo:"[c-id=img-logo]", banner_1:"[c-id=banner-1]", banner_2:"[c-id=banner-2]", banner_3:"[c-id=banner-3]"};
+let visual = {first:{}, second:{}};
+let visualLayout = "first";
+
+const pickVisual = (source = {})=> Object.fromEntries(VISUAL_KEYS.map(key=> [key, (source && source[key]) || ""]));
+
+const showImage = (selector, src, inherited = false)=>{
+    const $img = $(selector);
+    const $preview = $img.closest(".image-picker-preview");
+
+    if(!src){
+        $img.attr("src", "");
+        $preview.addClass("none").removeClass("is-inherited");
+        return;
+    }
+
+    $img.attr("src", src);
+    $preview.removeClass("none").toggleClass("is-inherited", !!inherited);
+};
+
+// lê a tela para o layout aberto (imagem herdada não conta como valor próprio)
+const readVisualFromDom = ()=>{
+    const ctx = "[c-id=form]";
+    let values = {};
+
+    Object.entries(VISUAL_IMG).forEach(([key, selector])=>{
+        const $img = $(ctx).find(selector);
+        const inherited = $img.closest(".image-picker-preview").hasClass("is-inherited");
+
+        values[key] = inherited ? "" : ($img.attr("src") || "");
+    });
+
+    values.position_logo = $(ctx).find("[c-id=position-logo] input:checked").val() || "";
+    values.css = editor ? editor.getValue() : ((visual[visualLayout] && visual[visualLayout].css) || "");
+
+    return values;
+};
+
+const writeVisualToDom = (name)=>{
+    const own = visual[name] || {};
+    const base = visual.first || {};
+
+    Object.entries(VISUAL_IMG).forEach(([key, selector])=>{
+        if(own[key]){
+            showImage(selector, own[key], false);
+        }else if(name == "second" && base[key]){
+            showImage(selector, base[key], true);
+        }else{
+            showImage(selector, "", false);
+        }
+    });
+
+    const position = own.position_logo || base.position_logo || "left";
+    $("[c-id=position-logo] input").prop("checked", false);
+    $(`[c-id=position-logo] [value=${position}]`).prop("checked", true);
+
+    editor && editor.setValue(own.css || "");
+
+    $("[c-id=visual-hint]").text(name == "second"
+        ? "Layout second: vazio herda do first. Imagens esmaecidas são herdadas; envie outra para sobrescrever."
+        : "Layout first: valores padrão da loja (também usados pelo second quando ele não define os seus).");
+};
+
+const switchVisualLayout = (name)=>{
+    visual[visualLayout] = readVisualFromDom();
+    visualLayout = name;
+    $(`[c-id=visual-layout] input[value=${name}]`).prop("checked", true);
+    writeVisualToDom(name);
+};
+
+const resetVisual = ()=>{
+    visual = {first:pickVisual(), second:pickVisual()};
+    visualLayout = "first";
+    writeVisualToDom("first");
+    $("[c-id=visual-layout] input[value=first]").prop("checked", true);
+};
+
 
 const cleanStoreFilds = ()=>{
     try{
 
        $("[c-id=form]").find("input,select,textarea").each(function(){
+            if($(this).attr("data-keep")) return;
+
             const hasClass = $(this).hasClass("form-check-input");
 
             if(hasClass){
@@ -25,6 +107,7 @@ const cleanStoreFilds = ()=>{
         $("[c-id=modal-store]").find("[c-id=open-policies]").addClass("none");
         $("[c-id=country] .form-check").removeClass("is-hidden");
         updateCountryCount();
+        resetVisual();
 
     }catch(error){
         throw(statusHandler.messageError(error));
@@ -87,25 +170,30 @@ const getBodyStore = ()=>{
         body["moeda"] = $(ctx).find("[c-id=moeda]").val();
         body["country"] = getCountry();
 
-        const logo = $(ctx).find("[c-id=img-logo]").attr("src");
+        // visuais por layout: first vai para a raiz da loja; second vai para layouts.second.* (vazio = herda do first)
+        visual[visualLayout] = readVisualFromDom();
+        const first = visual.first;
+        const second = visual.second;
 
-        if(logo){
-            body["logo"] = logo;
+        if(first.logo){
+            body["logo"] = first.logo;
         }
 
-        body['position_logo'] = $("[c-id=position-logo]").find("[value=left]").prop("checked") ? "left" : "center";
-
-        const banner_1 = $(ctx).find("[c-id=banner-1]").attr("src");
-
-        banner_1 && (body["banner_1"] = banner_1);
-
-        const banner_2 = $(ctx).find("[c-id=banner-2]").attr("src");
-        
-        banner_2 && (body["banner_2"] = banner_2);
-
-        const banner_3 = $(ctx).find("[c-id=banner-3]").attr("src");
-        
-        banner_3 && (body["banner_3"] = banner_3);
+        body["position_logo"] = first.position_logo || "left";
+        body["banner_1"] = first.banner_1 || "";
+        body["banner_2"] = first.banner_2 || "";
+        body["banner_3"] = first.banner_3 || "";
+        body["css"] = first.css || "";
+        body["layouts"] = {
+            second:{
+                logo:second.logo || "",
+                position_logo:second.position_logo && second.position_logo != body["position_logo"] ? second.position_logo : "",
+                banner_1:second.banner_1 || "",
+                banner_2:second.banner_2 || "",
+                banner_3:second.banner_3 || "",
+                css:second.css || ""
+            }
+        };
 
 
         body["message_top"] = $(ctx).find("[c-id=message_top]").val();
@@ -126,7 +214,6 @@ const getBodyStore = ()=>{
 
         body["color_icons"] = $(ctx).find("[c-id=color_icons]").val();
         body["color_n_items_cart"] = $(ctx).find("[c-id=color_n_items_cart]").val();
-        body["css"] = editor.getValue();
         body["support"] = {
             assistant_name:$(ctx).find("[c-id=support_assistant]").val(),
             loyalty_code:$(ctx).find("[c-id=support_loyalty]").val(),
@@ -206,13 +293,13 @@ const listStoreInForm = (store)=>{
         
         cleanStoreFilds();
         
-        let {logo, name, _id, idioma, moeda, country, banner_1, banner_2, banner_3, position_logo} = store;
+        let {name, _id, idioma, moeda, country} = store;
 
         const {
             message_top, 
             color_message_top, 
             bk_message_top, color_btn_product, 
-            bk_btn_product, color_btn_add_items, bk_btn_add_items, color_btn_checkout, bk_btn_checkout, color_footer, bk_footer, color_icons, color_n_items_cart, css} = store;
+            bk_btn_product, color_btn_add_items, bk_btn_add_items, color_btn_checkout, bk_btn_checkout, color_footer, bk_footer, color_icons, color_n_items_cart} = store;
 
         const ctx = "[c-id=form]";
 
@@ -244,12 +331,11 @@ const listStoreInForm = (store)=>{
         $(ctx).find("[c-id=support_loyalty]").val(store.support?.loyalty_code || "");
         $(ctx).find("[c-id=support_instructions]").val(store.support?.instructions || "");
 
-        $(ctx).find(`[value=${position_logo}]`).prop("checked", true);
-
-        logo && listLogo(logo);        
-        banner_1 && listBanner(banner_1, "[c-id=banner-1]");
-        banner_2 && listBanner(banner_2, "[c-id=banner-2]");
-        banner_3 && listBanner(banner_3, "[c-id=banner-3]");
+        // first = raiz da loja; second = layouts.second (só o que foi sobrescrito)
+        visual = {first:pickVisual(store), second:pickVisual(store.layouts && store.layouts.second)};
+        visualLayout = "first";
+        $("[c-id=visual-layout] input[value=first]").prop("checked", true);
+        writeVisualToDom("first");
 
         const checks = $(ctx).find("[c-id=country] input");
 
@@ -267,7 +353,7 @@ const listStoreInForm = (store)=>{
         $(ctx).find("[c-id=save-store]").attr("id", _id);
         updateCountryCount();
 
-        return css;
+        return visual.first.css;
 
     }catch(error){
         throw(statusHandler.messageError(error));
@@ -293,7 +379,7 @@ const listLogo = (img)=>{
     try{
 
         $("[c-id=img-logo]").attr("src", img);
-        $("[c-id=img-logo]").closest("div").removeClass("none");
+        $("[c-id=img-logo]").closest("div").removeClass("none is-inherited");
 
     }catch(error){
         throw(statusHandler.messageError(error));
@@ -304,7 +390,7 @@ const listBanner = (img, banner)=>{
     try{
 
         $(banner).attr("src", img);
-        $(banner).closest("div").removeClass("none");
+        $(banner).closest("div").removeClass("none is-inherited");
 
     }catch(error){
         throw(statusHandler.messageError(error));
@@ -574,6 +660,9 @@ $(document).ready(function(){
 
     $("[c-id=form]").on("change", "[c-id=country] input", updateCountryCount);
 
+    // alterna o layout editado pelos campos visuais (logo, posição, banners, CSS)
+    $("[c-id=visual-layout]").on("change", "input", (e)=> switchVisualLayout(e.target.value));
+
     $("[c-id=model-file]").on("click", async(e)=>{
         try{
 
@@ -726,6 +815,7 @@ $(document).ready(function(){
         
         $(e.currentTarget).closest("div")
         .addClass("none")
+        .removeClass("is-inherited")
         .find("img").attr("src", "");
     });
 

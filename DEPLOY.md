@@ -45,6 +45,7 @@ scp -r Dockerfile docker-compose.yml .dockerignore .env.docker.example nginx scr
 
 ```bash
 cd /opt/tdr
+chmod +x scripts/*.sh                     # a cópia por sftp/IDE costuma perder a permissão de execução
 cp .env.docker.example .env
 nano .env        # GIT_TOKEN, API_GPT, CERTBOT_EMAIL, HOST...
 # segredos fortes:
@@ -63,6 +64,15 @@ docker compose exec app npm run create-admin -- admin 'SenhaForte123'
 Regras do `.env`: formato `KEY=valor`, sem espaços em volta do `=`. A chave `GIT_TOKEN` precisa existir (vazia, se o repositório for público). Dentro do compose o app monta a URL do banco a partir de `MONGO_USER`/`MONGO_PASSWORD` (com escape de caracteres especiais), então não é preciso definir `URL_DB` no `.env` (se definir, ele é ignorado). A senha do Mongo é gravada no volume no primeiro `up`; trocar `MONGO_PASSWORD` depois exige recriar o volume (`docker compose down -v`, apaga o banco) ou mudar a senha dentro do Mongo com `db.changeUserPassword`.
 
 Enquanto nenhum domínio foi configurado, o painel responde em `https://IP-DA-VPS/admin/login` com certificado autoassinado (aceite o aviso do navegador).
+
+**Domínio do painel** (ex.: `admin.suaempresa.com`): aponte o DNS para a VPS, coloque-o em `ADMIN_HOSTS` no `.env` e emita o certificado no modo manual, pois ele não é domínio de loja e não entra em `/admin/domain`:
+
+```bash
+./scripts/domain.sh add admin.suaempresa.com --no-www
+docker compose up -d app        # aplica ADMIN_HOSTS
+```
+
+Nos domínios listados em `ADMIN_HOSTS`, a raiz, as páginas de vitrine e qualquer rota inexistente redirecionam para `/admin/login`; as rotas JSON do painel continuam normais. Por isso o domínio do painel não pode ser cadastrado como domínio de loja em `/admin/domain`: para testar uma loja use outro host (ex.: `loja.suaempresa.com`), que o `sync` provisiona sozinho. Sem a variável, o recurso fica desligado.
 
 ## 3. Domínios das lojas
 

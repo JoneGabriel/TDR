@@ -810,6 +810,17 @@ const templateFields = ()=>({
     order_template:String
 });
 
+// Campos visuais que também variam por layout. A raiz da loja guarda os valores do layout "first" (editados na aba
+// First do admin) e serve de fallback para o "second": layouts.second.<campo> só vale quando preenchido.
+const visualFields = ()=>({
+    logo:String,
+    position_logo:String,
+    banner_1:String,
+    banner_2:String,
+    banner_3:String,
+    css:String
+});
+const visualFieldNames = Object.keys(visualFields());
 const layoutNames = ["first", "second"];
 
 const defaultLayout = {
@@ -889,10 +900,10 @@ const Store = mongoose.model("store", {
         return:{ title_policy:String, text_policy:String },
         terms:{ title_policy:String, text_policy:String }
     },
-    // dois layouts configuráveis, cada um com o conjunto completo de templates
+    // dois layouts configuráveis, cada um com o conjunto completo de templates e os campos visuais (logo, banners, CSS)
     layouts:{
-        first:templateFields(),
-        second:templateFields()
+        first:{...templateFields(), ...visualFields()},
+        second:{...templateFields(), ...visualFields()}
     },
     // legado: templates do layout "first" gravados na raiz do documento antes de `layouts` existir.
     // resolveLayout() ainda os lê como fallback; novas lojas não os preenchem.
@@ -903,5 +914,6 @@ const Store = mongoose.model("store", {
 module.exports = {
     Store,
     defaultLayout,
-    layoutNames
+    layoutNames,
+    visualFieldNames
 }

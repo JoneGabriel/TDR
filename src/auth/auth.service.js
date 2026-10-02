@@ -134,9 +134,24 @@ const requireAdminApi = (req, res, next)=>{
     return next();
 };
 
+// Domínios exclusivos do painel: ADMIN_HOSTS=admin.loja.com,painel.outra.com. Neles a vitrine não existe: rota de
+// vitrine ou inexistente redireciona para o login do admin. Um host listado aqui NÃO pode ser domínio de loja.
+// Sem a variável o recurso fica desligado (nenhum fallback, para não bloquear por engano uma loja que use o mesmo host de HOST).
+const cleanHost = (value)=> String(value || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/[/:].*$/, "");
+const adminHosts = ()=> (process.env.ADMIN_HOSTS || "").split(",").map(cleanHost).filter(Boolean);
+const isAdminHost = (req)=> {
+    const host = cleanHost(req.hostname || req.get("host"));
+
+    return !!host && adminHosts().includes(host);
+};
+const notOnAdminHost = (req, res, next)=> isAdminHost(req) ? res.redirect(LOGIN_PATH) : next();
+
 module.exports = {
     COOKIE_NAME,
     LOGIN_PATH,
+    adminHosts,
+    isAdminHost,
+    notOnAdminHost,
     createAdmin,
     login,
     cookieMaxAge,
