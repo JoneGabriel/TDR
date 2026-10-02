@@ -424,6 +424,128 @@ const idioma = {
             collection: 'Alle Kollektionen'
         },
     },
+    'ES':{
+        product_page:{
+            amount:'Cantidad',
+            description:'Descripción',
+            payments:'Métodos de pago aceptados',
+            btn:'Añadir al carrito',
+            shipping_1:'Envío exprés',
+            shipping_2:'Gratis a partir de',
+            shipping_3:'entre 3 y 5 días',
+            return:'Devoluciones en 14 días',
+            other_products:'También te puede interesar',
+            default_bundle:'El más popular'
+        },
+        footer:{
+            privacy_policy:'Política de privacidad',
+            shipping_policy:'Política de envíos',
+            return_refund:'Política de devoluciones y reembolsos',
+            terms_service:'Términos de uso',
+            contact:'Contacto',
+            copywrite:'Todos los derechos reservados © 2025'
+        },
+        cart:{
+            title:'Carrito',
+            btn_checkout:'Finalizar compra',
+            btn_add_items:'Añadir más artículos'
+        },
+        home:{
+            collection:'Todas las colecciones'
+        },
+        order:{
+            title:'Detalles de tu pedido',
+            order:'Pedido',
+            approved:'Realizado el',
+            quantity:'Cantidad',
+            total:'Subtotal',
+            payment_status:'Estado del pago',
+            shipping_status:'Estado del envío',
+            tracking:'Seguimiento del pedido',
+            tracking_code:'Código de seguimiento',
+            tracking_message_1:'Tu pedido se está preparando.',
+            tracking_message_2:'Tu pedido ha sido entregado al transportista.',
+            tracking_message_3:'El seguimiento estará disponible en breve.',
+            return_store:'Volver a la tienda',
+            order_problems:'Problemas con mi pedido',
+            close:'cerrar',
+            btn_modal:'Consultar',
+            title_options_problem:'Cuéntanos qué ha pasado con tu pedido',
+            options_problem:[
+                {
+                    title:'Pedido retrasado',
+                    value:'1'
+                },
+                {
+                    title:'No he recibido mi pedido',
+                    value:'2'
+                },
+                {
+                    title:'Me equivoqué de talla',
+                    value:'3'
+                },
+                {
+                    title:'Pedido defectuoso',
+                    value:'4'
+                },
+                {
+                    title:'Ejercer el derecho de desistimiento',
+                    value:'5'
+                },
+            ],
+            await_update:'Esperando novedades',
+            label_email:'Correo electrónico donde recibirás las novedades',
+            label_image:'Imágenes del producto',
+            label_details:'Detalles',
+            btn_form:'Enviar',
+            scripts_var:{
+                texts:[
+                    {
+                        name:'texts',
+                        values:[
+                            'Buscando información.',
+                            'Buscando información..',
+                            'Buscando información...',
+                        ]
+                    },
+                    {
+                        name:'texts_2',
+                        values:[
+                            'Iniciando el servicio.',
+                            'Iniciando el servicio..',
+                            'Iniciando el servicio...',
+                        ]
+                    },
+                    {
+                        name:'texts_3',
+                        values:[
+                            '<b>Lucía</b> está escribiendo.',
+                            '<b>Lucía</b> está escribiendo..',
+                            '<b>Lucía</b> está escribiendo...',
+                        ]
+                    },
+                ],
+                default_text:{
+                    name:'defaultText',
+                    value:`
+                        Información sobre cambios de talla o color
+
+                        Todas las solicitudes de cambio de talla o color deben gestionarse directamente por correo electrónico.
+
+                        Importante:
+                        Indica el número de tu pedido en el asunto del correo y especifica el motivo de tu solicitud.
+
+                        Si tu pedido ya está en camino (es decir, si el número de seguimiento está disponible o el transportista ya tiene el producto), el cambio solo podrá realizarse mediante un cambio del producto tras su recepción.
+
+                        Gracias por tu comprensión y tu confianza.
+                        — El equipo de atención al cliente
+                    `
+                },
+                attendant:'Lucía',
+                default_message:'Tu formulario se ha enviado <b>correctamente</b>. Recibirás novedades en breve. Te invitamos a volver a este mismo formulario en las próximas 24 horas para consultar la información adicional.'
+            }
+        }
+    },
     'NL':{
         footer: {
             privacy_policy: 'Privacybeleid',
@@ -694,6 +816,10 @@ const options_idioma = [
     {
         value:"NL",
         key:"Holandes"
+    },
+    {
+        value:"ES",
+        key:"Espanhol"
     }
 ];
 
@@ -1207,6 +1333,333 @@ const policies = {
             `
         }
     },
+    'ES': {
+    privacy: {
+      title_policy: "Política de privacidad",
+      text_policy: `
+<section class="privacy-policy" style="font-family:'Open Sans', sans-serif; line-height:1.7; color:#333; max-width:900px; margin:0 auto; padding:40px 20px;">
+
+  <h2 style="font-size:20px; margin-top:30px;">1. Introducción</h2>
+  <p>
+    Esta Política de privacidad explica cómo recogemos, utilizamos y protegemos los datos personales de las personas que visitan nuestro sitio web y compran en línea.
+    Cumplimos el <strong>Reglamento (UE) 2016/679 (RGPD)</strong>, la <strong>Ley Orgánica 3/2018 de Protección de Datos Personales y garantía de los derechos digitales (LOPDGDD)</strong> y la <strong>Ley 34/2002 de servicios de la sociedad de la información (LSSI-CE)</strong>.
+  </p>
+
+  <h2 style="font-size:20px; margin-top:30px;">2. Datos que recogemos</h2>
+  <ul>
+    <li><strong>Identidad y contacto:</strong> nombre, dirección de facturación y de envío, correo electrónico, teléfono.</li>
+    <li><strong>Pedido y pago:</strong> artículos comprados, importes, historial de pedidos; los datos de tarjeta o cuenta bancaria los tratan pasarelas de pago certificadas PCI-DSS y nosotros no los almacenamos en claro.</li>
+    <li><strong>Datos técnicos:</strong> dirección IP, información del dispositivo y del navegador, páginas visitadas, identificadores de sesión.</li>
+    <li><strong>Cookies y tecnologías similares:</strong> para funciones esenciales del sitio, analítica y marketing (véase “Cookies”).</li>
+  </ul>
+
+  <h2 style="font-size:20px; margin-top:30px;">3. Finalidades del tratamiento</h2>
+  <ul>
+    <li>Tramitar y entregar los pedidos (incluida la prevención del fraude y la gestión de devoluciones).</li>
+    <li>Atención al cliente y gestión de la cuenta.</li>
+    <li>Mejora del servicio, resolución de incidencias y analítica.</li>
+    <li>Comunicaciones comerciales con tu consentimiento o cuando lo permita la LSSI-CE (clientes existentes, productos similares).</li>
+    <li>Cumplimiento de obligaciones legales, contables y fiscales.</li>
+  </ul>
+
+  <h2 style="font-size:20px; margin-top:30px;">4. Bases jurídicas (art. 6 RGPD)</h2>
+  <ul>
+    <li><strong>Ejecución del contrato:</strong> para gestionar tu pedido y prestar los servicios.</li>
+    <li><strong>Consentimiento:</strong> para cookies no esenciales y marketing directo.</li>
+    <li><strong>Obligación legal:</strong> fiscalidad, contabilidad y conservación de registros.</li>
+    <li><strong>Interés legítimo:</strong> seguridad del sitio, mejora del servicio y prevención del fraude (ponderado con tus derechos).</li>
+  </ul>
+
+  <h2 style="font-size:20px; margin-top:30px;">5. Destinatarios de los datos</h2>
+  <ul>
+    <li>Proveedores de pago (por ejemplo, Stripe, PayPal, Klarna).</li>
+    <li>Transportistas y logística (por ejemplo, Correos, SEUR, MRW, GLS, DHL).</li>
+    <li>Proveedores de alojamiento, informática y soporte bajo los contratos correspondientes.</li>
+    <li>Autoridades cuando la ley lo exija.</li>
+  </ul>
+  <p><strong>Nunca vendemos tus datos personales.</strong></p>
+
+  <h2 style="font-size:20px; margin-top:30px;">6. Conservación</h2>
+  <ul>
+    <li>Datos de clientes y pedidos: hasta 6 años por obligaciones mercantiles y fiscales.</li>
+    <li>Datos de marketing: hasta que te des de baja o retires el consentimiento.</li>
+    <li>Cookies: normalmente entre 6 y 13 meses según el tipo (véase el detalle en el banner).</li>
+  </ul>
+
+  <h2 style="font-size:20px; margin-top:30px;">7. Seguridad</h2>
+  <p>
+    Aplicamos medidas técnicas y organizativas adecuadas; las transacciones están protegidas con <strong>SSL/TLS</strong> y los pagos los gestionan proveedores certificados <strong>PCI-DSS</strong>.
+  </p>
+
+  <h2 style="font-size:20px; margin-top:30px;">8. Tus derechos (RGPD y LOPDGDD)</h2>
+  <ul>
+    <li>Acceso, rectificación, supresión, limitación, portabilidad y oposición (incluida la oposición al marketing directo).</li>
+    <li>Retirar el consentimiento en cualquier momento (sin que ello afecte a la licitud del tratamiento anterior).</li>
+    <li>Presentar una reclamación ante la <strong>Agencia Española de Protección de Datos (AEPD)</strong>, www.aepd.es.</li>
+  </ul>
+  <p>
+    Contacto: 📧 <a href="mailto:privacy@service-client.com">privacy@service-client.com</a>
+  </p>
+
+  <h2 style="font-size:20px; margin-top:30px;">9. Cookies</h2>
+  <p>
+    Utilizamos cookies esenciales (compra, seguridad) y cookies no esenciales (analítica y publicidad) sujetas a tu consentimiento a través del banner de cookies, conforme al artículo 22.2 de la LSSI-CE.
+    Puedes modificar tus preferencias en cualquier momento.
+  </p>
+
+  <h2 style="font-size:20px; margin-top:30px;">10. Transferencias internacionales</h2>
+  <p>
+    Si los datos se transfieren fuera del Espacio Económico Europeo, nos basamos en decisiones de adecuación de la Comisión Europea o en garantías adecuadas (por ejemplo, cláusulas contractuales tipo).
+  </p>
+
+  <h2 style="font-size:20px; margin-top:30px;">11. Cambios en esta política</h2>
+  <p>Podemos actualizar este aviso; los cambios se publicarán en esta página.</p>
+  <p><em>Última actualización: 30 de octubre de 2025</em></p>
+
+  <h2 style="font-size:20px; margin-top:30px;">12. Contacto</h2>
+  <p>
+    📧 <a href="mailto:privacy@service-client.com">privacy@service-client.com</a><br>
+    📬 Protección de Datos, Madrid, España
+  </p>
+</section>
+      `
+    },
+    shipping: {
+      title_policy: "Política de envíos y entregas",
+      text_policy: `
+<section class="shipping-policy" style="font-family:'Open Sans', sans-serif; line-height:1.7; color:#333; max-width:900px; margin:0 auto; padding:40px 20px;">
+  <p>
+    Esta política explica la preparación de los pedidos, las opciones de envío y los plazos de entrega para España y para los destinos internacionales disponibles.
+  </p>
+
+  <h2 style="font-size:20px; margin-top:30px;">1) Zonas de envío</h2>
+  <ul>
+    <li><strong>Península</strong> – con servicio.</li>
+    <li><strong>Baleares</strong> – con servicio, con plazos específicos.</li>
+    <li><strong>Canarias, Ceuta y Melilla</strong> – con servicio, con plazos y recargos específicos y trámites aduaneros (véase “Impuestos y aduanas”).</li>
+    <li><strong>Unión Europea e internacional</strong> – disponible donde operen los transportistas y lo permitan las restricciones locales.</li>
+  </ul>
+
+  <h2 style="font-size:20px; margin-top:30px;">2) Plazos de preparación</h2>
+  <ul>
+    <li><strong>Preparación estándar:</strong> de 24 a 48 horas laborables tras la confirmación del pago.</li>
+    <li><strong>Periodos de alta demanda (rebajas, festivos):</strong> de 1 a 3 días laborables adicionales.</li>
+    <li><strong>Reservas y pedidos pendientes:</strong> el plazo se indica en la página del producto; pueden producirse envíos parciales.</li>
+    <li>Los pedidos realizados después de las <strong>14:00 (hora peninsular)</strong> se procesan el siguiente día laborable.</li>
+  </ul>
+
+  <h2 style="font-size:20px; margin-top:30px;">3) Transportistas y opciones</h2>
+  <ul>
+    <li><strong>España:</strong> Correos, SEUR, MRW, GLS (el servicio varía según la cesta y la opción elegida al finalizar la compra).</li>
+    <li><strong>Internacional:</strong> Correos Internacional, DHL/UPS/GLS (según disponibilidad).</li>
+    <li><strong>Prueba de entrega:</strong> en algunas opciones puede ofrecerse entrega con firma.</li>
+  </ul>
+
+  <h2 style="font-size:20px; margin-top:30px;">4) Plazos de tránsito orientativos (sin contar la preparación)</h2>
+  <table style="width:100%; border-collapse:collapse; font-size:14px;">
+    <thead>
+      <tr>
+        <th style="border-bottom:1px solid #ddd; text-align:left; padding:8px;">Zona</th>
+        <th style="border-bottom:1px solid #ddd; text-align:left; padding:8px;">Servicio</th>
+        <th style="border-bottom:1px solid #ddd; text-align:left; padding:8px;">Plazo estimado</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="border-bottom:1px solid #eee; padding:8px;">Península</td>
+        <td style="border-bottom:1px solid #eee; padding:8px;">Estándar con seguimiento</td>
+        <td style="border-bottom:1px solid #eee; padding:8px;">3–20 días laborables</td>
+      </tr>
+      <tr>
+        <td style="border-bottom:1px solid #eee; padding:8px;">Península (Exprés)</td>
+        <td style="border-bottom:1px solid #eee; padding:8px;">Entrega prioritaria (según transportista)</td>
+        <td style="border-bottom:1px solid #eee; padding:8px;">2–18 días laborables</td>
+      </tr>
+      <tr>
+        <td style="border-bottom:1px solid #eee; padding:8px;">Baleares</td>
+        <td style="border-bottom:1px solid #eee; padding:8px;">Estándar / Exprés</td>
+        <td style="border-bottom:1px solid #eee; padding:8px;">3–7 días laborables</td>
+      </tr>
+      <tr>
+        <td style="border-bottom:1px solid #eee; padding:8px;">Canarias, Ceuta y Melilla</td>
+        <td style="border-bottom:1px solid #eee; padding:8px;">Estándar</td>
+        <td style="border-bottom:1px solid #eee; padding:8px;">5–12 días laborables</td>
+      </tr>
+      <tr>
+        <td style="border-bottom:1px solid #eee; padding:8px;">Unión Europea</td>
+        <td style="border-bottom:1px solid #eee; padding:8px;">Internacional estándar</td>
+        <td style="border-bottom:1px solid #eee; padding:8px;">3–7 días laborables</td>
+      </tr>
+      <tr>
+        <td style="padding:8px;">Resto del mundo</td>
+        <td style="padding:8px;">Estándar / Exprés</td>
+        <td style="padding:8px;">5–15 días laborables</td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="margin-top:8px; font-size:13px; color:#555;"><em>Los plazos son estimaciones y pueden variar según la zona, la meteorología, las aduanas o los picos de demanda.</em></p>
+
+  <h2 style="font-size:20px; margin-top:30px;">5) Gastos de envío y envío gratuito</h2>
+  <ul>
+    <li>Los gastos se calculan al finalizar la compra según la dirección, el peso o volumen y el servicio elegido.</li>
+    <li><strong>Envío estándar gratuito</strong> a partir de <strong>XX,XX €</strong> (Península) — ajústalo según tu tienda.</li>
+    <li>Los servicios exprés e internacionales pueden no beneficiarse del envío gratuito.</li>
+  </ul>
+
+  <h2 style="font-size:20px; margin-top:30px;">6) Dirección, apartados de correos y cambios</h2>
+  <ul>
+    <li>Comprueba tu dirección. Una vez iniciada la preparación, los cambios <strong>no están garantizados</strong>.</li>
+    <li>Los apartados de correos se aceptan cuando la política del transportista lo permite (normalmente a través de Correos).</li>
+    <li>Los reenvíos por direcciones incorrectas o incompletas pueden conllevar nuevos gastos de envío.</li>
+  </ul>
+
+  <h2 style="font-size:20px; margin-top:30px;">7) Impuestos y aduanas</h2>
+  <p>
+    Los precios para Península y Baleares incluyen el IVA. En los envíos a <strong>Canarias, Ceuta y Melilla</strong> pueden aplicarse el IGIC o el IPSI y gastos de despacho aduanero a cargo del destinatario.
+    En los envíos <strong>fuera de la Unión Europea</strong>, los derechos e impuestos locales pueden exigirse en la importación.
+  </p>
+
+  <h2 style="font-size:20px; margin-top:30px;">8) Paquetes perdidos, dañados o robados</h2>
+  <ul>
+    <li><strong>Marcado como entregado pero no recibido:</strong> revisa el buzón, pregunta a vecinos o conserjería y avísanos en un plazo de <strong>72 h</strong>.</li>
+    <li><strong>Dañado:</strong> rechaza el paquete si es posible o firma con reservas; contáctanos en <strong>48 h</strong> con fotos.</li>
+    <li><strong>Sin novedades en el seguimiento:</strong> contáctanos pasados <strong>7 días laborables</strong>; abriremos una investigación con el transportista (de 5 a 15 días).</li>
+  </ul>
+
+  <h2 style="font-size:20px; margin-top:30px;">9) Fuerza mayor</h2>
+  <p>No somos responsables de los retrasos debidos a causas ajenas a nuestro control (meteorología, huelgas, restricciones, aduanas, picos de demanda).</p>
+
+  <h2 style="font-size:20px; margin-top:30px;">10) Contacto</h2>
+  <p>📧 <a href="mailto:shipping@service-client.com">shipping@service-client.com</a></p>
+
+  <h2 style="font-size:20px; margin-top:30px;">11) Actualizaciones</h2>
+  <p><em>Última actualización: 30 de octubre de 2025</em></p>
+</section>
+      `
+    },
+    return: {
+      title_policy: "Política de devoluciones y reembolsos",
+      text_policy: `
+<section class="return-policy" style="font-family:'Open Sans', sans-serif; line-height:1.7; color:#333; max-width:900px; margin:0 auto; padding:40px 20px;">
+  <p>
+    Esta política recoge tus derechos y nuestros procedimientos de devolución, cambio y reembolso en España.
+    Se ajusta al <strong>Real Decreto Legislativo 1/2007 (texto refundido de la Ley General para la Defensa de los Consumidores y Usuarios)</strong> y a la normativa de consumo aplicable.
+  </p>
+
+  <h2 style="font-size:20px; margin-top:30px;">1) Derecho de desistimiento (14 días)</h2>
+  <p>
+    Dispones de <strong>14 días naturales</strong> desde la recepción para desistir de la compra sin necesidad de justificar el motivo. Si el plazo termina en un día inhábil, se amplía al siguiente día hábil.
+    Comunícanoslo por escrito (correo electrónico o formulario de contacto) para ejercer este derecho.
+  </p>
+
+  <h2 style="font-size:20px; margin-top:30px;">2) Condiciones de la devolución</h2>
+  <ul>
+    <li>Los artículos deben estar <strong>nuevos, sin usar, sin lavar</strong> y en su embalaje original con etiquetas y accesorios.</li>
+    <li>Los productos personalizados, los precintados por razones de higiene que se hayan desprecintado y los perecederos pueden <strong>no admitir devolución</strong>, salvo defecto.</li>
+    <li>Las devoluciones de regalos debe iniciarlas la persona que realizó la compra.</li>
+  </ul>
+
+  <h2 style="font-size:20px; margin-top:30px;">3) Procedimiento de devolución</h2>
+  <ol>
+    <li>Escribe a <a href="mailto:returns@service-client.com">returns@service-client.com</a> para obtener la autorización y la dirección de devolución (RMA).</li>
+    <li>Embala el producto de forma segura con todos sus componentes y la referencia del pedido.</li>
+    <li>Utiliza un servicio con seguimiento (Correos, mensajería) y conserva el justificante de envío.</li>
+  </ol>
+
+  <h2 style="font-size:20px; margin-top:30px;">4) Costes de la devolución</h2>
+  <ul>
+    <li>Los gastos de devolución corren a cargo del cliente, salvo que el artículo sea defectuoso o el error sea nuestro.</li>
+    <li>En caso de defecto o error nuestro, asumiremos los costes razonables de devolución una vez validados.</li>
+  </ul>
+
+  <h2 style="font-size:20px; margin-top:30px;">5) Reembolsos</h2>
+  <p>
+    Una vez recibido y revisado el artículo, el reembolso se realiza en un plazo de <strong>5 a 10 días laborables</strong> por el mismo medio de pago, y en todo caso dentro de los <strong>14 días naturales</strong> que establece la ley.
+    Los plazos bancarios pueden ampliar el total hasta <strong>14 días</strong>.
+  </p>
+
+  <h2 style="font-size:20px; margin-top:30px;">6) Cambios</h2>
+  <ul>
+    <li>Sujetos a disponibilidad de stock; en caso contrario se tramitará un reembolso.</li>
+    <li>Indica la talla o el color deseados al solicitar tu RMA.</li>
+  </ul>
+
+  <h2 style="font-size:20px; margin-top:30px;">7) Artículos dañados o incorrectos (garantía legal)</h2>
+  <p>
+    Comunícalo en un plazo de <strong>48 h</strong> desde la entrega con fotos del embalaje y del artículo. Ofreceremos sustitución, reparación o reembolso.
+    Además, los productos cuentan con la <strong>garantía legal de conformidad de 3 años</strong> prevista en la normativa de consumo.
+  </p>
+
+  <h2 style="font-size:20px; margin-top:30px;">8) No entrega o pérdida</h2>
+  <p>
+    Si el pedido figura como entregado pero no lo has recibido, avísanos en <strong>72 h</strong>. Si el seguimiento no avanza, contáctanos pasados <strong>7 días laborables</strong> para abrir una investigación (de 5 a 15 días).
+  </p>
+
+  <h2 style="font-size:20px; margin-top:30px;">9) Reembolsos parciales y gastos de envío</h2>
+  <ul>
+    <li>Si el pedido contiene varios artículos, solo se reembolsa el artículo devuelto.</li>
+    <li>Los gastos de envío originales pueden no ser reembolsables, salvo cuando la ley lo exija o en caso de error nuestro.</li>
+  </ul>
+
+  <h2 style="font-size:20px; margin-top:30px;">10) Contacto</h2>
+  <p>
+    📧 <a href="mailto:returns@service-client.com">returns@service-client.com</a><br>
+    📬 Departamento de Devoluciones, Madrid, España
+  </p>
+
+  <h2 style="font-size:20px; margin-top:30px;">11) Actualizaciones</h2>
+  <p><em>Última actualización: 30 de octubre de 2025</em></p>
+</section>
+      `
+    },
+    terms: {
+      title_policy: "Términos de uso",
+      text_policy: `
+<section class="terms-of-use" style="font-family:'Open Sans', sans-serif; line-height:1.7; color:#333; max-width:900px; margin:0 auto; padding:40px 20px;">
+
+  <p>
+    Estos Términos regulan el acceso y el uso de este sitio web y de sus servicios. Al utilizar el sitio aceptas estos Términos en su totalidad.
+  </p>
+
+  <h2 style="font-size:20px; margin-top:30px;">1) Objeto del sitio</h2>
+  <p>El sitio ofrece información y servicios de comercio electrónico de productos de consumo. El contenido puede cambiar sin previo aviso.</p>
+
+  <h2 style="font-size:20px; margin-top:30px;">2) Aceptación y modificaciones</h2>
+  <p>El uso del sitio implica la aceptación plena de estos Términos. Podemos actualizarlos; se aplica la versión publicada en el momento del uso.</p>
+
+  <h2 style="font-size:20px; margin-top:30px;">3) Acceso y disponibilidad</h2>
+  <p>El sitio está disponible las 24 horas, salvo mantenimiento o causas ajenas a nuestro control. No respondemos de interrupciones o retrasos.</p>
+
+  <h2 style="font-size:20px; margin-top:30px;">4) Cuentas</h2>
+  <ul>
+    <li>Eres responsable de la custodia de tus credenciales de acceso.</li>
+    <li>Avísanos de inmediato ante cualquier uso no autorizado.</li>
+  </ul>
+
+  <h2 style="font-size:20px; margin-top:30px;">5) Contenido y exactitud</h2>
+  <p>Procuramos que la información sea exacta, pero no podemos garantizar un contenido sin errores ni un servicio ininterrumpido.</p>
+
+  <h2 style="font-size:20px; margin-top:30px;">6) Propiedad intelectual</h2>
+  <p>Todos los elementos del sitio están protegidos. Queda prohibida cualquier reproducción o uso sin autorización previa por escrito.</p>
+
+  <h2 style="font-size:20px; margin-top:30px;">7) Enlaces externos</h2>
+  <p>Los enlaces a sitios de terceros tienen carácter informativo. No respondemos de su contenido ni de sus políticas.</p>
+
+  <h2 style="font-size:20px; margin-top:30px;">8) Protección de datos</h2>
+  <p>Los datos personales se tratan conforme a nuestra <a href="/privacy-policy">Política de privacidad</a> (RGPD, LOPDGDD, LSSI-CE).</p>
+
+  <h2 style="font-size:20px; margin-top:30px;">9) Legislación aplicable y reclamaciones</h2>
+  <p>Estos Términos se rigen por la legislación española. En caso de conflicto, serán competentes los juzgados y tribunales del domicilio del consumidor. Puedes acudir también a las Juntas Arbitrales de Consumo y solicitar las hojas de reclamaciones.</p>
+
+  <h2 style="font-size:20px; margin-top:30px;">10) Contacto</h2>
+  <p>📧 <a href="mailto:legal@service-client.com">legal@service-client.com</a></p>
+
+  <h2 style="font-size:20px; margin-top:30px;">11) Actualizaciones</h2>
+  <p><em>Última actualización: 30 de octubre de 2025</em></p>
+</section>
+      `
+    }
+  },
     'GB': {
     privacy: {
       title_policy: "Privacy Policy",
@@ -1856,9 +2309,9 @@ const policy_files = [
 
 const isPolicyKey = (key)=> policy_files.some(file=> file.id == key);
 
-// Padrão por país da loja; sem texto para o país (CH, DE, BE...) usa o do idioma; por último, GB
+// Padrão por país da loja; sem texto para o país (CH, DE, BE, MX...) usa o do idioma; por último, GB
 const defaultPoliciesFor = (store)=>{
-    const byIdioma = {FR:"FR", EN:"GB", DE:"GB", NL:"GB"};
+    const byIdioma = {FR:"FR", EN:"GB", DE:"GB", NL:"GB", ES:"ES"};
     const countryCode = store.country?.[0];
 
     return policies[countryCode] || policies[byIdioma[store.idioma]] || policies["GB"];

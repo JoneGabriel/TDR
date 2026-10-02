@@ -850,7 +850,7 @@ const Store = mongoose.model("store", {
     },  
     idioma:{
         type:String,
-        enum:['FR', 'EN', 'DE', 'NL']
+        enum:['FR', 'EN', 'DE', 'NL', 'ES']
     },
     moeda:{
         type:String,

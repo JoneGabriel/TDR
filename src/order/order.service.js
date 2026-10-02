@@ -112,7 +112,7 @@ const getOrderShopify = async (orderId, {urlStore}, country, idioma = "EN") => {
       const timeZone = timeZoneCountry[country];
 
       // data no formato do país da loja (antes era sempre mm/dd/yyyy)
-      const locales = {US:"en-US", GB:"en-GB", FR:"fr-FR", BE:"fr-BE", CH:"fr-CH", DE:"de-DE", NL:"nl-NL"};
+      const locales = {US:"en-US", GB:"en-GB", FR:"fr-FR", BE:"fr-BE", CH:"fr-CH", DE:"de-DE", NL:"nl-NL", ES:"es-ES", MX:"es-MX", AR:"es-AR", CL:"es-CL", CO:"es-CO"};
       const formatterParis = new Intl.DateTimeFormat(locales[country] || "en-GB", {
         timeZone,
         year: "numeric",
@@ -135,7 +135,7 @@ const getOrderShopify = async (orderId, {urlStore}, country, idioma = "EN") => {
 };
 
 // ---------------------------------------------------------------- chat inteligente do pedido
-// Textos por idioma da loja (o template do pedido só tem FR/EN; DE/NL caem no EN nos campos ausentes)
+// Textos por idioma da loja (FR, EN, DE, NL, ES); idioma sem bloco cai no EN
 const chatI18n = {
   EN:{
     labels:{subtotal:"Subtotal", shipping:"Shipping", taxes:"Taxes", discounts:"Discounts", total:"Total", paid_with:"Paid with", address:"Shipping address", estimated_delivery:"Estimated delivery", last_update:"Last update", copy:"Copy", copied:"Copied"},
@@ -194,6 +194,25 @@ const chatI18n = {
     },
     help:"Wie kann ich Ihnen helfen?"
   },
+  ES:{
+    labels:{subtotal:"Subtotal", shipping:"Envío", taxes:"Impuestos", discounts:"Descuentos", total:"Total", paid_with:"Pagado con", address:"Dirección de envío", estimated_delivery:"Entrega estimada", last_update:"Última actualización", copy:"Copiar", copied:"Copiado"},
+    sent:"Tu solicitud se ha enviado. Te responderemos por correo electrónico.", form_required:"Indica tu correo electrónico, los detalles y añade al menos una foto.",
+    language:"Spanish", assistant:"Lucía", you:"Tú", placeholder:"Escribe tu mensaje...", send:"Enviar", typing:"está escribiendo", online:"en línea",
+    report:"Informar de un problema", error:"Lo siento, no he podido responder ahora mismo. Inténtalo de nuevo en unos instantes.",
+    offline:"Nuestra asistente no está disponible en este momento. Usa el formulario de abajo para contarnos qué ha pasado.",
+    suggestions:["¿Dónde está mi pedido?", "¿Cuándo llegará?", "Quiero cambiar o devolver un artículo", "Informar de un problema con mi pedido"],
+    stages:{confirmed:"Pedido confirmado", processing:"En preparación", shipped:"Enviado", in_transit:"En tránsito", delivered:"Entregado", cancelled:"Cancelado"},
+    greeting:({first, assistant, store})=> `¡Hola${first ? " " + first : ""}! Soy ${assistant}, del servicio de atención al cliente de ${store}.`,
+    seen:({name, date, days})=> `Veo tu pedido ${name}, realizado el ${date}${days > 0 ? ` (hace ${days} día${days > 1 ? "s" : ""})` : " (hoy)"}.`,
+    stage:{
+      processing:()=> "Se está preparando y pronto se entregará al transportista.",
+      shipped:({tracking})=> `Ya se ha entregado al transportista${tracking ? ` (seguimiento ${tracking})` : ""}.`,
+      in_transit:({city, date})=> `Está en tránsito${city ? `, último registro en ${city}${date ? ` el ${date}` : ""}` : ""}.`,
+      delivered:({date})=> `Se entregó${date ? ` el ${date}` : ""}.`,
+      cancelled:()=> "Se ha cancelado."
+    },
+    help:"¿En qué puedo ayudarte hoy?"
+  },
   NL:{
     labels:{subtotal:"Subtotaal", shipping:"Verzending", taxes:"Belastingen", discounts:"Kortingen", total:"Totaal", paid_with:"Betaald met", address:"Verzendadres", estimated_delivery:"Verwachte levering", last_update:"Laatste update", copy:"Kopiëren", copied:"Gekopieerd"},
     sent:"Uw verzoek is verzonden. We reageren per e-mail.", form_required:"Vul uw e-mail en de details in en voeg minstens één foto toe.",
@@ -222,7 +241,7 @@ const HISTORY_FOR_MODEL = 12;
 
 const i18nFor = (idioma)=> chatI18n[idioma] || chatI18n.EN;
 
-const dateLocales = {US:"en-US", GB:"en-GB", FR:"fr-FR", BE:"fr-BE", CH:"fr-CH", DE:"de-DE", NL:"nl-NL"};
+const dateLocales = {US:"en-US", GB:"en-GB", FR:"fr-FR", BE:"fr-BE", CH:"fr-CH", DE:"de-DE", NL:"nl-NL", ES:"es-ES", MX:"es-MX", AR:"es-AR", CL:"es-CL", CO:"es-CO"};
 
 const fmtDate = (value, country, withTime = false)=>{
   if(!value) return "";
