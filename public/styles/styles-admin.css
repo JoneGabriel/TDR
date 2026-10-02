@@ -1773,3 +1773,10 @@ input[type="color"].form-control,
 .image-picker-preview.is-inherited img{opacity:.45;filter:grayscale(.35)}
 .image-picker-preview.is-inherited .inherited-badge{display:inline-block}
 .image-picker-preview.is-inherited button{display:none}
+
+/* ---------- loja: seletor de layout no topo, selo por seção e cores herdadas ---------- */
+.layout-switch-top{margin:0 0 16px}
+.layout-tag{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:3px;border:1px solid rgba(0, 240, 255, .45);background:rgba(0, 240, 255, .08);color:var(--cy-cyan);font-family:'Share Tech Mono', monospace;font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;vertical-align:middle}
+input[type="color"].is-inherited{opacity:.45;border-style:dashed}
+.color-field:has(input.is-inherited) span::after{content:" · herdado";color:var(--cy-magenta);font-family:'Share Tech Mono', monospace;font-size:.68rem;letter-spacing:.04em}
+.btn-modal-sm{padding:4px 12px;font-size:.8rem}

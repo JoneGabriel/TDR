@@ -813,12 +813,26 @@ const templateFields = ()=>({
 // Campos visuais que também variam por layout. A raiz da loja guarda os valores do layout "first" (editados na aba
 // First do admin) e serve de fallback para o "second": layouts.second.<campo> só vale quando preenchido.
 const visualFields = ()=>({
+    title:String,            // título do navegador (vazio: first usa o nome da loja; second usa o título do first)
     logo:String,
     position_logo:String,
     banner_1:String,
     banner_2:String,
     banner_3:String,
-    css:String
+    css:String,
+    message_top:String,
+    color_message_top:String,
+    bk_message_top:String,
+    color_btn_product:String,
+    bk_btn_product:String,
+    color_btn_add_items:String,
+    bk_btn_add_items:String,
+    color_btn_checkout:String,
+    bk_btn_checkout:String,
+    color_footer:String,
+    bk_footer:String,
+    color_icons:String,
+    color_n_items_cart:String
 });
 const visualFieldNames = Object.keys(visualFields());
 const layoutNames = ["first", "second"];
@@ -839,6 +853,8 @@ const Store = mongoose.model("store", {
         required:true,
         type:String
     },
+    // título do navegador do layout first (vazio = name); o do second fica em layouts.second.title
+    title:String,
     logo:{
         required:true,
         type:String,

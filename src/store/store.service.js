@@ -624,6 +624,9 @@ const resolveLayout = (store, name)=>{
         templates[key] = own[key] || doc[key];
     });
 
+    // título do navegador: próprio do layout -> título do first (raiz) -> nome da loja
+    templates.title = own.title || doc.title || doc.name;
+
     return templates;
 };
 
@@ -713,7 +716,7 @@ const getConfigStore = async(id, type)=>{
             // moeda legada da loja fica como base; useCountry() define país/moeda da visita (padrão: primeiro país)
             config.moeda_base = config['moeda'];
             useCountry(config, null);
-            config.title = config['name'];
+            // config.title já veio de useLayout (título por layout, com fallback no nome)
 
             delete config['name'];
 

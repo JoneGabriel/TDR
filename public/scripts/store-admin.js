@@ -3,8 +3,18 @@ let edit_twig;
 
 // ---------------------------------------------------------------- visual por layout (logo, posição, banners, CSS)
 // A aba First edita os valores da raiz da loja; a aba Second edita layouts.second.* (vazio = herda do first).
-const VISUAL_KEYS = ["logo", "position_logo", "banner_1", "banner_2", "banner_3", "css"];
 const VISUAL_IMG = {logo:"[c-id=img-logo]", banner_1:"[c-id=banner-1]", banner_2:"[c-id=banner-2]", banner_3:"[c-id=banner-3]"};
+const VISUAL_TEXT = {title:"[c-id=title]", message_top:"[c-id=message_top]"};
+const VISUAL_COLOR = {
+    color_message_top:"[c-id=color_message]", bk_message_top:"[c-id=bk_message]",
+    color_btn_product:"[c-id=color_btn_product]", bk_btn_product:"[c-id=bk_btn_product]",
+    color_btn_add_items:"[c-id=color_btn_add_items]", bk_btn_add_items:"[c-id=bk_btn_add_items]",
+    color_btn_checkout:"[c-id=color_btn_checkout]", bk_btn_checkout:"[c-id=bk_btn_checkout]",
+    color_footer:"[c-id=color_footer]", bk_footer:"[c-id=bk_footer]",
+    color_icons:"[c-id=color_icons]", color_n_items_cart:"[c-id=color_n_items_cart]"
+};
+const VISUAL_KEYS = ["position_logo", "css", ...Object.keys(VISUAL_IMG), ...Object.keys(VISUAL_TEXT), ...Object.keys(VISUAL_COLOR)];
+const TEXT_PLACEHOLDER = {title:"Nome da loja", message_top:"Frete grátis acima de 50€"};
 let visual = {first:{}, second:{}};
 let visualLayout = "first";
 
@@ -39,6 +49,18 @@ const readVisualFromDom = ()=>{
     values.position_logo = $(ctx).find("[c-id=position-logo] input:checked").val() || "";
     values.css = editor ? editor.getValue() : ((visual[visualLayout] && visual[visualLayout].css) || "");
 
+    // textos: vazio no second = herda do first
+    Object.entries(VISUAL_TEXT).forEach(([key, selector])=>{
+        values[key] = $(ctx).find(selector).val() || "";
+    });
+
+    // cores: no second, a cor marcada como herdada não conta como valor próprio
+    Object.entries(VISUAL_COLOR).forEach(([key, selector])=>{
+        const $input = $(ctx).find(selector);
+
+        values[key] = $input.hasClass("is-inherited") ? "" : ($input.val() || "");
+    });
+
     return values;
 };
 
@@ -62,9 +84,30 @@ const writeVisualToDom = (name)=>{
 
     editor && editor.setValue(own.css || "");
 
+    Object.entries(VISUAL_TEXT).forEach(([key, selector])=>{
+        $(selector).val(own[key] || "").attr("placeholder", name == "second" && base[key] ? base[key] : TEXT_PLACEHOLDER[key]);
+    });
+
+    Object.entries(VISUAL_COLOR).forEach(([key, selector])=>{
+        const $input = $(selector);
+
+        if(own[key]){
+            $input.val(own[key]).removeClass("is-inherited");
+        }else if(name == "second" && base[key]){
+            $input.val(base[key]).addClass("is-inherited");
+        }else{
+            $input.val(base[key] || "#000000").removeClass("is-inherited");
+        }
+    });
+
+    $("[c-id=layout-tag]").text(name);
+    $("[c-id=reset-colors]").toggleClass("none", name != "second");
+    $("[c-id=colors-hint]").text(name == "second"
+        ? "Layout second: cores esmaecidas são herdadas do first; mude uma cor para sobrescrever."
+        : "Valores do layout first (o second herda o que não definir).");
     $("[c-id=visual-hint]").text(name == "second"
-        ? "Layout second: vazio herda do first. Imagens esmaecidas são herdadas; envie outra para sobrescrever."
-        : "Layout first: valores padrão da loja (também usados pelo second quando ele não define os seus).");
+        ? "Layout second: vazio herda do first. Imagens e cores esmaecidas são herdadas; altere para sobrescrever. Nome, idioma, moeda, países e atendimento valem para a loja inteira."
+        : "Layout first: valores padrão da loja (também usados pelo second quando ele não define os seus). Nome, idioma, moeda, países e atendimento valem para a loja inteira.");
 };
 
 const switchVisualLayout = (name)=>{
@@ -180,40 +223,14 @@ const getBodyStore = ()=>{
         }
 
         body["position_logo"] = first.position_logo || "left";
-        body["banner_1"] = first.banner_1 || "";
-        body["banner_2"] = first.banner_2 || "";
-        body["banner_3"] = first.banner_3 || "";
-        body["css"] = first.css || "";
-        body["layouts"] = {
-            second:{
-                logo:second.logo || "",
-                position_logo:second.position_logo && second.position_logo != body["position_logo"] ? second.position_logo : "",
-                banner_1:second.banner_1 || "",
-                banner_2:second.banner_2 || "",
-                banner_3:second.banner_3 || "",
-                css:second.css || ""
-            }
-        };
+        VISUAL_KEYS.filter(key=> key != "logo" && key != "position_logo").forEach(key=>{
+            body[key] = first[key] || "";
+        });
 
-
-        body["message_top"] = $(ctx).find("[c-id=message_top]").val();
-        body["color_message_top"] = $(ctx).find("[c-id=color_message]").val();
-        body["bk_message_top"] = $(ctx).find("[c-id=bk_message]").val();
-
-        body["color_btn_product"] = $(ctx).find("[c-id=color_btn_product]").val();
-        body["bk_btn_product"] = $(ctx).find("[c-id=bk_btn_product]").val();
-
-        body["color_btn_add_items"] = $(ctx).find("[c-id=color_btn_add_items]").val();
-        body["bk_btn_add_items"] = $(ctx).find("[c-id=bk_btn_add_items]").val();
-
-        body["color_btn_checkout"] = $(ctx).find("[c-id=color_btn_checkout]").val();
-        body["bk_btn_checkout"] = $(ctx).find("[c-id=bk_btn_checkout]").val();
-
-        body["color_footer"] = $(ctx).find("[c-id=color_footer]").val();
-        body["bk_footer"] = $(ctx).find("[c-id=bk_footer]").val();
-
-        body["color_icons"] = $(ctx).find("[c-id=color_icons]").val();
-        body["color_n_items_cart"] = $(ctx).find("[c-id=color_n_items_cart]").val();
+        let secondOwn = {};
+        VISUAL_KEYS.forEach(key=> secondOwn[key] = second[key] || "");
+        secondOwn.position_logo = second.position_logo && second.position_logo != body["position_logo"] ? second.position_logo : "";
+        body["layouts"] = {second:secondOwn};
         body["support"] = {
             assistant_name:$(ctx).find("[c-id=support_assistant]").val(),
             loyalty_code:$(ctx).find("[c-id=support_loyalty]").val(),
@@ -295,12 +312,6 @@ const listStoreInForm = (store)=>{
         
         let {name, _id, idioma, moeda, country} = store;
 
-        const {
-            message_top, 
-            color_message_top, 
-            bk_message_top, color_btn_product, 
-            bk_btn_product, color_btn_add_items, bk_btn_add_items, color_btn_checkout, bk_btn_checkout, color_footer, bk_footer, color_icons, color_n_items_cart} = store;
-
         const ctx = "[c-id=form]";
 
         $(ctx).find("[c-id=name-store]").text(name);
@@ -308,25 +319,6 @@ const listStoreInForm = (store)=>{
         $(ctx).find("[c-id=idioma]").val(idioma);
         $(ctx).find("[c-id=moeda]").val(moeda);
 
-        $(ctx).find("[c-id=message_top]").val(message_top);
-        $(ctx).find("[c-id=color_message]").val(color_message_top);
-        $(ctx).find("[c-id=bk_message]").val(bk_message_top);
-
-        $(ctx).find("[c-id=color_btn_product]").val(color_btn_product);
-        $(ctx).find("[c-id=bk_btn_product]").val(bk_btn_product);
-
-
-        $(ctx).find("[c-id=color_btn_add_items]").val(color_btn_add_items);
-        $(ctx).find("[c-id=bk_btn_add_items]").val(bk_btn_add_items);
-
-        $(ctx).find("[c-id=color_btn_checkout]").val(color_btn_checkout);
-        $(ctx).find("[c-id=bk_btn_checkout]").val(bk_btn_checkout);
-
-        $(ctx).find("[c-id=color_footer]").val(color_footer);
-        $(ctx).find("[c-id=bk_footer]").val(bk_footer);
-
-        $(ctx).find("[c-id=color_icons]").val(color_icons);
-        $(ctx).find("[c-id=color_n_items_cart]").val(color_n_items_cart);
         $(ctx).find("[c-id=support_assistant]").val(store.support?.assistant_name || "");
         $(ctx).find("[c-id=support_loyalty]").val(store.support?.loyalty_code || "");
         $(ctx).find("[c-id=support_instructions]").val(store.support?.instructions || "");
@@ -660,8 +652,21 @@ $(document).ready(function(){
 
     $("[c-id=form]").on("change", "[c-id=country] input", updateCountryCount);
 
-    // alterna o layout editado pelos campos visuais (logo, posição, banners, CSS)
+    // alterna o layout editado pelos campos visuais (título, mensagem, cores, logo, posição, banners, CSS)
     $("[c-id=visual-layout]").on("change", "input", (e)=> switchVisualLayout(e.target.value));
+
+    // cor alterada no second deixa de ser herdada do first
+    $("[c-id=form]").on("input change", "input[type=color]", (e)=> $(e.target).removeClass("is-inherited"));
+
+    // second: volta a herdar mensagem do topo e cores do first
+    $("[c-id=reset-colors]").on("click", ()=>{
+        if(visualLayout != "second") return;
+
+        visual.second = readVisualFromDom();
+        Object.keys(VISUAL_COLOR).forEach(key=> visual.second[key] = "");
+        visual.second.message_top = "";
+        writeVisualToDom("second");
+    });
 
     $("[c-id=model-file]").on("click", async(e)=>{
         try{
