@@ -54,7 +54,6 @@ const getOrderShopify = async (orderId, {urlStore}, country, idioma = "EN") => {
             cancelledAt
             displayFinancialStatus
             displayFulfillmentStatus
-            paymentGatewayNames
             subtotalPriceSet { shopMoney { amount currencyCode } }
             totalShippingPriceSet { shopMoney { amount currencyCode } }
             totalTaxSet { shopMoney { amount currencyCode } }

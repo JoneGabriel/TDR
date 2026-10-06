@@ -669,9 +669,6 @@ const defaultOrder = `
       <div class="summary-line"><span>{{ order.labels.discounts }}</span><span>- {{ order.totalDiscountsSet.shopMoney.amount }} {{ money }}</span></div>
     {% endif %}
     <div class="summary-line summary-total"><span>{{ order.labels.total }}</span><span>{{ order.totalPriceSet.shopMoney.amount }} {{ money }}</span></div>
-    {% if order.paymentGatewayNames|length > 0 %}
-      <div class="summary-line summary-muted"><span>{{ order.labels.paid_with }}</span><span>{{ order.paymentGatewayNames|join(', ') }}</span></div>
-    {% endif %}
   </section>
 
   {% if order.shippingAddress %}
