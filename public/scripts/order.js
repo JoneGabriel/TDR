@@ -1,4 +1,4 @@
-// Página do pedido: chat de suporte inteligente (fatos reais do pedido) + formulário de problema.
+// Página do pedido: rastreio ao vivo (17TRACK), chat de suporte inteligente (fatos reais do pedido) + formulário de problema.
 // O servidor injeta window.TDR_ORDER (index.twig) com textos, assistente e ids; funciona com o template novo
 // ([c-id=chat-root]) e com templates antigos (o chat é inserido antes do formulário).
 const ORDER = window.TDR_ORDER || null;
@@ -109,7 +109,99 @@ const handleAction = (action)=>{
 
     if(action == "show_tracking"){
         $("[c-id=modal-problem-order]").modal("hide");
-        $(".order-tracking")[0]?.scrollIntoView({behavior:"smooth", block:"start"});
+        ($("[c-id=tracking-root]")[0] || $(".order-tracking")[0])?.scrollIntoView({behavior:"smooth", block:"start"});
+    }
+};
+
+// ---------------------------------------------------------------- rastreio ao vivo (17TRACK)
+// Dados em window.TDR_ORDER.tracking (cache do servidor); o botão "Atualizar" consulta /order/tracking/:id?refresh=1.
+// Painel em [c-id=tracking-root] (template novo) ou no fim da seção .order-tracking (templates antigos).
+const trackState = {busy:false};
+
+const trackRoot = ()=>{
+    let root = $("[c-id=tracking-root]");
+
+    if(!root.length){
+        root = $('<div c-id="tracking-root"></div>');
+        const section = $(".order-tracking");
+
+        section.length ? section.append(root) : $("[c-id=copy-tracking]").first().closest(".tracking-card").after(root);
+    }
+
+    return root;
+};
+
+const trackClass = (item)=> item.problem ? "problem" : (item.stage || "unknown");
+
+const trackEventHtml = (e)=> `
+    <li class="track-event">
+        <span class="track-event-time">${esc(e.date || "")}</span>
+        <span class="track-event-text">${esc(e.description || "")}${e.location ? `<small>${esc(e.location)}</small>` : ""}</span>
+    </li>`;
+
+const renderTracking = (data)=>{
+    const items = data?.items || [];
+
+    if(!items.length){
+        return;
+    }
+
+    const L = data.labels || {};
+
+    trackRoot().html(`<h3 class="track-title">${esc(L.title || "")}</h3>` + items.map(item=>{
+        const events = item.events || [];
+        const visible = events.slice(0, 4);
+        const hidden = events.slice(4);
+        // modo dropshipping: nunca há link para o 17TRACK nem para transportadoras de origem; só a última milha
+        const link = item.url || item.carrier_url;
+
+        return `
+        <div class="track-card track-${trackClass(item)}">
+            <div class="track-head">
+                <div>
+                    <div class="track-number">${esc(item.number)}${item.carrier_name ? `<span class="track-carrier">${esc(L.carrier || "")}: ${esc(item.carrier_name)}</span>` : ""}</div>
+                    <span class="track-badge" ${item.problem ? `title="${esc(L.problem || "")}"` : ""}>${esc(item.status_label || item.status || "")}</span>
+                </div>
+                <button type="button" class="track-refresh" c-id="tracking-refresh">${esc(L.refresh || "Refresh")}</button>
+            </div>
+            ${item.estimated_fmt ? `<p class="track-eta">${esc(L.eta || "")}: <b>${esc(item.estimated_fmt)}</b></p>` : ""}
+            ${item.latest_event
+                ? `<p class="track-latest"><span class="track-event-time">${esc(item.latest_event.date || "")}${item.latest_event.location ? ` · ${esc(item.latest_event.location)}` : ""}</span>${esc(item.latest_event.description || "")}</p>`
+                : `<p class="track-empty">${esc(item.international ? (L.international || L.no_info || "") : (L.no_info || ""))}</p>`}
+            ${events.length ? `
+            <details class="track-events"${events.length <= 4 ? " open" : ""}>
+                <summary>${esc(L.events || "")} (${events.length})</summary>
+                <ul class="track-list">${visible.map(trackEventHtml).join("")}</ul>
+                ${hidden.length ? `<ul class="track-list track-more none">${hidden.map(trackEventHtml).join("")}</ul>
+                <button type="button" class="track-toggle" c-id="tracking-more" data-more="${esc(L.show_all || "")}" data-less="${esc(L.hide || "")}">${esc(L.show_all || "")}</button>` : ""}
+            </details>` : ""}
+            <div class="track-foot">
+                <span>${item.days_in_transit != null ? `${esc(item.days_in_transit)} ${esc(L.transit_days || "")} · ` : ""}${esc(L.updated || "")}: ${esc(item.fetched_fmt || "")}</span>
+                ${link ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(item.carrier_name || L.carrier || "")} ↗</a>` : ""}
+            </div>
+        </div>`;
+    }).join(""));
+};
+
+const refreshTracking = async(button)=>{
+    if(trackState.busy){
+        return;
+    }
+
+    trackState.busy = true;
+    $(button).prop("disabled", true);
+
+    try{
+
+        const {idOrder, urlStore} = orderIds();
+        const response = await request("GET", `/order/tracking/${idOrder}?urlStore=${encodeURIComponent(urlStore)}&refresh=1`);
+
+        response.status == 200 && renderTracking(response.content);
+
+    }catch(error){
+    }finally{
+        trackState.busy = false;
+        $(button).prop("disabled", false);
     }
 };
 
@@ -242,6 +334,17 @@ const saveForm = async()=>{
 
 // ---------------------------------------------------------------- eventos
 $(document).ready(function(){
+
+    // painel de rastreio ao vivo com o cache que veio do servidor
+    ORDER?.tracking?.items?.length && renderTracking(ORDER.tracking);
+
+    $("body").on("click", "[c-id=tracking-refresh]", (e)=> refreshTracking(e.currentTarget));
+
+    $("body").on("click", "[c-id=tracking-more]", (e)=>{
+        const more = $(e.currentTarget).siblings(".track-more").toggleClass("none");
+
+        $(e.currentTarget).text($(e.currentTarget).attr(more.hasClass("none") ? "data-more" : "data-less"));
+    });
 
     $("[c-id=btn-problem-order]").on("click", ()=>{
         $("[c-id=modal-problem-order]").modal("show");

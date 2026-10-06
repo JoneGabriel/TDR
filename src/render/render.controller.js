@@ -52,6 +52,7 @@ const {
 } = require("../store/store.service");
 const Twig = require('twig');
 const { requireAdminPage, notOnAdminHost } = require("../auth/auth.service");
+const { timeZoneOf } = require("../helpers/helpers.countries");
 
 // Página de erro da vitrine, usada no catch das rotas da loja.
 // `config` pode estar indefinido se a loja nem chegou a carregar (ex.: domínio não cadastrado).
@@ -488,12 +489,6 @@ router.get("/order/:id", notOnAdminHost, async(req, res)=>{
         const order_chat = order ? getChatContext(order, config, req.query.urlStore) : null;
         const all_collections =  await getAllCollections(false);
 
-        const timeZoneCountry = {
-            "GB":"Europe/London",
-            "US":"America/New_York",
-            "FR":"Europe/Paris"
-        };
-
         let {header_template, menu_store, cart_template, footer_template, order_template} = config;
 
         header_template = Twig.twig({data:header_template}).render({
@@ -513,7 +508,8 @@ router.get("/order/:id", notOnAdminHost, async(req, res)=>{
         });
         order_template = Twig.twig({data:order_template}).render({
             order,
-            now: new Date().toLocaleString("en-US", { timeZone: timeZoneCountry[country] }),
+            // "agora" no fuso do país do pedido (entrega) ou da loja
+            now: new Date().toLocaleString("en-US", { timeZone: timeZoneOf(order?.date_country || country) }),
             charges,
             ...config
         });

@@ -6,7 +6,8 @@ const {
     createTextGpt,
     saveChange,
     getChat,
-    sendChat
+    sendChat,
+    getLiveTracking
 } = require("./order.service");
 
 router.get("/order/support/:idOrder", async(req, res)=>{
@@ -47,6 +48,21 @@ router.get("/order/chat/:idOrder", async(req, res)=>{
 
         const config = await getConfigStore(req.get('host'), 'domain');
         const response = await getChat(req.params.idOrder, req.query, config);
+
+        return res.status(response.status).send(response);
+
+    }catch(error){
+
+        return statusHandler.responseError(error, res);
+    }
+});
+
+// rastreio ao vivo (17TRACK) dos códigos do pedido; público como o chat. ?refresh=1 força nova consulta
+router.get("/order/tracking/:idOrder", async(req, res)=>{
+    try{
+
+        const config = await getConfigStore(req.get('host'), 'domain');
+        const response = await getLiveTracking(req.params.idOrder, {urlStore:req.query.urlStore, refresh:req.query.refresh == "1"}, config);
 
         return res.status(response.status).send(response);
 

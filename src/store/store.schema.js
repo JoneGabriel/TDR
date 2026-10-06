@@ -708,6 +708,7 @@ const defaultOrder = `
           </div>
         </div>
       {% endfor %}
+      <div c-id="tracking-root"></div>
     {% else %}
       <div class="tracking-card tracking-status">
         <div class="tracking-icon">⌛</div>
