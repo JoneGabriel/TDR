@@ -51,6 +51,7 @@ const getOrderShopify = async (orderId, {urlStore}, country, idioma = "EN") => {
             name
             legacyResourceId
             createdAt
+            processedAt
             cancelledAt
             displayFinancialStatus
             displayFulfillmentStatus
@@ -129,9 +130,15 @@ const getOrderShopify = async (orderId, {urlStore}, country, idioma = "EN") => {
         minute: "2-digit",
       });
 
-      if(!isEmpty(order.createdAt)){
-          order.createdAtISO = order.createdAt;
-          order.createdAt = formatterParis.format(new Date(order.createdAt));
+      // data do pedido = processedAt (a que o painel da Shopify exibe: momento do pagamento/processamento);
+      // createdAt é a criação do registro e pode vir depois, quando o pagamento é confirmado mais tarde
+      const placedAt = order.processedAt || order.createdAt;
+
+      order.createdRecordISO = order.createdAt || null;
+
+      if(!isEmpty(placedAt)){
+          order.createdAtISO = placedAt;
+          order.createdAt = formatterParis.format(new Date(placedAt));
       }
 
       const enriched = enrichOrder(order, dateCountry, idioma);

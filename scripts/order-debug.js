@@ -27,7 +27,9 @@ if(!orderId || !urlStore){
 
         console.log(JSON.stringify({
             pedido:order.name,
-            createdAt_shopify_utc:iso,
+            processedAt_shopify_utc:order.processedAt || null,
+            createdAt_shopify_utc:order.createdRecordISO,
+            data_usada_utc:iso,
             pais_entrega:order.shippingAddress?.countryCodeV2 || null,
             pais_loja_informado:storeCountry,
             pais_usado_para_datas:order.date_country,
