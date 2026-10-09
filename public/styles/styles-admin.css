@@ -1780,3 +1780,23 @@ input[type="color"].form-control,
 input[type="color"].is-inherited{opacity:.45;border-style:dashed}
 .color-field:has(input.is-inherited) span::after{content:" · herdado";color:var(--cy-magenta);font-family:'Share Tech Mono', monospace;font-size:.68rem;letter-spacing:.04em}
 .btn-modal-sm{padding:4px 12px;font-size:.8rem}
+
+/* ---------- multiusuário: conta em uso no menu ---------- */
+.nav-account .nav-link{color:#8fa3b8;cursor:default}
+.nav-account-impersonating .nav-link{color:var(--cy-magenta)}
+.nav-account-leave{display:block;margin:-6px 0 0 14px;font-family:'Share Tech Mono', monospace;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--cy-cyan);text-decoration:none}
+.nav-account-leave:hover{text-decoration:underline}
+
+/* ---------- contas (superadmin) ---------- */
+.account-status{display:inline-block;padding:2px 10px;border-radius:999px;font-family:'Share Tech Mono', monospace;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;border:1px solid rgba(255,255,255,.25);color:#cfd8e3}
+.account-status.is-pending{border-color:#c2860c;color:#f0b84a}
+.account-status.is-active{border-color:var(--cy-cyan);color:var(--cy-cyan)}
+.account-status.is-blocked{border-color:var(--cy-danger, #ff3b5c);color:var(--cy-danger, #ff3b5c)}
+
+/* contas: botões escondidos por estado e ações em linha única */
+.row-actions .none, .btn-modal.none{display:none !important}
+.accounts-table .row-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.accounts-table .btn-modal-sm{padding:3px 10px;font-size:.72rem;letter-spacing:.06em}
+/* menu: selo da conta e usuário sem quebra de linha */
+.nav-account .nav-link, .nav-logout .nav-link{white-space:nowrap}
+.nav-account .nav-link{font-size:.72rem;max-width:200px;overflow:hidden;text-overflow:ellipsis}

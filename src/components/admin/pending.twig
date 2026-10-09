@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>{{ blocked ? 'Conta bloqueada' : 'Aguardando aprovação' }} | TDR Admin</title>
+    <link href="/assets/styles/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="/styles/styles-admin.css" rel="stylesheet">
+    <style>.login-body{min-height:100vh}</style>
+</head>
+<body class="login-body">
+    <div class="login-box">
+        <img src="/img/admin/logo.png" alt="">
+        <h1>TDR<span>//</span>ADMIN</h1>
+        {% if blocked %}
+            <p class="login-sub">conta bloqueada</p>
+            <p>A conta <b>{{ account.name|default('') }}</b> está bloqueada. Fale com o suporte para reativá-la.</p>
+        {% else %}
+            <p class="login-sub">aguardando aprovação</p>
+            <p>Recebemos o cadastro de <b>{{ account.name }}</b>. Assim que o administrador aprovar, o painel fica disponível neste mesmo acesso (usuário <b>{{ username }}</b>).</p>
+        {% endif %}
+        <a class="btn" href="/admin/logout">Sair</a>
+    </div>
+</body>
+</html>

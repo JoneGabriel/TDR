@@ -5,6 +5,7 @@ const {
     Bundle
 } = require("../product/product.schema");
 const mongoose = require("mongoose");
+const { storeFilter } = require("../account/account.service");
 
 const {
     save,
@@ -220,10 +221,11 @@ const createCollections = async(collection)=>{
     }
 };
 
-const getAllCollections = async(admin = true, store)=>{
+// admin: coleções da conta em uso (`scope`); vitrine: só ativas da loja
+const getAllCollections = async(admin = true, store, scope = null)=>{
     try{
 
-        let query = {};
+        let query = admin ? await storeFilter(scope) : {};
 
         if(!admin){
             query['status'] = true;
@@ -401,10 +403,10 @@ const createProduct = async(product)=>{
     }
 };
 
-const getAllProducts = async()=>{
+const getAllProducts = async(scope = null)=>{
     try{
 
-        let products = await findAll(Product, {}, 
+        let products = await findAll(Product, await storeFilter(scope), 
             {name:1, price:1, collection_:1, status:1, images:{
             $slice:1
         }}

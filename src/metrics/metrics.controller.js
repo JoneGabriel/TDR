@@ -10,16 +10,18 @@ const {
 
 const router = require("express").Router();
 const { requireAdminApi } = require("../auth/auth.service");
+const { domainNamesOf } = require("../account/account.service");
 
 // leituras do painel exigem admin; /add-cart, /init-checkout e /heartbeat são enviados pela vitrine
 router.use(["/session", "/metrics"], requireAdminApi);
 const statusHandler = require("../helpers/helpers.statusHandler");
 
 
-router.get("/session", async({query}, res)=>{
+router.get("/session", async(req, res)=>{
     try{
 
-        const response = await getAllSessions(query.start, query.end, query.domain, true);
+        const {query} = req;
+        const response = await getAllSessions(query.start, query.end, query.domain, true, await domainNamesOf(req.scope));
 
         return res.status(response.status).send(response);
     }catch(error){  
@@ -28,10 +30,11 @@ router.get("/session", async({query}, res)=>{
     }
 });
 
-router.get("/session/interval", async({query}, res)=>{
+router.get("/session/interval", async(req, res)=>{
     try{
 
-        const response = await getSessionsInterval(query.start, query.end);
+        const {query} = req;
+        const response = await getSessionsInterval(query.start, query.end, query.domain, await domainNamesOf(req.scope));
 
         return res.status(response.status).send(response);
     }catch(error){  
@@ -68,10 +71,11 @@ router.post("/init-checkout", async(req, res)=>{
 });
 
 
-router.get("/metrics", async({query}, res)=>{
+router.get("/metrics", async(req, res)=>{
     try{
 
-        const response = await getMetrics(query.start, query.end, query.domain);
+        const {query} = req;
+        const response = await getMetrics(query.start, query.end, query.domain, await domainNamesOf(req.scope));
 
         return res.status(response.status).send(response);
     }catch(error){  
@@ -94,10 +98,11 @@ router.post("/heartbeat", async(req, res)=>{
 });
 
 // painel: resumo do período e usuários em tempo real
-router.get("/metrics/summary", async({query}, res)=>{
+router.get("/metrics/summary", async(req, res)=>{
     try{
 
-        const response = await getSummary(query.start, query.end, query.domain);
+        const {query} = req;
+        const response = await getSummary(query.start, query.end, query.domain, await domainNamesOf(req.scope));
 
         return res.status(response.status).send(response);
     }catch(error){  
@@ -106,10 +111,10 @@ router.get("/metrics/summary", async({query}, res)=>{
     }
 });
 
-router.get("/metrics/realtime", async({query}, res)=>{
+router.get("/metrics/realtime", async(req, res)=>{
     try{
 
-        const response = await getRealtime(query.domain);
+        const response = await getRealtime(req.query.domain, await domainNamesOf(req.scope));
 
         return res.status(response.status).send(response);
     }catch(error){  

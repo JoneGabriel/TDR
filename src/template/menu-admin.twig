@@ -33,10 +33,29 @@
         <li class="nav-item">
           <a class="nav-link {{integrations}}" href="/admin/integrations"><i class="bi bi-plug"></i>Integrações</a>
         </li>
+        {% if admin_user is defined and admin_user.superadmin %}
+        <li class="nav-item">
+          <a class="nav-link {{accounts}}" href="/admin/accounts"><i class="bi bi-people"></i>Contas</a>
+        </li>
+        {% endif %}
       </ul>
       <ul class="navbar-nav ms-auto nav-logout">
+        {% if admin_user is defined and admin_user.impersonating %}
+        <li class="nav-item nav-account nav-account-impersonating" title="Superadmin vendo os dados desta conta">
+          <span class="nav-link"><i class="bi bi-eye"></i>{{ admin_user.impersonating.name }}</span>
+          <a class="nav-account-leave" href="/admin/leave-account">sair da conta</a>
+        </li>
+        {% elseif admin_user is defined and admin_user.superadmin %}
+        <li class="nav-item nav-account" title="Superadmin: vendo todas as contas">
+          <span class="nav-link"><i class="bi bi-globe2"></i>Todas</span>
+        </li>
+        {% elseif admin_user is defined and admin_user.account %}
+        <li class="nav-item nav-account">
+          <span class="nav-link"><i class="bi bi-building"></i>{{ admin_user.account.name }}</span>
+        </li>
+        {% endif %}
         <li class="nav-item">
-          <a class="nav-link" href="/admin/logout"><i class="bi bi-box-arrow-right"></i>Sair</a>
+          <a class="nav-link" href="/admin/logout" {% if admin_user is defined %}title="{{ admin_user.username }}"{% endif %}><i class="bi bi-box-arrow-right"></i>Sair</a>
         </li>
       </ul>
     </div>

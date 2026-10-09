@@ -9,15 +9,18 @@ const {
 
 const router = require("express").Router();
 const { requireAdminApi } = require("../auth/auth.service");
+const { assertStore, assertDomain } = require("../account/account.service");
 
-// todas as rotas de domínio são do painel admin
+// todas as rotas de domínio são do painel admin e respeitam a conta em uso (req.scope)
 router.use("/domain", requireAdminApi);
 const statusHandler = require("../helpers/helpers.statusHandler");
 
-router.post("/domain", async({body}, res)=>{
+router.post("/domain", async(req, res)=>{
     try{
 
-        const response = await createDomain(body);
+        await assertStore(req.scope, req.body.store);
+
+        const response = await createDomain(req.body);
 
         return res.status(response.status).send(response);
     }catch(error){  
@@ -26,10 +29,13 @@ router.post("/domain", async({body}, res)=>{
     }
 });
 
-router.put("/domain/:id", async({body, params}, res)=>{
+router.put("/domain/:id", async(req, res)=>{
     try{
 
-        const response = await changeDomain(params, body);
+        await assertDomain(req.scope, req.params.id);
+        req.body.store && await assertStore(req.scope, req.body.store);
+
+        const response = await changeDomain(req.params, req.body);
 
         return res.status(response.status).send(response);
     }catch(error){  
@@ -38,10 +44,10 @@ router.put("/domain/:id", async({body, params}, res)=>{
     }
 });
 
-router.get("/domain", async({query}, res)=>{
+router.get("/domain", async(req, res)=>{
     try{
 
-        const response = await getAllDomains(query);
+        const response = await getAllDomains(req.query, req.scope);
 
         return res.status(response.status).send(response);
     }catch(error){  
@@ -50,10 +56,12 @@ router.get("/domain", async({query}, res)=>{
     }
 });
 
-router.get("/domain/:id", async({params}, res)=>{
+router.get("/domain/:id", async(req, res)=>{
     try{
 
-        const response = await getDomainById(params);
+        await assertDomain(req.scope, req.params.id);
+
+        const response = await getDomainById(req.params);
 
         return res.status(response.status).send(response);
     }catch(error){  
@@ -63,10 +71,12 @@ router.get("/domain/:id", async({params}, res)=>{
 });
 
 
-router.put("/domain/status/:id", async({body, params}, res)=>{
+router.put("/domain/status/:id", async(req, res)=>{
     try{
 
-        const response = await changeStatusDomain(params, body);
+        await assertDomain(req.scope, req.params.id);
+
+        const response = await changeStatusDomain(req.params, req.body);
 
         return res.status(response.status).send(response);
     }catch(error){  
@@ -75,10 +85,12 @@ router.put("/domain/status/:id", async({body, params}, res)=>{
     }
 });
 
-router.delete("/domain/:id", async({params}, res)=>{
+router.delete("/domain/:id", async(req, res)=>{
     try{
 
-        const response = await removeDomain(params);
+        await assertDomain(req.scope, req.params.id);
+
+        const response = await removeDomain(req.params);
 
         return res.status(response.status).send(response);
     }catch(error){  

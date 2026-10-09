@@ -143,7 +143,7 @@ const getCountry = async(ip)=>{
 
 // Registra a visita e decide o filtro do cloaker. Devolve true = visitante liberado (layout first).
 // Chamada: saveSession(req, res, config.country). `res` é usado para gravar o cookie do visitante.
-const saveSession = async(req, res, country = [])=>{
+const saveSession = async(req, res, country = [], account = null)=>{
     try{
 
         // compatibilidade com a assinatura antiga saveSession(req, country)
@@ -153,12 +153,12 @@ const saveSession = async(req, res, country = [])=>{
         }
 
         const ip = req.ip || req.connection?.remoteAddress;
-        const whiteList = await findAll(WhiteList, {
-            $or: [
-                { ip: req.ip },
-                { ip: req.connection?.remoteAddress }
-            ]
-        });
+        // lista branca da conta dona da loja (loja antiga sem conta: qualquer lista)
+        let whiteQuery = {$or:[{ip:req.ip}, {ip:req.connection?.remoteAddress}]};
+
+        account && (whiteQuery.account = account);
+
+        const whiteList = await findAll(WhiteList, whiteQuery);
 
         // IPs da white list (equipe) passam direto e não entram nas métricas
         if(whiteList.length){

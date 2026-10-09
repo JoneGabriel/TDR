@@ -27,7 +27,25 @@ const {
 } = require("./metrics.schema");
 
 
-const getSessionsInterval = async(start , end, domain)=>{
+// Filtro por domínio respeitando a conta em uso: `allowed` = domínios da conta (null = todas as contas).
+// Domínio pedido fora da conta responde 404; sem domínio pedido, limita aos da conta.
+const domainMatch = (domain, allowed = null)=>{
+    if(!allowed){
+        return isEmpty(domain) ? {} : {domain};
+    }
+
+    if(!isEmpty(domain)){
+        if(!allowed.includes(domain)){
+            throw(statusHandler.newResponse(404, "Domínio não encontrado"));
+        }
+
+        return {domain};
+    }
+
+    return {domain:{$in:allowed}};
+};
+
+const getSessionsInterval = async(start , end, domain, allowed = null)=>{
     try{
         
         start = new Date(start);
@@ -75,9 +93,7 @@ const getSessionsInterval = async(start , end, domain)=>{
                 }
             ];
 
-            if(!isEmpty(domain)){
-                query[0]['$match']['domain'] = domain;
-            }
+            Object.assign(query[0]['$match'], domainMatch(domain, allowed));
 
             const sessions = await aggregate(Trail, query);
            
@@ -91,7 +107,7 @@ const getSessionsInterval = async(start , end, domain)=>{
     }
 };
 
-const getAllSessions = async(start , end, domain, api = false)=>{
+const getAllSessions = async(start , end, domain, api = false, allowed = null)=>{
     try{
         
         if(isEmpty(start) && isEmpty(end)){
@@ -143,16 +159,14 @@ const getAllSessions = async(start , end, domain, api = false)=>{
             }
         ];
        
-        if(!isEmpty(domain)){
-            query[0]['$match']['domain'] = domain;
-        }
+        Object.assign(query[0]['$match'], domainMatch(domain, allowed));
         
         const sessions = await aggregate(Trail, query);
         
 
         if(api){
             
-            const {content} = await getSessionsInterval(start, end, domain);
+            const {content} = await getSessionsInterval(start, end, domain, allowed);
 
             let response = {
                 total:(sessions[0]?.total_ips_unicos || 0),
@@ -249,20 +263,17 @@ const dayEnd = (ymd)=> new Date(`${ymd}T23:59:59.999Z`);
 const todayYmd = ()=> nowBrazil().toISOString().slice(0, 10);
 const pct = (part, total)=> total ? Math.round(part / total * 1000) / 10 : 0;
 
-const buildMatch = (start, end, domain)=>{
-    let match = {
+const buildMatch = (start, end, domain, allowed = null)=>{
+    return {
         createdAt:{$gte:dayStart(start), $lte:dayEnd(end)},
-        is_bot:{$ne:true}
+        is_bot:{$ne:true},
+        ...domainMatch(domain, allowed)
     };
-
-    !isEmpty(domain) && (match.domain = domain);
-
-    return match;
 };
 
 // Resumo do período para o painel: totais, funil, série temporal, páginas, países e dispositivos.
 // Bots ficam fora de tudo (contados à parte); sessões antigas sem os campos novos contam como 1 pageview.
-const getSummary = async(start, end, domain)=>{
+const getSummary = async(start, end, domain, allowed = null)=>{
     try{
 
         start = /^\d{4}-\d{2}-\d{2}$/.test(start || "") ? start : todayYmd();
@@ -270,7 +281,7 @@ const getSummary = async(start, end, domain)=>{
         start > end && ([start, end] = [end, start]);
 
         const byHour = start == end;
-        const match = buildMatch(start, end, domain);
+        const match = buildMatch(start, end, domain, allowed);
         const flag = (field)=> ({$sum:{$cond:[{$eq:[`$${field}`, true]}, 1, 0]}});
         const views = {$ifNull:["$pageviews", 1]};
 
@@ -372,15 +383,14 @@ const getSummary = async(start, end, domain)=>{
 // Usuários em tempo real: sessões com atividade nos últimos 5 minutos (heartbeat ou navegação), sem bots
 const REALTIME_WINDOW_MS = 5 * 60 * 1000;
 
-const getRealtime = async(domain)=>{
+const getRealtime = async(domain, allowed = null)=>{
     try{
 
         let match = {
             lastSeenAt:{$gte:new Date(nowBrazil().getTime() - REALTIME_WINDOW_MS)},
-            is_bot:{$ne:true}
+            is_bot:{$ne:true},
+            ...domainMatch(domain, allowed)
         };
-
-        !isEmpty(domain) && (match.domain = domain);
 
         const pipeline = [
             {$match:match},
@@ -426,7 +436,7 @@ const getRealtime = async(domain)=>{
     }
 };
 
-const getMetrics = async(start , end, domain)=>{
+const getMetrics = async(start , end, domain, allowed = null)=>{
     try{
 
         start = new Date(start);
@@ -439,7 +449,7 @@ const getMetrics = async(start , end, domain)=>{
             {
                 $match: {
                     createdAt: { $gte: start, $lte:end },
-                    domain
+                    ...domainMatch(domain, allowed)
                 }
             },
         ];

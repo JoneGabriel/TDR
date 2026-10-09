@@ -9,8 +9,15 @@ const Twig = require('twig');
 const mongoose = require('mongoose');
 
 
-const createStore = async(store)=>{
+const createStore = async(store, scope = null)=>{
     try{
+
+        // dona da loja: a conta em uso; superadmin fora de uma conta precisa informar `account`
+        if(scope){
+            store.account = scope;
+        }else if(!store.account){
+            throw(statusHandler.newResponse(400, "Entre em uma conta (Contas > entrar como) para criar a loja"));
+        }
 
         // cada loja nasce com os dois layouts materializados a partir dos padrões (campos visuais vazios ficam de fora)
         store.layouts = {
@@ -27,10 +34,10 @@ const createStore = async(store)=>{
     }
 };
 
-const getAllStores = async()=>{
+const getAllStores = async(scope = null)=>{
     try{
 
-        const stores = await findAll(Store);
+        const stores = await findAll(Store, scope ? {account:scope} : {});
 
         return statusHandler.newResponse(200, stores);
 

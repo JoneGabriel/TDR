@@ -847,6 +847,12 @@ const defaultLayout = {
 };
 
 const Store = mongoose.model("store", {
+    // conta dona da loja: tudo o que aponta para a loja (domínios, produtos, coleções, Shopifys) herda o dono por ela
+    account:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'account',
+        index:true
+    },
     name:{
         required:true,
         type:String

@@ -25,10 +25,12 @@ const createShopify = async(shopify)=>{
     }
 };
 
-const getAllShopify = async()=>{
+const { storeFilter } = require("../account/account.service");
+
+const getAllShopify = async(scope = null)=>{
     try{
         
-        const Shopifys = await findAll(Shopify);
+        const Shopifys = await findAll(Shopify, await storeFilter(scope));
 
         return statusHandler.newResponse(200, Shopifys);
     }catch(error){

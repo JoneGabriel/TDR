@@ -17,10 +17,13 @@ const {
     isEmpty
 } = require("../helpers/helpers.global");
 
-const getAllDomains = async(status)=>{
+const { storeFilter } = require("../account/account.service");
+
+// `status` truthy = só ativos; `scope` = conta em uso (filtra pelas lojas dela)
+const getAllDomains = async(status, scope = null)=>{
     try{
         
-        let query = {};
+        let query = await storeFilter(scope);
 
         if(!isEmpty(status)){
             query['status'] = true;

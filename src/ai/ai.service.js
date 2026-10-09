@@ -33,19 +33,20 @@ const JOB_TTL_MS = 30 * 60 * 1000;
 const sleep = (ms)=> new Promise(resolve=> setTimeout(resolve, ms));
 
 // ---------------------------------------------------------------- configurações
-const getSettings = async()=>{
-    const doc = await findOne(Setting, {key:KEY});
+// `owner` = conta do TDR em uso (req.scope): cada conta tem sua própria conexão Higgsfield e seus padrões
+const getSettings = async(owner)=>{
+    const doc = await findOne(Setting, {key:KEY, account:owner || null});
 
     return {...DEFAULTS, ...(doc?.value || {})};
 };
 
-const saveSettings = async(patch)=>{
-    const doc = await findOne(Setting, {key:KEY});
+const saveSettings = async(patch, owner)=>{
+    const doc = await findOne(Setting, {key:KEY, account:owner || null});
     const value = {...(doc?.value || {}), ...patch};
 
     doc
         ? await updateById(Setting, doc._id, {value, updatedAt:new Date()})
-        : await save(Setting, {key:KEY, value, updatedAt:new Date()});
+        : await save(Setting, {key:KEY, account:owner || null, value, updatedAt:new Date()});
 
     return value;
 };
@@ -61,8 +62,8 @@ const decodeIdToken = (idToken)=>{
 };
 
 // Estado público (sem segredos) para a tela de integrações
-const getStatus = async()=>{
-    const settings = await getSettings();
+const getStatus = async(owner)=>{
+    const settings = await getSettings(owner);
     const tokens = settings.tokens;
     const expiresAt = tokens?.obtained_at && tokens?.expires_in ? new Date(tokens.obtained_at + tokens.expires_in * 1000) : null;
 
@@ -84,7 +85,7 @@ const getStatus = async()=>{
     };
 };
 
-const updateDefaults = async({model, aspect_ratio, quality, use_unlim} = {})=>{
+const updateDefaults = async({model, aspect_ratio, quality, use_unlim} = {}, owner = null)=>{
     try{
 
         if(model && !IMAGE_MODELS.some(item=> item.id == model)){
@@ -106,9 +107,9 @@ const updateDefaults = async({model, aspect_ratio, quality, use_unlim} = {})=>{
         quality && (patch.quality = quality);
         use_unlim !== undefined && (patch.use_unlim = !!use_unlim);
 
-        await saveSettings(patch);
+        await saveSettings(patch, owner);
 
-        return statusHandler.newResponse(200, await getStatus());
+        return statusHandler.newResponse(200, await getStatus(owner));
 
     }catch(error){
         throw(statusHandler.serviceError(error));
@@ -118,7 +119,7 @@ const updateDefaults = async({model, aspect_ratio, quality, use_unlim} = {})=>{
 // ---------------------------------------------------------------- OAuth (provedor para o SDK)
 // Cliente, tokens, verifier e state ficam em Setting(higgsfield). `origin` é o endereço do admin,
 // usado como redirect_uri; se mudar, o cliente é registrado de novo.
-const createProvider = (origin)=>{
+const createProvider = (origin, owner)=>{
     const redirectUrl = origin ? `${origin}/ai/oauth/callback` : undefined;
     let authorizeUrl = null;
 
@@ -139,12 +140,12 @@ const createProvider = (origin)=>{
         async state(){
             const state = crypto.randomBytes(16).toString("hex");
 
-            await saveSettings({pending_state:state});
+            await saveSettings({pending_state:state}, owner);
 
             return state;
         },
         async clientInformation(){
-            const {client} = await getSettings();
+            const {client} = await getSettings(owner);
 
             if(!client?.info){
                 return undefined;
@@ -158,10 +159,10 @@ const createProvider = (origin)=>{
             return client.info;
         },
         async saveClientInformation(info){
-            await saveSettings({client:{info, redirect_uri:redirectUrl}});
+            await saveSettings({client:{info, redirect_uri:redirectUrl}}, owner);
         },
         async tokens(){
-            const {tokens} = await getSettings();
+            const {tokens} = await getSettings(owner);
 
             return tokens?.access_token ? tokens : undefined;
         },
@@ -171,16 +172,16 @@ const createProvider = (origin)=>{
 
             account && (patch.account = account);
 
-            await saveSettings(patch);
+            await saveSettings(patch, owner);
         },
         redirectToAuthorization(url){
             authorizeUrl = url.toString();
         },
         async saveCodeVerifier(verifier){
-            await saveSettings({code_verifier:verifier});
+            await saveSettings({code_verifier:verifier}, owner);
         },
         async codeVerifier(){
-            const {code_verifier} = await getSettings();
+            const {code_verifier} = await getSettings(owner);
 
             if(!code_verifier){
                 throw new Error("Fluxo OAuth não iniciado (code_verifier ausente)");
@@ -195,7 +196,7 @@ const createProvider = (origin)=>{
             (scope == "all" || scope == "client") && (patch.client = null);
             (scope == "all" || scope == "verifier") && (patch.code_verifier = null);
 
-            Object.keys(patch).length && await saveSettings(patch);
+            Object.keys(patch).length && await saveSettings(patch, owner);
         },
         get authorizeUrl(){
             return authorizeUrl;
@@ -204,18 +205,18 @@ const createProvider = (origin)=>{
 };
 
 // Passo 1: descoberta, registro do cliente e URL de autorização para o admin abrir no navegador
-const startConnect = async(origin)=>{
+const startConnect = async(origin, owner)=>{
     try{
 
         if(!origin){
             throw(statusHandler.newResponse(400, "Origem do admin desconhecida"));
         }
 
-        await resetClient();
-        await saveSettings({tokens:null, account:null});
+        await resetClient(owner);
+        await saveSettings({tokens:null, account:null}, owner);
 
-        const settings = await getSettings();
-        const provider = createProvider(origin);
+        const settings = await getSettings(owner);
+        const provider = createProvider(origin, owner);
         const result = await auth(provider, {serverUrl:settings.url, scope:SCOPE});
 
         if(result == "AUTHORIZED"){
@@ -234,10 +235,10 @@ const startConnect = async(origin)=>{
 };
 
 // Passo 2 (callback): valida o state e troca o code pelos tokens
-const finishConnect = async(origin, code, state)=>{
+const finishConnect = async(origin, code, state, owner)=>{
     try{
 
-        const settings = await getSettings();
+        const settings = await getSettings(owner);
 
         if(!code){
             throw(statusHandler.newResponse(400, "Autorização sem código"));
@@ -247,30 +248,30 @@ const finishConnect = async(origin, code, state)=>{
             throw(statusHandler.newResponse(400, "State inválido; inicie a conexão de novo"));
         }
 
-        const provider = createProvider(origin);
+        const provider = createProvider(origin, owner);
         const result = await auth(provider, {serverUrl:settings.url, authorizationCode:code, scope:SCOPE});
 
         if(result != "AUTHORIZED"){
             throw(statusHandler.newResponse(502, "A Higgsfield não concluiu a autorização"));
         }
 
-        await saveSettings({pending_state:null, code_verifier:null});
-        await resetClient();
+        await saveSettings({pending_state:null, code_verifier:null}, owner);
+        await resetClient(owner);
 
-        return statusHandler.newResponse(200, await getStatus());
+        return statusHandler.newResponse(200, await getStatus(owner));
 
     }catch(error){
         throw(statusHandler.serviceError(error.status ? error : statusHandler.newResponse(502, `Higgsfield: ${error.message || error}`)));
     }
 };
 
-const disconnect = async()=>{
+const disconnect = async(owner)=>{
     try{
 
-        await resetClient();
-        await saveSettings({tokens:null, account:null, pending_state:null, code_verifier:null, connected_at:null});
+        await resetClient(owner);
+        await saveSettings({tokens:null, account:null, pending_state:null, code_verifier:null, connected_at:null}, owner);
 
-        return statusHandler.newResponse(200, await getStatus());
+        return statusHandler.newResponse(200, await getStatus(owner));
 
     }catch(error){
         throw(statusHandler.serviceError(error));
@@ -278,32 +279,37 @@ const disconnect = async()=>{
 };
 
 // ---------------------------------------------------------------- cliente MCP
-let cached = null;   // {client, transport, url}
+const cachedClients = new Map();   // conta -> {client, transport, url}
+const cacheKey = (owner)=> String(owner || "");
 
-const resetClient = async()=>{
+const resetClient = async(owner)=>{
+    const cached = cachedClients.get(cacheKey(owner));
+
     try{
         await cached?.client?.close();
     }catch(error){}
 
-    cached = null;
+    cachedClients.delete(cacheKey(owner));
 };
 
 // 409 (não 401) para o JS do admin não confundir com sessão do painel expirada
 const notConnected = (message = "Higgsfield não conectada. Conecte em Admin > Integrações.")=> statusHandler.newResponse(409, message);
 
-const getClient = async()=>{
-    const settings = await getSettings();
+const getClient = async(owner)=>{
+    const settings = await getSettings(owner);
 
     if(!settings.tokens?.access_token){
         throw(notConnected());
     }
+
+    const cached = cachedClients.get(cacheKey(owner));
 
     if(cached && cached.url == settings.url){
         return cached.client;
     }
 
     const origin = settings.client?.redirect_uri ? settings.client.redirect_uri.replace(/\/ai\/oauth\/callback$/, "") : null;
-    const transport = new StreamableHTTPClientTransport(new URL(settings.url), {authProvider:createProvider(origin)});
+    const transport = new StreamableHTTPClientTransport(new URL(settings.url), {authProvider:createProvider(origin, owner)});
     const client = new Client({name:"tdr-admin", version:"1.0.0"});
 
     try{
@@ -316,7 +322,7 @@ const getClient = async()=>{
         throw(statusHandler.newResponse(502, `Higgsfield MCP: ${error.message || error}`));
     }
 
-    cached = {client, transport, url:settings.url};
+    cachedClients.set(cacheKey(owner), {client, transport, url:settings.url});
 
     return client;
 };
@@ -339,9 +345,9 @@ const parseResult = (result)=>{
 };
 
 // Chama uma ferramenta do MCP. `retry` só para leituras (uma geração nunca é reenviada automaticamente).
-const callTool = async(name, args = {}, retry = false)=>{
+const callTool = async(name, args = {}, retry = false, owner = null)=>{
     const run = async()=>{
-        const client = await getClient();
+        const client = await getClient(owner);
 
         return await client.callTool({name, arguments:args});
     };
@@ -352,11 +358,11 @@ const callTool = async(name, args = {}, retry = false)=>{
         result = await run();
     }catch(error){
         if(error.status || !retry){
-            await resetClient();
+            await resetClient(owner);
             throw(error.status ? error : statusHandler.newResponse(502, `Higgsfield MCP: ${error.message || error}`));
         }
 
-        await resetClient();
+        await resetClient(owner);
         result = await run();
     }
 
@@ -370,16 +376,16 @@ const callTool = async(name, args = {}, retry = false)=>{
 // injetável para testes (a geração usa deps.callTool)
 const deps = {callTool};
 
-const testConnection = async()=>{
+const testConnection = async(owner)=>{
     try{
 
-        const client = await getClient();
+        const client = await getClient(owner);
         const tools = await client.listTools();
         const names = (tools.tools || []).map(tool=> tool.name);
         let balance = null;
 
         if(names.includes("balance")){
-            balance = await deps.callTool("balance", {}, true);
+            balance = await deps.callTool("balance", {}, true, owner);
         }
 
         return statusHandler.newResponse(200, {tools:names.length, has_generate:names.includes("generate_image_batch"), has_wait:names.includes("jobs_wait"), balance});
@@ -401,12 +407,12 @@ const cleanupJobs = ()=>{
 };
 
 const publicJob = (job)=>{
-    const {image, ...rest} = job;
+    const {image, owner, ...rest} = job;
 
     return rest;
 };
 
-const generateImage = async({prompt, model, aspect_ratio, quality} = {})=>{
+const generateImage = async({prompt, model, aspect_ratio, quality} = {}, owner = null)=>{
     try{
 
         prompt = String(prompt || "").trim();
@@ -415,7 +421,7 @@ const generateImage = async({prompt, model, aspect_ratio, quality} = {})=>{
             throw(statusHandler.newResponse(400, "Descreva a imagem"));
         }
 
-        const settings = await getSettings();
+        const settings = await getSettings(owner);
 
         if(!settings.tokens?.access_token){
             throw(notConnected());
@@ -433,13 +439,13 @@ const generateImage = async({prompt, model, aspect_ratio, quality} = {})=>{
         cleanupJobs();
 
         const id = crypto.randomUUID();
-        let job = {id, status:"running", created:Date.now(), prompt, model, aspect_ratio};
+        let job = {id, status:"running", created:Date.now(), prompt, model, aspect_ratio, owner:cacheKey(owner)};
 
         jobs.set(id, job);
 
         (async()=>{
             try{
-                const submit = await deps.callTool("generate_image_batch", {requests:[{index:0, params}]});
+                const submit = await deps.callTool("generate_image_batch", {requests:[{index:0, params}]}, false, owner);
                 const first = submit?.jobs?.[0];
 
                 if(!first?.job_id){
@@ -451,7 +457,7 @@ const generateImage = async({prompt, model, aspect_ratio, quality} = {})=>{
                 const deadline = Date.now() + JOB_TIMEOUT_MS;
 
                 while(Date.now() < deadline){
-                    const wait = await deps.callTool("jobs_wait", {jobs:[{index:0, job_id:first.job_id}], timeout_seconds:15}, true);
+                    const wait = await deps.callTool("jobs_wait", {jobs:[{index:0, job_id:first.job_id}], timeout_seconds:15}, true, owner);
                     const state = wait?.jobs?.[0];
 
                     if(state?.status == "completed" && state.result_url){
@@ -495,20 +501,20 @@ const generateImage = async({prompt, model, aspect_ratio, quality} = {})=>{
     }
 };
 
-const getJob = (id)=>{
+const getJob = (id, owner = null)=>{
     const job = jobs.get(id);
 
-    if(!job){
+    if(!job || job.owner != cacheKey(owner)){
         throw(statusHandler.newResponse(404, "Geração não encontrada"));
     }
 
     return statusHandler.newResponse(200, publicJob(job));
 };
 
-const getJobImage = (id)=>{
+const getJobImage = (id, owner = null)=>{
     const job = jobs.get(id);
 
-    if(!job){
+    if(!job || job.owner != cacheKey(owner)){
         throw(statusHandler.newResponse(404, "Geração não encontrada"));
     }
 

@@ -51,7 +51,7 @@ const {
     policy_files
 } = require("../store/store.service");
 const Twig = require('twig');
-const { requireAdminPage, notOnAdminHost } = require("../auth/auth.service");
+const { requireAdminPage, requireSuperadminPage, notOnAdminHost } = require("../auth/auth.service");
 const { timeZoneOf } = require("../helpers/helpers.countries");
 
 // Página de erro da vitrine, usada no catch das rotas da loja.
@@ -77,7 +77,7 @@ const renderError = (res, error, config)=>{
 router.get("/admin/products", requireAdminPage, async(req, res)=>{
     try{
 
-        const products_ = await getAllProducts();
+        const products_ = await getAllProducts(req.scope);
 
         return res.render(index, {
             products_:products_.content,
@@ -106,7 +106,7 @@ router.get("/admin/home", requireAdminPage, async(req, res)=>{
         date = now.getDate();
         now = `${now.getFullYear()}-${(month+"").length == 1 ? `0${month}` : month}-${(date+"").length == 1 ? `0${date}` : date}`
         
-        let domains = await getAllDomains(true);
+        let domains = await getAllDomains(true, req.scope);
         domains = domains.content;
        
         return res.render(index, {
@@ -129,7 +129,7 @@ router.get("/admin/home", requireAdminPage, async(req, res)=>{
 router.get("/admin/collections", requireAdminPage, async(req, res)=>{
     try{
 
-        const all_collections =  await getAllCollections(true);
+        const all_collections =  await getAllCollections(true, undefined, req.scope);
 
         return res.render(index, {
             template:'{% include "' + relativePath + '/components/admin/collections.twig" %}',
@@ -149,7 +149,7 @@ router.get("/admin/collections", requireAdminPage, async(req, res)=>{
 router.get("/admin/shopify", requireAdminPage, async(req, res)=>{
     try{
 
-        const shopifys = await getAllShopify()
+        const shopifys = await getAllShopify(req.scope)
 
         return res.render(index, {
             template:'{% include "' + relativePath + '/components/admin/shopify.twig" %}',
@@ -168,7 +168,7 @@ router.get("/admin/shopify", requireAdminPage, async(req, res)=>{
 router.get("/admin/stores", requireAdminPage, async(req, res)=>{
     try{
 
-        const stores = await getAllStores()
+        const stores = await getAllStores(req.scope)
 
         return res.render(index, {
             template:'{% include "' + relativePath + '/components/admin/store.twig" %}',
@@ -194,7 +194,7 @@ router.get("/admin/stores", requireAdminPage, async(req, res)=>{
 router.get("/admin/cloacker", requireAdminPage, async(req, res)=>{
     try{
 
-        const ips = await getAllIps();
+        const ips = await getAllIps(req.scope);
 
         return res.render(index, {
             template:'{% include "' + relativePath + '/components/admin/cloacker.twig" %}',
@@ -213,7 +213,7 @@ router.get("/admin/cloacker", requireAdminPage, async(req, res)=>{
 router.get("/admin/domain", requireAdminPage, async(req, res)=>{
     try{
 
-        const domains = await getAllDomains();
+        const domains = await getAllDomains(undefined, req.scope);
 
         return res.render(index, {
             template:'{% include "' + relativePath + '/components/admin/domain.twig" %}',
@@ -227,6 +227,22 @@ router.get("/admin/domain", requireAdminPage, async(req, res)=>{
       
         
     }   
+});
+
+// contas (multiusuário): só superadmin
+router.get("/admin/accounts", requireAdminPage, requireSuperadminPage, async(req, res)=>{
+    try{
+
+        return res.render(index, {
+            template:'{% include "' + relativePath + '/components/admin/accounts.twig" %}',
+            script:"accounts-admin.js",
+            admin:true,
+            accounts:'active'
+        });
+
+    }catch(error){
+        console.log(error);
+    }
 });
 
 router.get("/admin/integrations", requireAdminPage, async(req, res)=>{
@@ -253,7 +269,7 @@ router.get("/", notOnAdminHost, async(req, res)=>{
 
     
         config = await getConfigStore(req.get('host'), 'domain');
-        const isSecure = await saveSession(req, res, config.country);
+        const isSecure = await saveSession(req, res, config.country, config.account);
 
         // visitante filtrado pelo cloaker vê o layout "second"; liberado vê "first" (ou ?layout= para pré-visualizar)
         useLayout(config, isSecure ? req.query.layout : "second");
@@ -315,7 +331,7 @@ router.get("/collections/:id", notOnAdminHost, async(req, res)=>{
         config = await getConfigStore(req.params.id, 'collection');
        
 
-        const isSecure = await saveSession(req, res, config.country);
+        const isSecure = await saveSession(req, res, config.country, config.account);
         
         // visitante filtrado pelo cloaker vê o layout "second"; liberado vê "first" (ou ?layout= para pré-visualizar)
         useLayout(config, isSecure ? req.query.layout : "second");
@@ -373,7 +389,7 @@ router.get("/products/:id", notOnAdminHost, async(req, res)=>{
 
         config = await getConfigStore(req.params.id, 'product');
 
-        const isSecure = await saveSession(req, res, config.country);
+        const isSecure = await saveSession(req, res, config.country, config.account);
 
         // visitante filtrado pelo cloaker vê o layout "second"; liberado vê "first" (ou ?layout= para pré-visualizar)
         useLayout(config, isSecure ? req.query.layout : "second");
@@ -540,7 +556,7 @@ router.get("/privacy-policy", notOnAdminHost, async(req, res)=>{
         
         config = await getConfigStore(req.get('host'), 'domain');
         const countrCode = config.country[0];
-        const isSecure = await saveSession(req, res, config.country);
+        const isSecure = await saveSession(req, res, config.country, config.account);
 
         // visitante filtrado pelo cloaker vê o layout "second"; liberado vê "first" (ou ?layout= para pré-visualizar)
         useLayout(config, isSecure ? req.query.layout : "second");
@@ -594,7 +610,7 @@ router.get("/shipping-policy", notOnAdminHost, async(req, res)=>{
     
         config = await getConfigStore(req.get('host'), 'domain');
         const countrCode = config.country[0];
-        const isSecure = await saveSession(req, res, config.country);
+        const isSecure = await saveSession(req, res, config.country, config.account);
 
         // visitante filtrado pelo cloaker vê o layout "second"; liberado vê "first" (ou ?layout= para pré-visualizar)
         useLayout(config, isSecure ? req.query.layout : "second");
@@ -648,7 +664,7 @@ router.get("/return-refund", notOnAdminHost, async(req, res)=>{
     
         config = await getConfigStore(req.get('host'), 'domain');
         const countrCode = config.country[0];
-        const isSecure = await saveSession(req, res, config.country);
+        const isSecure = await saveSession(req, res, config.country, config.account);
 
         // visitante filtrado pelo cloaker vê o layout "second"; liberado vê "first" (ou ?layout= para pré-visualizar)
         useLayout(config, isSecure ? req.query.layout : "second");
@@ -702,7 +718,7 @@ router.get("/terms-of-service", notOnAdminHost, async(req, res)=>{
     
         config = await getConfigStore(req.get('host'), 'domain');
         const countrCode = config.country[0];
-        const isSecure = await saveSession(req, res, config.country);
+        const isSecure = await saveSession(req, res, config.country, config.account);
 
         // visitante filtrado pelo cloaker vê o layout "second"; liberado vê "first" (ou ?layout= para pré-visualizar)
         useLayout(config, isSecure ? req.query.layout : "second");

@@ -57,9 +57,14 @@ docker compose ps                         # app, mongo e nginx "running"; certs-
 curl -s http://127.0.0.1/health           # {"status":200,"content":"ok"}
 docker compose logs app | head -3         # mostra "clonando ... com token"
 
-# primeiro usuário do admin
+# migração para multiusuário (idempotente): cria a "Conta principal" e liga a ela o que já existe no banco
+docker compose exec app npm run migrate-accounts
+
+# primeiro usuário do admin: superadmin (vê todas as contas, aprova cadastros em /admin/accounts)
 docker compose exec app npm run create-admin -- admin 'SenhaForte123'
 ```
+
+Novos clientes se cadastram em `https://admin.suaempresa.com/admin/register`; a conta fica pendente até você aprovar em Contas. Para operar as lojas de uma conta (criar loja, configurar integrações), entre nela pelo botão "Entrar" da lista e saia pelo menu.
 
 Regras do `.env`: formato `KEY=valor`, sem espaços em volta do `=`. A chave `GIT_TOKEN` precisa existir (vazia, se o repositório for público). Dentro do compose o app monta a URL do banco a partir de `MONGO_USER`/`MONGO_PASSWORD` (com escape de caracteres especiais), então não é preciso definir `URL_DB` no `.env` (se definir, ele é ignorado). A senha do Mongo é gravada no volume no primeiro `up`; trocar `MONGO_PASSWORD` depois exige recriar o volume (`docker compose down -v`, apaga o banco) ou mudar a senha dentro do Mongo com `db.changeUserPassword`.
 
@@ -157,6 +162,7 @@ docker compose exec -T mongo mongosh -u "$MONGO_USER" -p "$MONGO_PASSWORD" --aut
 ```
 
 - **`MongoParseError: Password contains unescaped characters`** (versões antes de out/2026): a URL era montada pelo compose sem escape. Atualize o código (`./scripts/deploy.sh`), que agora monta a URL no app com escape; ou use uma senha só com letras e números.
+- **Usuários antigos caem no login depois do deploy multiusuário**: esperado uma vez (o token antigo não tem papel). Rode `npm run migrate-accounts` para os usuários existentes virarem superadmin; sem a migração, usuários sem conta não entram.
 - **502 Bad Gateway**: o app está reiniciando ou sem saúde. Veja `docker compose logs app`. Causa comum: `JWT_SECRET` ausente ou `URL_DB` inválido.
 - **Build falha no `git clone`** (`Authentication failed` ou `Repository not found`): `GIT_TOKEN` inválido, expirado ou sem acesso ao repositório; `GIT_BRANCH` inexistente. O log do build mostra `clonando ... sem token` quando a variável está vazia.
 - **Certificado não emite**: veja `/var/log/tdr-domains.log`. "aguardando DNS" = o registro A ainda não aponta para a VPS; erro do certbot = porta 80 fechada no firewall ou no provedor, ou Cloudflare com proxy. Teste com `curl http://loja.com/.well-known/acme-challenge/teste` (deve responder 404 do nginx, não erro de conexão). Após uma falha o `sync` espera 1 hora para aquele domínio; apague `nginx/sites/.sync-state/<dominio>.failed` para tentar antes.

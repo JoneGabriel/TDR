@@ -6,7 +6,8 @@
   "scripts": {
     "start": "nodemon -e .js,.twig app.js",
     "create-admin": "node scripts/create-admin.js",
-    "serve": "node app.js"
+    "serve": "node app.js",
+    "migrate-accounts": "node scripts/migrate-accounts.js"
   },
   "keywords": [],
   "author": "",

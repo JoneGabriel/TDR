@@ -19,10 +19,11 @@ const { findOne, updateById, save, findAll, findById, removeOne } = require('../
 const { isEmpty } = require('../helpers/helpers.global');
 
 
-const saveNewIp = async(body)=>{
+// lista branca por conta: o IP só libera o cloaker nas lojas da própria conta
+const saveNewIp = async(body, account)=>{
     try{
 
-        const exist = await findOne(WhiteList, {ip:body.ip})
+        const exist = await findOne(WhiteList, {ip:body.ip, account})
         
         if(!isEmpty(exist)){
             throw(statusHandler.newResponse(400, 'Ip ja cadastrado'));
@@ -33,6 +34,7 @@ const saveNewIp = async(body)=>{
         const nowBrazil = new Date(nowUTC.getTime() - offsetMs);
 
         body['createdAt'] = nowBrazil;
+        body['account'] = account;
         await save(WhiteList, body);
 
         return statusHandler.newResponse(200, 'ok');
@@ -42,10 +44,10 @@ const saveNewIp = async(body)=>{
     }
 };
 
-const getAllIps = async()=>{
+const getAllIps = async(scope = null)=>{
     try{
 
-        let ips = await findAll(WhiteList);
+        let ips = await findAll(WhiteList, scope ? {account:scope} : {});
         ips = ips.map(value=>{
 
             const {_id, ip, createdAt} = value;

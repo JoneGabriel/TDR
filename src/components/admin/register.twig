@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Criar conta | TDR Admin</title>
+    <link href="/assets/styles/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="/styles/styles-admin.css" rel="stylesheet">
+    <style>
+        .login-body{min-height:100vh}
+        .login-box.login-box-wide{max-width:520px}
+    </style>
+</head>
+<body class="login-body">
+    <form class="login-box login-box-wide" method="post" action="/admin/register">
+        <img src="/img/admin/logo.png" alt="">
+        <h1>TDR<span>//</span>ADMIN</h1>
+        <p class="login-sub">criar conta</p>
+        {% if error %}
+            <div class="alert alert-danger py-2" role="alert">{{ error }}</div>
+        {% endif %}
+        <div class="mb-3">
+            <label class="form-label" for="company">Empresa</label>
+            <input class="form-control" id="company" name="company" value="{{ form.company|default('') }}" required autofocus>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="email">E-mail</label>
+            <input class="form-control" id="email" name="email" type="email" value="{{ form.email|default('') }}" autocomplete="email" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="username">Usuário</label>
+            <input class="form-control" id="username" name="username" value="{{ form.username|default('') }}" autocomplete="username" required>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label" for="password">Senha</label>
+                <input class="form-control" id="password" name="password" type="password" minlength="8" autocomplete="new-password" required>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label" for="password_confirm">Confirmar senha</label>
+                <input class="form-control" id="password_confirm" name="password_confirm" type="password" minlength="8" autocomplete="new-password" required>
+            </div>
+        </div>
+        <p class="login-sub mb-3">A conta é liberada depois da aprovação do administrador.</p>
+        <button class="btn" type="submit">Criar conta</button>
+        <p class="login-sub mt-3 mb-0"><a href="/admin/login">Já tenho conta</a></p>
+    </form>
+</body>
+</html>

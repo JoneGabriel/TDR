@@ -1,0 +1,52 @@
+<br>
+<br>
+<div class="mx-5 mt-5 mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <h5>Contas <i class="bi bi-people"></i></h5>
+            <p class="metric-sub mb-0">Cadastros pendentes aparecem primeiro. "Entrar" mostra o painel com os dados só daquela conta; para voltar, use "sair da conta" no menu.</p>
+        </div>
+        <div class="metrics-filters">
+            <select c-id="filter-status" class="form-control input-style">
+                <option value="">Todas</option>
+                <option value="pending">Pendentes</option>
+                <option value="active">Ativas</option>
+                <option value="blocked">Bloqueadas</option>
+            </select>
+            <input c-id="filter-text" type="text" class="form-control input-style" placeholder="Filtrar por nome, e-mail ou usuário">
+        </div>
+    </div>
+
+    <div class="my-table accounts-table mt-3">
+        <div class="row mx-1 p-1">
+            <div class="col-lg-3"><label class="mt-1"><b>Conta</b></label></div>
+            <div class="col-lg-2"><label class="mt-1"><b>Dono</b></label></div>
+            <div class="col-lg-1"><label class="mt-1"><b>Status</b></label></div>
+            <div class="col-lg-2"><label class="mt-1"><b>Lojas · Dom. · Prod.</b></label></div>
+            <div class="col-lg-4"><label class="mt-1"><b>Ações</b></label></div>
+        </div>
+
+        <div c-id="model-account" class="col-lg-12 none">
+            <div class="row model-table p-2 align-items-center">
+                <div class="col-lg-3">
+                    <a c-id="name" class="ms-2"></a>
+                    <small c-id="email" class="d-block ms-2 metric-sub"></small>
+                    <small c-id="created" class="d-block ms-2 metric-sub"></small>
+                </div>
+                <div class="col-lg-2"><a c-id="owner"></a> <small c-id="users" class="metric-sub"></small></div>
+                <div class="col-lg-1"><span c-id="status" class="account-status"></span></div>
+                <div class="col-lg-2"><span c-id="counts"></span></div>
+                <div class="col-lg-4">
+                    <div class="row-actions">
+                        <button c-id="btn-approve" class="btn-modal btn-modal-sm">Aprovar</button>
+                        <button c-id="btn-block" class="btn-modal btn-modal-sm">Bloquear</button>
+                        <button c-id="btn-enter" class="btn-modal btn-modal-sm">Entrar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div c-id="all-accounts" class="row"></div>
+        <p c-id="empty" class="metric-sub mt-3 ms-2 none">Nenhuma conta neste filtro.</p>
+    </div>
+</div>

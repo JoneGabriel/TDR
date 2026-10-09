@@ -193,7 +193,8 @@ const refreshProductPrices = async(productId, countries = null)=>{
 let running = false;
 
 // Atualiza todos os produtos, um por vez (o paralelismo fica dentro de cada produto)
-const refreshAllPrices = async()=>{
+// `scope` = conta em uso (botão do admin); o job diário passa null e atualiza tudo
+const refreshAllPrices = async(scope = null)=>{
     try{
 
         if(running){
@@ -203,7 +204,8 @@ const refreshAllPrices = async()=>{
         running = true;
 
         const started = Date.now();
-        const products = await findAll(Product, {}, {name:1});
+        const { storeFilter } = require("../account/account.service");
+        const products = await findAll(Product, await storeFilter(scope), {name:1});
         let result = {products:products.length, variants:0, errors:[], skipped:0};
 
         for(const product of products){

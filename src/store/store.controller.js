@@ -12,15 +12,16 @@ const {
 } = require("./store.service");
 const router = require("express").Router();
 const { requireAdminApi } = require("../auth/auth.service");
+const { assertStore } = require("../account/account.service");
 
-// todas as rotas de configuração de loja são do painel admin
+// todas as rotas de configuração de loja são do painel admin e respeitam a conta em uso (req.scope)
 router.use("/store-config", requireAdminApi);
 const statusHandler = require("../helpers/helpers.statusHandler");
 
-router.post("/store-config", async({body}, res)=>{
+router.post("/store-config", async(req, res)=>{
     try{    
 
-        const response = await createStore(body);
+        const response = await createStore(req.body, req.scope);
 
         return res.status(response.status).send(response);
     }catch(error){
@@ -29,10 +30,13 @@ router.post("/store-config", async({body}, res)=>{
     }
 });
 
-router.put("/store-config/:id", async({body, params}, res)=>{
+router.put("/store-config/:id", async(req, res)=>{
     try{    
 
-        const response = await changeStore(params.id, body);
+        await assertStore(req.scope, req.params.id);
+        delete req.body.account;   // a conta dona não muda pelo painel
+
+        const response = await changeStore(req.params.id, req.body);
 
         return res.status(response.status).send(response);
     }catch(error){
@@ -44,7 +48,7 @@ router.put("/store-config/:id", async({body, params}, res)=>{
 router.get("/store-config", async(req, res)=>{
     try{    
 
-        const response = await getAllStores();
+        const response = await getAllStores(req.scope);
 
         return res.status(response.status).send(response);
     }catch(error){
@@ -53,10 +57,12 @@ router.get("/store-config", async(req, res)=>{
     }
 });
 
-router.get("/store-config/:id", async({params}, res)=>{
+router.get("/store-config/:id", async(req, res)=>{
     try{    
 
-        const response = await getStoreById(params.id);
+        await assertStore(req.scope, req.params.id);
+
+        const response = await getStoreById(req.params.id);
 
         return res.status(response.status).send(response);
     }catch(error){
@@ -65,10 +71,12 @@ router.get("/store-config/:id", async({params}, res)=>{
     }
 });
 
-router.get("/store-config/:idStore/:idFile", async({params, query}, res)=>{
+router.get("/store-config/:idStore/:idFile", async(req, res)=>{
     try{    
 
-        const response = await getFile(params, query.layout);
+        await assertStore(req.scope, req.params.idStore);
+
+        const response = await getFile(req.params, req.query.layout);
 
         return res.status(response.status).send(response);
     }catch(error){
@@ -77,10 +85,12 @@ router.get("/store-config/:idStore/:idFile", async({params, query}, res)=>{
     }
 });
 
-router.put("/store-config/:idStore/:idFile", async({params, body, query}, res)=>{
+router.put("/store-config/:idStore/:idFile", async(req, res)=>{
     try{    
 
-        const response = await changeFile(params, body, query.layout);
+        await assertStore(req.scope, req.params.idStore);
+
+        const response = await changeFile(req.params, req.body, req.query.layout);
 
         return res.status(response.status).send(response);
     }catch(error){
@@ -91,10 +101,12 @@ router.put("/store-config/:idStore/:idFile", async({params, body, query}, res)=>
 
 
 // políticas da loja (privacy | shipping | return | terms)
-router.get("/store-config/:idStore/policy/:key", async({params}, res)=>{
+router.get("/store-config/:idStore/policy/:key", async(req, res)=>{
     try{    
 
-        const response = await getPolicy(params);
+        await assertStore(req.scope, req.params.idStore);
+
+        const response = await getPolicy(req.params);
 
         return res.status(response.status).send(response);
     }catch(error){
@@ -103,10 +115,12 @@ router.get("/store-config/:idStore/policy/:key", async({params}, res)=>{
     }
 });
 
-router.put("/store-config/:idStore/policy/:key", async({params, body}, res)=>{
+router.put("/store-config/:idStore/policy/:key", async(req, res)=>{
     try{    
 
-        const response = await changePolicy(params, body);
+        await assertStore(req.scope, req.params.idStore);
+
+        const response = await changePolicy(req.params, req.body);
 
         return res.status(response.status).send(response);
     }catch(error){
@@ -115,10 +129,12 @@ router.put("/store-config/:idStore/policy/:key", async({params, body}, res)=>{
     }
 });
 
-router.delete("/store-config/:id", async({params}, res)=>{
+router.delete("/store-config/:id", async(req, res)=>{
     try{    
 
-        const response = await removeStore(params.id);
+        await assertStore(req.scope, req.params.id);
+
+        const response = await removeStore(req.params.id);
 
         return res.status(response.status).send(response);
     }catch(error){
