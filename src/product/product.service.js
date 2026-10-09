@@ -114,6 +114,112 @@ const buyerContext = async(product, requested)=>{
 
 // Limpa a versão second vinda do admin: campos vazios são removidos para cair na versão first.
 // Sem `layouts` no body nada muda no banco (PUT parcial).
+// Números do formulário: aceita "10", "10,50", "1.234,56" e vazio (undefined); texto inválido vira NaN
+const toNumber = (value)=>{
+    if(value === undefined || value === null){
+        return undefined;
+    }
+
+    if(typeof value == "number"){
+        return value;
+    }
+
+    let text = String(value).trim().replace(/\s/g, "");
+
+    if(!text){
+        return undefined;
+    }
+
+    if(text.includes(",")){
+        text = text.replace(/\./g, "").replace(",", ".");
+    }
+
+    const number = Number(text);
+
+    return Number.isFinite(number) ? number : NaN;
+};
+
+const invalid = (field, message)=>{
+    throw(statusHandler.newResponse(400, message || `${field}: valor inválido`));
+};
+
+// Valida e normaliza o corpo do produto antes de qualquer gravação (antes, preço vazio ou texto virava 500 e um
+// PUT com preço vazio gravava `null`). `creating`: título e preço são obrigatórios; comparação vazia = preço.
+const normalizeProductInput = (product = {}, creating = false)=>{
+    if("name" in product || creating){
+        product.name = String(product.name || "").trim();
+        !product.name && invalid("name", "Informe o título do produto");
+    }
+
+    if("price" in product || creating){
+        product.price = toNumber(product.price);
+        Number.isNaN(product.price) && invalid("price", "Preço inválido: use números, ex.: 49.90");
+        product.price === undefined && invalid("price", "Informe o preço do produto");
+        product.price < 0 && invalid("price", "O preço não pode ser negativo");
+    }
+
+    if("last_price" in product || creating){
+        product.last_price = toNumber(product.last_price);
+        Number.isNaN(product.last_price) && invalid("last_price", "Comparação de preços inválida: use números, ex.: 79.90");
+
+        // comparação vazia: sem desconto (igual ao preço); no PUT sem preço, mantém a gravada
+        if(product.last_price === undefined){
+            product.price !== undefined ? (product.last_price = product.price) : delete product.last_price;
+        }
+    }
+
+    if(product.layouts?.second){
+        const second = product.layouts.second;
+
+        ["price", "last_price"].forEach(field=>{
+            if(field in second){
+                second[field] = toNumber(second[field]);
+                Number.isNaN(second[field]) && invalid(field, `Versão second: ${field == "price" ? "preço" : "comparação de preços"} inválido`);
+                second[field] === undefined && delete second[field];
+            }
+        });
+    }
+
+    if(Array.isArray(product.images)){
+        product.images = product.images.filter(image=> image && (image.base64 || typeof image == "string")).map(image=> typeof image == "string" ? {base64:image} : image);
+    }
+
+    // bundles: linha totalmente vazia é descartada; linha preenchida precisa de título, preço e quantidade
+    const bundles = product.bundle || product.bundles;
+
+    if(Array.isArray(bundles)){
+        product.bundle = bundles.map((bundle, index)=>{
+            const clean = {
+                ...bundle,
+                title_bundle:String(bundle.title_bundle || "").trim(),
+                cupom_code:String(bundle.cupom_code || "").trim(),
+                price_bundle:toNumber(bundle.price_bundle),
+                last_price_bundle:toNumber(bundle.last_price_bundle),
+                amount:toNumber(bundle.amount)
+            };
+            const empty = !clean.title_bundle && !clean.cupom_code && clean.price_bundle === undefined && clean.last_price_bundle === undefined && clean.amount === undefined;
+
+            if(empty){
+                return null;
+            }
+
+            const where = `Bundle ${clean.title_bundle ? `"${clean.title_bundle}"` : index + 1}`;
+
+            !clean.title_bundle && invalid("title_bundle", `${where}: informe o título`);
+            (clean.price_bundle === undefined || Number.isNaN(clean.price_bundle) || clean.price_bundle < 0) && invalid("price_bundle", `${where}: informe um preço válido`);
+            Number.isNaN(clean.last_price_bundle) && invalid("last_price_bundle", `${where}: comparação de preços inválida`);
+            (clean.amount === undefined || !Number.isInteger(clean.amount) || clean.amount < 1) && invalid("amount", `${where}: informe a quantidade (número inteiro, mínimo 1)`);
+            clean.last_price_bundle === undefined && (clean.last_price_bundle = clean.price_bundle);
+
+            return clean;
+        }).filter(Boolean);
+
+        delete product.bundles;
+    }
+
+    return product;
+};
+
 const normalizeProductLayouts = (product)=>{
     if(!product.layouts){
         return product;
@@ -357,8 +463,24 @@ const createOtherVariants = async(otherShopify, idProduct)=>{
             const {store, id_shopify_store} = otherShopify[i];
             const shopify = await findById(Shopify, store);
 
+            if(!shopify){
+                throw(statusHandler.newResponse(400, "Loja Shopify do produto não encontrada: remova-a e adicione de novo"));
+            }
+
+            if(!String(id_shopify_store || "").trim()){
+                throw(statusHandler.newResponse(400, `Shopify ${shopify.url}: informe o ID do produto na Shopify`));
+            }
+
             let otherVariants = {};
-            otherVariants["variants"] = await getVariants(id_shopify_store, shopify);
+
+            try{
+                otherVariants["variants"] = await getVariants(id_shopify_store, shopify);
+            }catch(error){
+                const reason = error.content || error.message || "sem resposta";
+                const hint = /not found/i.test(String(reason)) ? " (loja inexistente ou token sem acesso)" : "";
+
+                throw(statusHandler.newResponse(error.status && error.status != 500 ? error.status : 502, `Shopify ${shopify.url}: ${reason}${hint}`));
+            }
             
             otherVariants["store"] = store;
             otherVariants["id_shopify"] = id_shopify_store;
@@ -402,9 +524,10 @@ const ensureProductStore = async(product, id = null)=>{
 const createProduct = async(product)=>{
     try{
         
+        normalizeProductInput(product, true);
+
         const shopify = product["other_shopify"];
-        // o admin manda os bundles em `bundle` (mesma chave que changeProduct lê); `bundles` fica por compatibilidade
-        const bundles = product["bundle"] || product["bundles"];
+        const bundles = product["bundle"];
 
         await ensureProductStore(product);
         normalizeProductLayouts(product);
@@ -684,7 +807,10 @@ const removeCollection = async({id})=>{
 
 const changeProduct = async({id}, product)=>{
     try{
-        
+
+        // valida antes de tocar em variantes/bundles, para um corpo inválido não deixar nada pela metade
+        normalizeProductInput(product, false);
+
         const otherShopify = product["other_shopify"];
         const bundles = product["bundle"];
 

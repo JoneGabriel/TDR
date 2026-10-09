@@ -260,17 +260,20 @@ const saveProduct = async(id = false)=>{
 
         const response = await request(method, url, body);
 
-        if(response.status == 200){
+        if(response?.status == 200){
             statusHandler.newMessage(`Produto ${!id ? "Criado" : "Atualizado"}`);
 
             // id do produto (o criado vem em content._id) para o modal seguir aberto em modo de edição
             return id || response.content?._id;
         }
 
-        throw(statusHandler.messageError(response.content || "Erro ao salvar produto", true));
+        // mensagem do servidor (validação, Shopify...) chega ao usuário pelo catch do botão salvar
+        const message = !response ? "Sem resposta do servidor" : (response.content == "Internal Error" || !response.content ? "Erro interno ao salvar o produto. Veja o log do servidor." : response.content);
+
+        throw(new Error(typeof message == "string" ? message : JSON.stringify(message)));
 
     }catch(error){
-        throw(statusHandler.messageError(error));
+        throw(error instanceof Error ? error : new Error(String(error?.message || error)));
     }
 };
 
@@ -930,7 +933,8 @@ $(document).ready(function(){
             $("[c-id=loading-btn]").addClass("none");
             $(e.target).removeClass("none");
             loadingAfterOpenModal(false);
-            statusHandler.messageError(error);
+            // o modal continua aberto com o que foi digitado; a mensagem diz o que corrigir
+            statusHandler.messageError(error?.message || error, true);
         }
     });
 

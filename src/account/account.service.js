@@ -4,6 +4,10 @@
 // sem revelar que o registro existe em outra conta.
 const statusHandler = require("../helpers/helpers.statusHandler");
 const { findAll, findOne, findById, save, updateById, countDocuments } = require("../query");
+const mongoose = require("mongoose");
+
+// id malformado nas guardas vale como inexistente (404), em vez de erro de conversão
+const byId = (Model, id)=> mongoose.isValidObjectId(id) ? findById(Model, id) : null;
 const { Account, ACCOUNT_STATUS } = require("./account.schema");
 const { Admin } = require("../auth/auth.schema");
 const { Store } = require("../store/store.schema");
@@ -55,7 +59,7 @@ const storeInScope = async(scope, storeId)=>{
 
 // ---------------------------------------------------------------- guardas (documento no escopo ou 404)
 const assertStore = async(scope, id)=>{
-    const store = id ? await findById(Store, id) : null;
+    const store = id ? await byId(Store, id) : null;
 
     if(!store || (scope && !same(store.account, scope))) throw(notFound("Loja"));
 
@@ -63,7 +67,7 @@ const assertStore = async(scope, id)=>{
 };
 
 const assertDomain = async(scope, id)=>{
-    const domain = id ? await findById(Domain, id) : null;
+    const domain = id ? await byId(Domain, id) : null;
 
     if(!domain || !(await storeInScope(scope, domain.store))) throw(notFound("Domínio"));
 
@@ -71,7 +75,7 @@ const assertDomain = async(scope, id)=>{
 };
 
 const assertCollection = async(scope, id)=>{
-    const collection = id ? await findById(Collection, id) : null;
+    const collection = id ? await byId(Collection, id) : null;
 
     if(!collection || !(await storeInScope(scope, collection.store))) throw(notFound("Coleção"));
 
@@ -79,7 +83,7 @@ const assertCollection = async(scope, id)=>{
 };
 
 const assertProduct = async(scope, id)=>{
-    const product = id ? await findById(Product, id) : null;
+    const product = id ? await byId(Product, id) : null;
 
     if(!product || !(await storeInScope(scope, product.store))) throw(notFound("Produto"));
 
@@ -87,7 +91,7 @@ const assertProduct = async(scope, id)=>{
 };
 
 const assertShopify = async(scope, id)=>{
-    const shopify = id ? await findById(Shopify, id) : null;
+    const shopify = id ? await byId(Shopify, id) : null;
 
     if(!shopify || !(await storeInScope(scope, shopify.store))) throw(notFound("Shopify"));
 
@@ -95,7 +99,7 @@ const assertShopify = async(scope, id)=>{
 };
 
 const assertBundle = async(scope, id)=>{
-    const bundle = id ? await findById(Bundle, id) : null;
+    const bundle = id ? await byId(Bundle, id) : null;
 
     if(!bundle) throw(notFound("Bundle"));
 
@@ -106,7 +110,7 @@ const assertBundle = async(scope, id)=>{
 
 // variante Shopify ligada a um produto (OtherVariants.product)
 const assertOtherVariant = async(scope, id)=>{
-    const variant = id ? await findById(OtherVariants, id) : null;
+    const variant = id ? await byId(OtherVariants, id) : null;
 
     if(!variant) throw(notFound("Variante"));
 
@@ -116,7 +120,7 @@ const assertOtherVariant = async(scope, id)=>{
 };
 
 const assertIp = async(scope, id)=>{
-    const ip = id ? await findById(WhiteList, id) : null;
+    const ip = id ? await byId(WhiteList, id) : null;
 
     if(!ip || (scope && !same(ip.account, scope))) throw(notFound("IP"));
 
@@ -124,7 +128,7 @@ const assertIp = async(scope, id)=>{
 };
 
 // ---------------------------------------------------------------- contas (superadmin)
-const getAccount = async(id)=> id ? await findById(Account, id) : null;
+const getAccount = async(id)=> id ? await byId(Account, id) : null;
 
 const listAccounts = async()=>{
     try{
