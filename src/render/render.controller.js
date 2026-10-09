@@ -42,6 +42,7 @@ const {
     getAllStores,
     getConfigStore,
     options_country,
+    options_devices,
     options_moeda,
     options_idioma,
     files,
@@ -81,7 +82,7 @@ router.get("/admin/products", requireAdminPage, async(req, res)=>{
 
         return res.render(index, {
             products_:products_.content,
-            template:'{% include "' + relativePath + '/components/admin/products.twig" %}',
+            view:'../components/admin/products.twig',
             script:"products-admin.js",
             admin:true,
             products:'active',
@@ -110,7 +111,7 @@ router.get("/admin/home", requireAdminPage, async(req, res)=>{
         domains = domains.content;
        
         return res.render(index, {
-            template:'{% include "' + relativePath + '/components/admin/home.twig" %}',
+            view:'../components/admin/home.twig',
             script:"home-admin.js",
             admin:true,
             home:'active',
@@ -132,7 +133,7 @@ router.get("/admin/collections", requireAdminPage, async(req, res)=>{
         const all_collections =  await getAllCollections(true, undefined, req.scope);
 
         return res.render(index, {
-            template:'{% include "' + relativePath + '/components/admin/collections.twig" %}',
+            view:'../components/admin/collections.twig',
             script:"collections-admin.js",
             admin:true,
             collections:'active',
@@ -152,7 +153,7 @@ router.get("/admin/shopify", requireAdminPage, async(req, res)=>{
         const shopifys = await getAllShopify(req.scope)
 
         return res.render(index, {
-            template:'{% include "' + relativePath + '/components/admin/shopify.twig" %}',
+            view:'../components/admin/shopify.twig',
             script:"shopify-admin.js",
             admin:true,
             shopify:'active',
@@ -171,12 +172,13 @@ router.get("/admin/stores", requireAdminPage, async(req, res)=>{
         const stores = await getAllStores(req.scope)
 
         return res.render(index, {
-            template:'{% include "' + relativePath + '/components/admin/store.twig" %}',
+            view:'../components/admin/store.twig',
             script:"store-admin.js",
             admin:true,
             store:'active',
             stores:stores.content,
             options_country,
+            options_devices,
             options_moeda,
             options_idioma,
             files,
@@ -197,7 +199,7 @@ router.get("/admin/cloacker", requireAdminPage, async(req, res)=>{
         const ips = await getAllIps(req.scope);
 
         return res.render(index, {
-            template:'{% include "' + relativePath + '/components/admin/cloacker.twig" %}',
+            view:'../components/admin/cloacker.twig',
             script:"cloacker-admin.js",
             admin:true,
             cloacker:'active',
@@ -216,7 +218,7 @@ router.get("/admin/domain", requireAdminPage, async(req, res)=>{
         const domains = await getAllDomains(undefined, req.scope);
 
         return res.render(index, {
-            template:'{% include "' + relativePath + '/components/admin/domain.twig" %}',
+            view:'../components/admin/domain.twig',
             script:"domain-admin.js",
             admin:true,
             domain:'active',
@@ -230,11 +232,27 @@ router.get("/admin/domain", requireAdminPage, async(req, res)=>{
 });
 
 // contas (multiusuário): só superadmin
+// área do próprio usuário: dados, e-mail e troca de senha (API em auth.controller: /admin/me)
+router.get("/admin/profile", requireAdminPage, async(req, res)=>{
+    try{
+
+        return res.render(index, {
+            view:'../components/admin/profile.twig',
+            script:"profile-admin.js",
+            admin:true,
+            profile:'active'
+        });
+
+    }catch(error){
+        console.log(error);
+    }
+});
+
 router.get("/admin/accounts", requireAdminPage, requireSuperadminPage, async(req, res)=>{
     try{
 
         return res.render(index, {
-            template:'{% include "' + relativePath + '/components/admin/accounts.twig" %}',
+            view:'../components/admin/accounts.twig',
             script:"accounts-admin.js",
             admin:true,
             accounts:'active'
@@ -245,21 +263,6 @@ router.get("/admin/accounts", requireAdminPage, requireSuperadminPage, async(req
     }
 });
 
-router.get("/admin/integrations", requireAdminPage, async(req, res)=>{
-    try{
-
-        return res.render(index, {
-            template:'{% include "' + relativePath + '/components/admin/integrations.twig" %}',
-            script:"integrations-admin.js",
-            admin:true,
-            integrations:'active'
-        });
-        
-    }catch(error){
-      console.log(error)
-        
-    }   
-});
 
 // rotas loja
 router.get("/", notOnAdminHost, async(req, res)=>{
@@ -269,7 +272,7 @@ router.get("/", notOnAdminHost, async(req, res)=>{
 
     
         config = await getConfigStore(req.get('host'), 'domain');
-        const isSecure = await saveSession(req, res, config.country, config.account);
+        const isSecure = await saveSession(req, res, config);
 
         // visitante filtrado pelo cloaker vê o layout "second"; liberado vê "first" (ou ?layout= para pré-visualizar)
         useLayout(config, isSecure ? req.query.layout : "second");
@@ -331,7 +334,7 @@ router.get("/collections/:id", notOnAdminHost, async(req, res)=>{
         config = await getConfigStore(req.params.id, 'collection');
        
 
-        const isSecure = await saveSession(req, res, config.country, config.account);
+        const isSecure = await saveSession(req, res, config);
         
         // visitante filtrado pelo cloaker vê o layout "second"; liberado vê "first" (ou ?layout= para pré-visualizar)
         useLayout(config, isSecure ? req.query.layout : "second");
@@ -389,7 +392,7 @@ router.get("/products/:id", notOnAdminHost, async(req, res)=>{
 
         config = await getConfigStore(req.params.id, 'product');
 
-        const isSecure = await saveSession(req, res, config.country, config.account);
+        const isSecure = await saveSession(req, res, config);
 
         // visitante filtrado pelo cloaker vê o layout "second"; liberado vê "first" (ou ?layout= para pré-visualizar)
         useLayout(config, isSecure ? req.query.layout : "second");
@@ -556,7 +559,7 @@ router.get("/privacy-policy", notOnAdminHost, async(req, res)=>{
         
         config = await getConfigStore(req.get('host'), 'domain');
         const countrCode = config.country[0];
-        const isSecure = await saveSession(req, res, config.country, config.account);
+        const isSecure = await saveSession(req, res, config);
 
         // visitante filtrado pelo cloaker vê o layout "second"; liberado vê "first" (ou ?layout= para pré-visualizar)
         useLayout(config, isSecure ? req.query.layout : "second");
@@ -584,7 +587,7 @@ router.get("/privacy-policy", notOnAdminHost, async(req, res)=>{
         });
         
         return res.render(index, {
-            template:'{% include "' + relativePath + '/components/store/policies.twig" %}',
+            view:'../components/store/policies.twig',
             store:true,
             all_collections:all_collections.content,
            ...config.policies.privacy,
@@ -610,7 +613,7 @@ router.get("/shipping-policy", notOnAdminHost, async(req, res)=>{
     
         config = await getConfigStore(req.get('host'), 'domain');
         const countrCode = config.country[0];
-        const isSecure = await saveSession(req, res, config.country, config.account);
+        const isSecure = await saveSession(req, res, config);
 
         // visitante filtrado pelo cloaker vê o layout "second"; liberado vê "first" (ou ?layout= para pré-visualizar)
         useLayout(config, isSecure ? req.query.layout : "second");
@@ -638,7 +641,7 @@ router.get("/shipping-policy", notOnAdminHost, async(req, res)=>{
         });
 
         return res.render(index, {
-            template:'{% include "' + relativePath + '/components/store/policies.twig" %}',
+            view:'../components/store/policies.twig',
             store:true,
             all_collections:all_collections.content,
            ...config.policies.shipping,
@@ -664,7 +667,7 @@ router.get("/return-refund", notOnAdminHost, async(req, res)=>{
     
         config = await getConfigStore(req.get('host'), 'domain');
         const countrCode = config.country[0];
-        const isSecure = await saveSession(req, res, config.country, config.account);
+        const isSecure = await saveSession(req, res, config);
 
         // visitante filtrado pelo cloaker vê o layout "second"; liberado vê "first" (ou ?layout= para pré-visualizar)
         useLayout(config, isSecure ? req.query.layout : "second");
@@ -692,7 +695,7 @@ router.get("/return-refund", notOnAdminHost, async(req, res)=>{
         });
 
         return res.render(index, {
-            template:'{% include "' + relativePath + '/components/store/policies.twig" %}',
+            view:'../components/store/policies.twig',
             store:true,
             all_collections:all_collections.content,
            ...config.policies.return,
@@ -718,7 +721,7 @@ router.get("/terms-of-service", notOnAdminHost, async(req, res)=>{
     
         config = await getConfigStore(req.get('host'), 'domain');
         const countrCode = config.country[0];
-        const isSecure = await saveSession(req, res, config.country, config.account);
+        const isSecure = await saveSession(req, res, config);
 
         // visitante filtrado pelo cloaker vê o layout "second"; liberado vê "first" (ou ?layout= para pré-visualizar)
         useLayout(config, isSecure ? req.query.layout : "second");
@@ -746,7 +749,7 @@ router.get("/terms-of-service", notOnAdminHost, async(req, res)=>{
         });
 
         return res.render(index, {
-            template:'{% include "' + relativePath + '/components/store/policies.twig" %}',
+            view:'../components/store/policies.twig',
             store:true,
             all_collections:all_collections.content,
            ...config.policies.terms,

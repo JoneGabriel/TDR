@@ -83,10 +83,13 @@ const saveShopify = async(id = false)=>{
         const response = await request(method, url, body);
 
         if(response.status == 200){
-            cleanShopifyFilds();
-            statusHandler.newMessage(`Shopify ${!id ? "Criada" : "Shopify"}`);
+            statusHandler.newMessage(`Shopify ${!id ? "criada" : "atualizada"}`);
             await listShopify();
+
+            return id || response.content?._id;
         }
+
+        throw(statusHandler.messageError(response.content || "Erro ao salvar Shopify", true));
 
     }catch(error){
         throw(statusHandler.messageError(error));
@@ -204,8 +207,10 @@ $(document).ready(function(){
 
             const id = $(e.target).attr("id");
 
-            await saveShopify(id);
-            $("[c-id=modal-store]").modal("hide");
+            const savedId = await saveShopify(id);
+
+            // o modal continua aberto: recarrega o registro salvo (Shopify nova passa a ser editada)
+            savedId && await getShopifyById(savedId);
 
         }catch(error){
             statusHandler.messageError(error);
@@ -213,6 +218,7 @@ $(document).ready(function(){
     });
 
     $("[c-id=new-store]").on("click", ()=>{
+        cleanShopifyFilds();
         $("[c-id=modal-store]").modal("show");
     });
 

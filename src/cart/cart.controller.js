@@ -1,11 +1,15 @@
 const router = require("express").Router();
 const statusHandler = require("../helpers/helpers.statusHandler");
+const { rateLimit } = require("../helpers/helpers.ratelimit");
+
+// checkout cria carrinhos na Shopify: limite por IP contra abuso
+const checkoutLimiter = rateLimit({name:"checkout", windowMs:60 * 1000, max:30, methods:["POST"]});
 const {
  getInfoProducts,
  getInfoProductsNew
 } = require("./cart.service");
 
-router.post("/checkout", async({body, query}, res)=>{
+router.post("/checkout", checkoutLimiter, async({body, query}, res)=>{
     try{
 
         const response = await getInfoProducts(body, query.country);
@@ -18,7 +22,7 @@ router.post("/checkout", async({body, query}, res)=>{
 });
 
 
-router.post("/checkout/pagou", async({body}, res)=>{
+router.post("/checkout/pagou", checkoutLimiter, async({body}, res)=>{
     try{
 
         const response = await getInfoProductsNew(body);

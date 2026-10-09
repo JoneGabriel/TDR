@@ -17,9 +17,9 @@ const {
 const createShopify = async(shopify)=>{
     try{
 
-        await save(Shopify, shopify);
+        const saved = await save(Shopify, shopify);
 
-        return statusHandler.newResponse(200, "ok");
+        return statusHandler.newResponse(200, {_id:saved?._id, message:"ok"});
     }catch(error){
         throw(statusHandler.serviceError(error));
     }

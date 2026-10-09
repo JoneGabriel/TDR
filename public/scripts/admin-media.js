@@ -159,91 +159,137 @@ const AdminMedia = (()=>{
         update();
     };
 
-    // Barra "Gerar com IA" (Higgsfield via /ai/image): envia o prompt, acompanha o job e entrega a imagem
-    // já comprimida para o mesmo caminho de um upload. `data-aspect` na barra sobrepõe a proporção padrão.
-    const bindAiBar = (bar, onImage)=>{
-        if(!bar){
-            return;
-        }
+    // ---------------------------------------------------------------- visualização (lightbox) e metadados
+    // Qualquer miniatura (.model-img) ou card de imagem (.image-picker-preview) ganha: "ver em tamanho real"
+    // (botão [c-id=view-img] ou duplo clique), dimensões e tamanho em .media-meta, e "trocar" ([c-id=replace-img])
+    // que abre o seletor de arquivo da própria área. Tudo por delegação: nada muda nos scripts que adicionam imagens.
+    const sizeOf = (src)=>{
+        if(!src || !src.startsWith("data:")) return "";
 
-        const input = bar.querySelector("[c-id=ai-prompt]");
-        const button = bar.querySelector("[c-id=ai-generate]");
-        const label = button.textContent;
+        const bytes = Math.round((src.length - src.indexOf(",") - 1) * 3 / 4);
 
-        const setBusy = (busy, text)=>{
-            bar.classList.toggle("is-busy", busy);
-            button.disabled = busy;
-            button.textContent = text || (busy ? "Gerando..." : label);
-        };
-
-        const run = async()=>{
-            const prompt = (input.value || "").trim();
-
-            if(!prompt){
-                return statusHandler.messageError("Descreva a imagem que quer gerar", true);
-            }
-
-            const started = Date.now();
-
-            setBusy(true);
-
-            try{
-                const start = await request("POST", "/ai/image", {prompt, aspect_ratio:bar.dataset.aspect || undefined});
-
-                if(start.status != 200){
-                    throw new Error(start.content || "Erro ao iniciar a geração");
-                }
-
-                const id = start.content.job;
-
-                while(true){
-                    await new Promise(resolve=> setTimeout(resolve, 3000));
-
-                    const poll = await request("GET", `/ai/image/${id}`);
-
-                    if(poll.status != 200){
-                        throw new Error(poll.content || "Erro ao consultar a geração");
-                    }
-
-                    if(poll.content.status == "error"){
-                        throw new Error(poll.content.error || "Falha na geração");
-                    }
-
-                    if(poll.content.status == "done"){
-                        break;
-                    }
-
-                    setBusy(true, `Gerando... ${Math.round((Date.now() - started) / 1000)}s`);
-                }
-
-                const file = await request("GET", `/ai/image/${id}/file`);
-
-                if(file.status != 200){
-                    throw new Error(file.content || "Erro ao baixar a imagem");
-                }
-
-                // mesma compressão de um upload comum
-                const blob = await (await fetch(file.content.image)).blob();
-                const dataUrl = await compress(new File([blob], `higgsfield-${id}.png`, {type:blob.type || "image/png"}));
-
-                await onImage(dataUrl);
-                input.value = "";
-                statusHandler.newMessage("Imagem gerada e adicionada");
-            }catch(error){
-                statusHandler.messageError(error.message || "Erro na geração", true);
-            }finally{
-                setBusy(false);
-            }
-        };
-
-        button.addEventListener("click", run);
-        input.addEventListener("keydown", (event)=>{
-            if(event.key == "Enter"){
-                event.preventDefault();
-                run();
-            }
-        });
+        return bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
     };
 
-    return {compress, filesToDataUrls, bindDropzone, enableReorder, watchCount, bindAiBar};
+    const describe = (img)=>{
+        const holder = img.closest(".model-img, .image-picker-preview");
+        const meta = holder?.querySelector(".media-meta");
+
+        if(!meta) return;
+
+        const size = sizeOf(img.getAttribute("src"));
+
+        meta.textContent = img.naturalWidth ? `${img.naturalWidth}×${img.naturalHeight}${size ? " · " + size : ""}` : "";
+    };
+
+    // `load` de <img> não borbulha, mas chega na fase de captura
+    document.addEventListener("load", (event)=>{
+        event.target.tagName == "IMG" && describe(event.target);
+    }, true);
+
+    let box = null;
+    let gallery = {items:[], index:0};
+
+    const ensureLightbox = ()=>{
+        if(box) return box;
+
+        box = document.createElement("div");
+        box.className = "media-lightbox none";
+        box.setAttribute("c-id", "lightbox");
+        box.innerHTML = `
+            <button type="button" class="media-lightbox-close" c-id="lightbox-close" title="Fechar (Esc)"><i class="bi bi-x-lg"></i></button>
+            <button type="button" class="media-lightbox-nav media-lightbox-prev" c-id="lightbox-prev" title="Anterior (←)"><i class="bi bi-chevron-left"></i></button>
+            <figure><img alt=""><figcaption></figcaption></figure>
+            <button type="button" class="media-lightbox-nav media-lightbox-next" c-id="lightbox-next" title="Próxima (→)"><i class="bi bi-chevron-right"></i></button>`;
+        document.body.appendChild(box);
+
+        box.addEventListener("click", (event)=>{
+            const action = event.target.closest("[c-id]")?.getAttribute("c-id");
+
+            if(action == "lightbox-prev") return show(gallery.index - 1);
+            if(action == "lightbox-next") return show(gallery.index + 1);
+            if(action == "lightbox-close" || event.target === box) return closeLightbox();
+        });
+
+        document.addEventListener("keydown", (event)=>{
+            if(box.classList.contains("none")) return;
+
+            event.key == "Escape" && closeLightbox();
+            event.key == "ArrowLeft" && show(gallery.index - 1);
+            event.key == "ArrowRight" && show(gallery.index + 1);
+        });
+
+        return box;
+    };
+
+    const show = (index)=>{
+        const total = gallery.items.length;
+
+        if(!total) return;
+
+        gallery.index = (index + total) % total;
+
+        const item = gallery.items[gallery.index];
+        const img = box.querySelector("img");
+
+        img.src = item.src;
+        img.onload = ()=> box.querySelector("figcaption").textContent = [total > 1 ? `${gallery.index + 1} / ${total}` : "", item.label, `${img.naturalWidth}×${img.naturalHeight}`, sizeOf(item.src)].filter(Boolean).join("  ·  ");
+        box.classList.toggle("is-single", total < 2);
+    };
+
+    // abre o visualizador; `items` = [{src, label}]
+    const openLightbox = (items, index = 0)=>{
+        const list = (Array.isArray(items) ? items : [items]).map(item=> typeof item == "string" ? {src:item} : item).filter(item=> item?.src);
+
+        if(!list.length) return;
+
+        ensureLightbox();
+        gallery = {items:list, index:0};
+        box.classList.remove("none");
+        document.body.classList.add("media-lightbox-open");
+        show(index);
+    };
+
+    const closeLightbox = ()=>{
+        box?.classList.add("none");
+        document.body.classList.remove("media-lightbox-open");
+    };
+
+    // imagens "irmãs" na mesma grade, para navegar; fora de uma grade, só a própria
+    const galleryOf = (img)=>{
+        const grid = img.closest(".media-grid");
+        const items = grid ? Array.from(grid.querySelectorAll(".model-img:not(.none) img")) : [img];
+        const list = items.filter(el=> el.getAttribute("src")).map((el, i)=> ({src:el.getAttribute("src"), label:grid ? (i == 0 ? "capa" : "") : (el.closest(".image-picker")?.dataset.label || "")}));
+
+        return {items:list, index:Math.max(0, items.indexOf(img))};
+    };
+
+    document.addEventListener("click", (event)=>{
+        const view = event.target.closest("[c-id=view-img]");
+
+        if(view){
+            const img = view.closest(".model-img, .image-picker-preview")?.querySelector("img");
+            const {items, index} = img ? galleryOf(img) : {items:[], index:0};
+
+            return openLightbox(items, index);
+        }
+
+        const replace = event.target.closest("[c-id=replace-img]");
+
+        if(replace){
+            return replace.closest(".image-picker")?.querySelector(".dropzone-input")?.click();
+        }
+    });
+
+    document.addEventListener("dblclick", (event)=>{
+        const img = event.target.closest(".model-img img, .image-picker-preview img");
+
+        if(img && img.getAttribute("src")){
+            const {items, index} = galleryOf(img);
+
+            openLightbox(items, index);
+        }
+    });
+
+    return {compress, filesToDataUrls, bindDropzone, enableReorder, watchCount, openLightbox, closeLightbox, describe};
 })();

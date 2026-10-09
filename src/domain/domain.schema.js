@@ -12,6 +12,8 @@ const Domain = mongoose.model("domain", {
         default:true
     },
     store: { type: mongoose.Schema.Types.ObjectId, ref: 'store' },
+    // última verificação de provisionamento (DNS + SSL), gravada por checkDomainById (ver domain.service.js)
+    check: { type: mongoose.Schema.Types.Mixed, default: null },
 });
 
 

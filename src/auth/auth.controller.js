@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const path = require("path");
 const statusHandler = require("../helpers/helpers.statusHandler");
+const { rateLimit } = require("../helpers/helpers.ratelimit");
 const {
     COOKIE_NAME,
     IMPERSONATE_COOKIE,
@@ -10,6 +11,9 @@ const {
     createAdmin,
     register,
     login,
+    getProfile,
+    updateProfile,
+    changePassword,
     cookieMaxAge,
     cookieOptions,
     getAdminFromRequest,
@@ -27,6 +31,15 @@ if(!process.env.JWT_SECRET){
 
 const setSession = (req, res, token)=> res.cookie(COOKIE_NAME, token, cookieOptions(req, cookieMaxAge(token)));
 
+// força bruta e cadastro em massa: limites por IP (formulário recebe a página com a mensagem; JSON recebe 429)
+const limited = (page, extra = {})=> (req, res, retry)=>{
+    const message = `Muitas tentativas. Aguarde ${Math.ceil(retry / 60)} min e tente de novo.`;
+
+    return req.is("json") ? res.status(429).send(statusHandler.newResponse(429, message)) : res.status(429).render(page, {error:message, ...extra(req)});
+};
+const loginLimiter = rateLimit({name:"login", windowMs:15 * 60 * 1000, max:20, methods:["POST"], onLimit:limited(loginPage, (req)=> ({username:req.body?.username}))});
+const registerLimiter = rateLimit({name:"register", windowMs:60 * 60 * 1000, max:5, methods:["POST"], onLimit:limited(registerPage, (req)=> ({form:{company:req.body?.company, email:req.body?.email, username:req.body?.username}}))});
+
 router.get(LOGIN_PATH, (req, res)=>{
 
     // já logado vai direto para o painel
@@ -37,7 +50,7 @@ router.get(LOGIN_PATH, (req, res)=>{
     return res.render(loginPage, {});
 });
 
-router.post(LOGIN_PATH, async(req, res)=>{
+router.post(LOGIN_PATH, loginLimiter, async(req, res)=>{
     try{
 
         const response = await login(req.body);
@@ -75,7 +88,7 @@ router.get(REGISTER_PATH, (req, res)=>{
     return res.render(registerPage, {});
 });
 
-router.post(REGISTER_PATH, async(req, res)=>{
+router.post(REGISTER_PATH, registerLimiter, async(req, res)=>{
     try{
 
         const response = await register(req.body);
@@ -123,6 +136,49 @@ router.get("/admin/logout", (req, res)=>{
     res.clearCookie(IMPERSONATE_COOKIE, cookieOptions(req));
 
     return res.redirect(LOGIN_PATH);
+});
+
+// ---------------------------------------------------------------- área do usuário (/admin/profile)
+router.get("/admin/me", requireAdminApi, async(req, res)=>{
+    try{
+
+        const response = await getProfile(req.admin.sub);
+
+        return res.status(response.status).send(response);
+
+    }catch(error){
+
+        return statusHandler.responseError(error, res);
+    }
+});
+
+router.put("/admin/me", requireAdminApi, async(req, res)=>{
+    try{
+
+        const response = await updateProfile(req.admin.sub, req.body);
+
+        return res.status(response.status).send(response);
+
+    }catch(error){
+
+        return statusHandler.responseError(error, res);
+    }
+});
+
+router.put("/admin/me/password", requireAdminApi, async(req, res)=>{
+    try{
+
+        const response = await changePassword(req.admin.sub, req.body);
+
+        // esta sessão continua com um token novo; as demais (versão antiga) caem
+        setSession(req, res, response.content.token);
+
+        return res.status(200).send(statusHandler.newResponse(200, response.content.message));
+
+    }catch(error){
+
+        return statusHandler.responseError(error, res);
+    }
 });
 
 // cria outro usuário do painel. Dono cria usuários (staff) da própria conta; superadmin cria em qualquer conta

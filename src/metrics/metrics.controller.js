@@ -7,6 +7,10 @@ const {
     getSummary,
     getRealtime
 } = require("./metrics.service");
+const { rateLimit } = require("../helpers/helpers.ratelimit");
+
+// eventos da vitrine (gravam sessão/evento): limite por IP contra inflar o banco
+const eventsLimiter = rateLimit({name:"events", windowMs:60 * 1000, max:120, methods:["POST"]});
 
 const router = require("express").Router();
 const { requireAdminApi } = require("../auth/auth.service");
@@ -44,7 +48,7 @@ router.get("/session/interval", async(req, res)=>{
 });
 
 
-router.post("/add-cart", async(req, res)=>{
+router.post("/add-cart", eventsLimiter, async(req, res)=>{
     const {body} = req;
     try{    
 
@@ -57,7 +61,7 @@ router.post("/add-cart", async(req, res)=>{
     }
 });
 
-router.post("/init-checkout", async(req, res)=>{
+router.post("/init-checkout", eventsLimiter, async(req, res)=>{
     const {body} = req;
     try{    
 
@@ -85,7 +89,7 @@ router.get("/metrics", async(req, res)=>{
 });
 
 // heartbeat público da vitrine (fora do prefixo /session para não exigir admin)
-router.post("/heartbeat", async(req, res)=>{
+router.post("/heartbeat", eventsLimiter, async(req, res)=>{
     try{
 
         const response = await pingSession(req, req.body);

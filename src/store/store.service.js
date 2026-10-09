@@ -4,13 +4,36 @@ const { Product, Collection } = require("../product/product.schema");
 const { findAll, findById, save, findOne, updateById, removeOne, countDocuments } = require("../query");
 const { Shopify } = require("../shopify/shopify.schema");
 const { countries, legacyMoeda, symbolOf, pickBuyerCountry } = require("../helpers/helpers.countries");
+const { DEVICES, deviceCodes } = require("../helpers/helpers.devices");
 const { Store, defaultLayout, layoutNames, visualFieldNames } = require("./store.schema");
 const Twig = require('twig');
 const mongoose = require('mongoose');
 
 
+// dispositivos atendidos: só valores válidos e ao menos um (lista ausente no body = não mexe; loja antiga sem o campo usa o padrão)
+const normalizeDevices = (store = {})=>{
+    if(store.devices === undefined){
+        return store;
+    }
+
+    const devices = (Array.isArray(store.devices) ? store.devices : [store.devices]).filter(device=> deviceCodes.includes(device));
+
+    if(!devices.length){
+        throw(statusHandler.newResponse(400, "Marque ao menos um dispositivo atendido (celular, tablet ou desktop)"));
+    }
+
+    store.devices = [...new Set(devices)];
+
+    return store;
+};
+
+// opções da seção "Dispositivos atendidos" do modal da loja
+const options_devices = DEVICES;
+
 const createStore = async(store, scope = null)=>{
     try{
+
+        normalizeDevices(store);
 
         // dona da loja: a conta em uso; superadmin fora de uma conta precisa informar `account`
         if(scope){
@@ -25,19 +48,29 @@ const createStore = async(store, scope = null)=>{
             second:{...defaultLayout, ...cleanLayoutInput(store.layouts?.second)}
         };
 
-        await save(Store, store);
+        const saved = await save(Store, store);
 
-        return statusHandler.newResponse(200, "ok");
+        // o admin usa `_id` para seguir editando a loja no mesmo modal
+        return statusHandler.newResponse(200, {_id:saved?._id, name:store.name});
 
     }catch(error){
         throw(statusHandler.serviceError(error));
     }
 };
 
+// moeda base da loja em ISO (Store.moeda é legado: euro/dolar/libra); sem valor, EUR, como na vitrine
+const baseCurrencyOf = (moeda)=> legacyMoeda[moeda] || "EUR";
+
 const getAllStores = async(scope = null)=>{
     try{
 
-        const stores = await findAll(Store, scope ? {account:scope} : {});
+        const stores = (await findAll(Store, scope ? {account:scope} : {})).map(store=>{
+            const doc = store.toObject ? store.toObject() : store;
+            const currency = baseCurrencyOf(doc.moeda);
+
+            // o admin usa `currency_symbol` como prefixo dos campos de preço do produto
+            return {...doc, currency, currency_symbol:symbolOf(currency)};
+        });
 
         return statusHandler.newResponse(200, stores);
 
@@ -134,7 +167,11 @@ const layoutsToUpdate = (store = {})=>{
 const changeStore = async(id, store)=>{
     try{
 
-        const update = layoutsToUpdate(store);
+        // dona e id nunca vêm do formulário (impediria mover a loja para outra conta ou trocar o _id)
+        delete store.account;
+        delete store._id;
+
+        const update = layoutsToUpdate(normalizeDevices(store));
 
         if(!Object.keys(update).length){
             throw(statusHandler.newResponse(400, "Nada para atualizar"));
@@ -652,7 +689,7 @@ const useLayout = (config, name)=>{
 // O símbolo (config.moeda) segue a moeda que a Shopify devolveu para o país no refresh de preços; sem refresh, a moeda base.
 const useCountry = (config, countryCode)=>{
     const buyerCountry = pickBuyerCountry(config.country, countryCode);
-    const currency = (buyerCountry && config.market_currencies?.[buyerCountry]) || legacyMoeda[config.moeda_base] || "EUR";
+    const currency = (buyerCountry && config.market_currencies?.[buyerCountry]) || baseCurrencyOf(config.moeda_base);
 
     config.buyer_country = buyerCountry;
     config.currency = currency;
@@ -2402,6 +2439,7 @@ module.exports = {
     changeFile,
     options_country,
     options_moeda,
+    options_devices,
     options_idioma,
     policies,
     files,

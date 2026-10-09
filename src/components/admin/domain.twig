@@ -5,63 +5,83 @@
         <h5>Dominios <i class="bi bi-globe"></i></h5>
         <button c-id="new-domain" class="btn-add-product">Adicionar dominio</button>
     </div>
+
+    {# instruções mostradas logo após cadastrar um domínio (preenchidas por domain-admin.js) #}
+    <div c-id="dns-help" class="domain-help none">
+        <button type="button" c-id="close-help" class="domain-help-close" title="Fechar"><i class="bi bi-x-lg"></i></button>
+        <div class="domain-help-title"><i class="bi bi-info-circle"></i> Domínio <b c-id="help-domain"></b> cadastrado. Falta só o apontamento:</div>
+        <ol class="domain-help-steps">
+            <li>No painel do seu provedor de DNS, crie um registro <b>A</b> para <code c-id="help-host"></code> apontando para <code c-id="help-ip" class="domain-ip">…</code> <button type="button" c-id="copy-ip" class="domain-help-copy" title="Copiar IP"><i class="bi bi-clipboard"></i> copiar</button></li>
+            <li>A propagação do DNS leva de <b>alguns minutos até 48 h</b>, dependendo do provedor.</li>
+            <li>Assim que o DNS apontar para cá, o certificado <b>SSL é emitido automaticamente em até <span c-id="help-sync">10</span> minutos</b>. Não é preciso fazer mais nada.</li>
+        </ol>
+        <p class="domain-help-foot">Acompanhe na coluna <b>Provisionamento</b>: a linha muda para <span class="domain-state-badge is-ready-inline"><i class="bi bi-check-circle-fill"></i> Pronto</span> quando DNS e SSL estiverem ativos. Enquanto esta página estiver aberta, os domínios pendentes são verificados a cada minuto.</p>
+    </div>
     
     <div class="my-table mt-3">
         <div class="row mx-1 p-1">
-            <div class="col-lg-4">
+            <div class="col-lg-3">
                 <label class="mt-1"><b>Dominio</b></label>
             </div>
-            <div class="col-lg-4">
+            <div class="col-lg-2">
                 <label class="mt-1"><b>Loja</b></label>
             </div>
-            <div class="col-lg-4">
-                <label class="mt-1"><b>Status</b></label>
+            <div class="col-lg-5">
+                <label class="mt-1"><b>Provisionamento</b> <span class="domain-col-hint">DNS e SSL</span></label>
+            </div>
+            <div class="col-lg-2">
+                <label class="mt-1"><b>Ativo</b></label>
             </div>
         </div>
 
         <div c-id="model-domain" id="" class="col-lg-12 none">
-            <div  class="row model-table p-2">
-                <div class="col-lg-4">
+            <div class="row model-table p-2 align-items-center">
+                <div class="col-lg-3">
                     <a c-id="domain" class="ms-2"></a>
                 </div>
-                <div class="col-lg-4">  
+                <div class="col-lg-2">
                     <a c-id="name-store"></a>
                 </div>
-                <div class="col-lg-4">
+                <div class="col-lg-5">
+                    <div c-id="state" class="domain-state is-muted" data-state="">
+                        <span class="domain-state-badge"><i class="bi bi-dash-circle"></i> <span c-id="state-label">Não verificado</span></span>
+                        <button type="button" c-id="btn-check" class="domain-state-check" title="Verificar DNS e SSL agora"><i class="bi bi-arrow-repeat"></i></button>
+                        <div c-id="state-detail" class="domain-state-detail"></div>
+                    </div>
+                </div>
+                <div class="col-lg-2">
                     <div class="row-actions"><div class="form-check form-switch">
                         <input c-id="status" class="form-check-input" type="checkbox" role="switch" id="switchCheckChecked">
                     </div><button c-id="btn-delete" class="btn-delete" title="Excluir domínio"><i class="bi bi-trash3"></i></button></div>
                 </div>
-                
             </div>
         </div>
 
+        {# primeira pintura (servidor); domain-admin.js relista em seguida com o último status conhecido #}
         <div c-id="all-domain" class="row">
             {% for domain in domains %}
-
                 <div c-id="model-domain" id="{{domain._id}}" class="col-lg-12">
-                    <div  class="row model-table p-2">
-                        <div class="col-lg-4">
-                            <a class="ms-2">{{domain.domain}}</a>
+                    <div class="row model-table p-2 align-items-center">
+                        <div class="col-lg-3">
+                            <a c-id="domain" class="ms-2">{{domain.domain}}</a>
                         </div>
-                        <div class="col-lg-4">
-                        <a>{{domain.store.name}}</a>
+                        <div class="col-lg-2">
+                            <a c-id="name-store">{{domain.store.name}}</a>
                         </div>
-                        <div class="col-lg-4">
+                        <div class="col-lg-5">
+                            <div c-id="state" class="domain-state is-muted" data-state="">
+                                <span class="domain-state-badge"><i class="bi bi-arrow-repeat"></i> <span c-id="state-label">Carregando…</span></span>
+                                <button type="button" c-id="btn-check" class="domain-state-check" title="Verificar DNS e SSL agora"><i class="bi bi-arrow-repeat"></i></button>
+                                <div c-id="state-detail" class="domain-state-detail"></div>
+                            </div>
+                        </div>
+                        <div class="col-lg-2">
                             <div class="row-actions"><div class="form-check form-switch">
-                                <input c-id="status" class="form-check-input" type="checkbox" role="switch" id="switchCheckChecked" 
-                                {% if domain.status == true %}
-                                    checked
-                                {% endif %}
-                                
-                                >
+                                <input c-id="status" class="form-check-input" type="checkbox" role="switch" id="switchCheckChecked" {% if domain.status == true %}checked{% endif %}>
                             </div><button c-id="btn-delete" class="btn-delete" title="Excluir domínio"><i class="bi bi-trash3"></i></button></div>
                         </div>
-                        
                     </div>
                 </div>
-
-                            
             {% endfor %}
         </div>
     </div>
@@ -92,6 +112,7 @@
                     <select c-id="store-config" class="form-select"></select>
                 </div>
             </div>
+            <p class="modal-section-hint mt-3 mb-0">Depois de salvar, crie um registro <b>A</b> do domínio apontando para <code c-id="modal-ip" class="domain-ip">…</code>. A propagação leva de minutos a 48 h e o SSL é emitido sozinho em até <span c-id="modal-sync">10</span> min após o DNS apontar. <code>loja.com</code> e <code>www.loja.com</code> são domínios distintos: cadastre o que o cliente vai usar.</p>
         </section>
       </div>
       <div class="modal-footer rm-border">

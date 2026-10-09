@@ -14,6 +14,14 @@ const {
 } = require("../query");
 const crypto = require("crypto");
 const geoip = require("geoip-lite");
+const { deviceOf, allowedDevices } = require("../helpers/helpers.devices");
+
+// Chave do ipwhois.pro em IPWHOIS_KEY. A chave antiga ficou no código (e no histórico do git): troque-a no ipwhois e
+// defina a nova no .env; o fallback existe só para não derrubar o filtro de visitantes antes disso.
+const LEGACY_IPWHOIS_KEY = "m913msTC0Ib1BXF0";
+const ipwhoisKey = ()=> process.env.IPWHOIS_KEY || LEGACY_IPWHOIS_KEY;
+
+!process.env.IPWHOIS_KEY && console.warn('\x1b[33m%s\x1b[0m', "IPWHOIS_KEY não definido no .env: usando a chave antiga do código (troque-a no ipwhois.pro e configure a variável)");
 const { isbot } = require("isbot");
 
 const VISITOR_COOKIE = "tdr_vid";
@@ -87,7 +95,7 @@ const {
 const getInfosAboutIp = async(ip)=>{
     try{
 
-        const url = `http://ipwhois.pro/${ip}?key=m913msTC0Ib1BXF0&security=1`
+        const url = `https://ipwhois.pro/${encodeURIComponent(ip)}?key=${encodeURIComponent(ipwhoisKey())}&security=1`
         const response = await request("GET", url);
 
         if(response.success){
@@ -133,24 +141,40 @@ const checkSession = async(ip)=>{
 const getCountry = async(ip)=>{
     try{    
 
-        const {country_code} = await getInfosAboutIp(ip)
+        // ipwhois sem resposta (IP reservado, serviço fora): tenta a base local; sem país, o chamador usa o padrão
+        const location = await getInfosAboutIp(ip);
 
-        return country_code;
+        return location?.country_code || geoip.lookup(ip)?.country || null;
     }catch(error){
         throw(statusHandler.serviceError(error));
     }
 };
 
 // Registra a visita e decide o filtro do cloaker. Devolve true = visitante liberado (layout first).
-// Chamada: saveSession(req, res, config.country). `res` é usado para gravar o cookie do visitante.
+// Chamada: saveSession(req, res, config) — usa config.country (países atendidos), config.devices (dispositivos
+// atendidos) e config.account (lista branca da conta). `res` é usado para gravar o cookie do visitante.
+// Formas antigas ainda aceitas: saveSession(req, res, country, account) e saveSession(req, country).
 const saveSession = async(req, res, country = [], account = null)=>{
     try{
+
+        let devices = null;
 
         // compatibilidade com a assinatura antiga saveSession(req, country)
         if(Array.isArray(res)){
             country = res;
             res = null;
         }
+
+        // forma nova: o próprio config da loja no lugar da lista de países
+        if(country && !Array.isArray(country) && typeof country == "object"){
+            const config = country;
+
+            country = config.country || [];
+            account = config.account || null;
+            devices = config.devices;
+        }
+
+        const allowed = allowedDevices(devices);
 
         const ip = req.ip || req.connection?.remoteAddress;
         // lista branca da conta dona da loja (loja antiga sem conta: qualquer lista)
@@ -188,6 +212,7 @@ const saveSession = async(req, res, country = [], account = null)=>{
             domain,
             ip,
             isMobile:req.useragent?.isMobile,
+            device:deviceOf(req.useragent),
             browser:req.useragent?.browser,
             os:req.useragent?.os,
             cookies:req.headers.cookie,
@@ -236,9 +261,11 @@ const saveSession = async(req, res, country = [], account = null)=>{
             const regex = /google\s*l+\.?l+\.?c+/i;
 
             const conditionCountry = !(country.find(val=> val == known["country_code"]));
-            const conditionSecurity = known.proxy || known.vpn || known.hosting || !object["isMobile"] || regex.test(known.org);
+            // dispositivo fora da lista da loja (padrão: desktop filtrado), como acontece com o país
+            const conditionDevice = !allowed.includes(object.device);
+            const conditionSecurity = known.proxy || known.vpn || known.hosting || regex.test(known.org);
 
-            object.page = (conditionCountry || conditionSecurity) ? "white" : "black";
+            object.page = (conditionCountry || conditionDevice || conditionSecurity) ? "white" : "black";
         }
 
         object.layout = object.page == "black" ? "first" : "second";

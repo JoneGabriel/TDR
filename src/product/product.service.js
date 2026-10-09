@@ -131,6 +131,28 @@ const normalizeProductLayouts = (product)=>{
     return product;
 };
 
+// Na loja second só entram produtos com versão second cadastrada (pelo menos um campo de layouts.second
+// preenchido). O filtro é aplicado na consulta, então vale igual para listas, página do produto e carrinho.
+const SECOND_VERSION_FILTER = {$or:[
+    {"layouts.second.name":{$nin:[null, ""]}},
+    {"layouts.second.price":{$nin:[null, ""]}},
+    {"layouts.second.last_price":{$nin:[null, ""]}},
+    {"layouts.second.description":{$nin:[null, ""]}},
+    {"layouts.second.images.0":{$exists:true}}
+]};
+const layoutFilter = (layout)=> layout == "second" ? SECOND_VERSION_FILTER : {};
+
+// 404 quando o produto não existe na versão pedida (second sem versão cadastrada)
+const assertVisibleInLayout = async(id, layout)=>{
+    if(layout != "second") return;
+
+    const visible = await countDocuments(Product, {_id:id, ...SECOND_VERSION_FILTER});
+
+    if(!visible){
+        throw(statusHandler.newResponse(404, "Produto não disponível nesta versão da loja"));
+    }
+};
+
 // Projeção leve para listagens (só a primeira imagem), já com a versão second
 const listProjection = {
     name:1, last_price:1, price:1, brand:1, status:1, prices:1,
@@ -144,7 +166,7 @@ const getInfoCollection = async(id, layout = "first", country = null)=>{
        
         const collection = await findById(Collection, id);
         let products = await findAll(Product, {
-            collection_:id, status:true
+            collection_:id, status:true, ...layoutFilter(layout)
         }, listProjection);
 
         products = products.map(product=> applyProductLayout(product, layout, country));
@@ -168,7 +190,7 @@ const createObjectCollections = async(collections, layout = "first", country = n
         for(i in collections){
 
             const {_id, name} = collections[i];
-            let products = await findAll(Product, {collection_:_id}, listProjection);
+            let products = await findAll(Product, {collection_:_id, ...layoutFilter(layout)}, listProjection);
 
             products = products.map(product=> applyProductLayout(product, layout, country));
 
@@ -191,7 +213,7 @@ const getFirtsCollection = async(store, layout = "first", country = null)=>{
         const collections = await findAll(Collection, {status:true, store});
         const position = collections.length-1;
         let products = await findAll(Product, {
-            collection_:collections[position]?._id, status:true, store
+            collection_:collections[position]?._id, status:true, store, ...layoutFilter(layout)
         }, listProjection);
 
         products = products.map(product=> applyProductLayout(product, layout, country));
@@ -212,9 +234,9 @@ const getFirtsCollection = async(store, layout = "first", country = null)=>{
 const createCollections = async(collection)=>{
     try{
 
-        await save(Collection, collection);
+        const saved = await save(Collection, collection);
 
-        return statusHandler.newResponse(200, "Created collection");
+        return statusHandler.newResponse(200, {_id:saved?._id, message:"Created collection"});
 
     }catch(error){
         throw(statusHandler.serviceError(error));
@@ -381,7 +403,8 @@ const createProduct = async(product)=>{
     try{
         
         const shopify = product["other_shopify"];
-        const bundles = product["bundles"];
+        // o admin manda os bundles em `bundle` (mesma chave que changeProduct lê); `bundles` fica por compatibilidade
+        const bundles = product["bundle"] || product["bundles"];
 
         await ensureProductStore(product);
         normalizeProductLayouts(product);
@@ -393,11 +416,15 @@ const createProduct = async(product)=>{
             await createOtherVariants(shopify, "" + (idProduct)._id);
         }
 
+        if(!isEmpty(bundles)){
+            await createBundles(bundles, "" + (idProduct)._id);
+        }
+
         // cache de preços por país (falha na Shopify não impede o cadastro)
         await refreshProductPrices("" + (idProduct)._id).catch(error=> console.warn('\x1b[33m%s\x1b[0m', `[pricing] ${error.content || error.message || error}`));
 
-
-        return statusHandler.newResponse(200, "Created product");
+        // o admin usa `_id` para recarregar o produto no mesmo modal (ids de bundles e variantes)
+        return statusHandler.newResponse(200, {_id:idProduct._id, message:"Created product"});
     }catch(error){
         throw(statusHandler.serviceError(error));
     }
@@ -465,6 +492,9 @@ const arrangeVariants = (product, isBundle = false)=>{
 const getProductById = async(id, api = false, layout = "first", country = null)=>{
     try{
 
+        // vitrine na loja second: produto sem versão second não existe
+        !api && await assertVisibleInLayout(id, layout);
+
         let product = await findById(Product, id);
         // admin (api) recebe o documento inteiro, com layouts.second, para editar as duas versões
         product = api ? product.toJSON() : applyProductLayout(product, layout, country);
@@ -500,6 +530,8 @@ const getProductById = async(id, api = false, layout = "first", country = null)=
 
 const getProductByIdForCart = async({id}, {cart, is_bundle, layout, country})=>{
     try{
+
+        await assertVisibleInLayout(id, layout);
         
         let product =  await findById(Product, id, {name:1, last_price:1, price:1, store:1, prices:1, "layouts.second.name":1, "layouts.second.last_price":1, "layouts.second.price":1});
 
@@ -559,7 +591,7 @@ const getProductByIdForCart = async({id}, {cart, is_bundle, layout, country})=>{
 const getProductsRamdon = async(collection_, store, layout = "first", country = null)=>{
     try{
 
-        let products = await findAll(Product, {collection_, status:true, store});
+        let products = await findAll(Product, {collection_, status:true, store, ...layoutFilter(layout)});
         
         return products.slice(0,6).map(product=> applyProductLayout(product, layout, country));
 

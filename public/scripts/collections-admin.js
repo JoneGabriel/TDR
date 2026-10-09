@@ -95,9 +95,12 @@ const saveCollection = async(id=false)=>{
 
         if(response.status == 200){
             statusHandler.newMessage(`Coleção ${!id ? "Criada" : "Atualizada"}`);
-            cleanCollectionFilds();
-            await listAllCollections()
+            await listAllCollections();
+
+            return id || response.content?._id;
         }
+
+        throw(statusHandler.messageError(response.content || "Erro ao salvar coleção", true));
 
     }catch(error){
         throw(statusHandler.messageError(error));
@@ -280,7 +283,6 @@ $(document).ready(function(){
 
     // arrastar e soltar a imagem da coleção (admin-media.js)
     AdminMedia.bindDropzone(document.querySelector("[c-id=dropzone-images]"), async(files)=> listImg(await AdminMedia.filesToDataUrls(files)));
-    AdminMedia.bindAiBar(document.querySelector("[c-id=ai-bar-images]"), (image)=> listImg([image]));
 
      $("body").on("click", "[c-id=copy]", async(e)=>{
         try{
@@ -348,8 +350,10 @@ $(document).ready(function(){
 
             const id = $(e.target).attr("id");
 
-            await saveCollection(id);
-            $("[c-id=modal-collection]").modal("hide");
+            const savedId = await saveCollection(id);
+
+            // o modal continua aberto: recarrega a coleção salva (coleção nova passa a ser editada)
+            savedId && await getCollectionById(savedId);
 
         }catch(error){
             statusHandler.messageError(error);
@@ -359,6 +363,7 @@ $(document).ready(function(){
     $("[c-id=new-collection]").on("click", ()=>{
         try{
 
+            cleanCollectionFilds();
             $("[c-id=modal-collection]").modal("show");
 
         }catch(error){

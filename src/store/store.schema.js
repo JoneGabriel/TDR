@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { countryCodes } = require('../helpers/helpers.countries');
+const { deviceCodes } = require('../helpers/helpers.devices');
 
 const defaultHeader = `
     <meta charset="UTF-8">
@@ -880,6 +881,11 @@ const Store = mongoose.model("store", {
     country:{
         type:[String],
         enum:countryCodes
+    },
+    // dispositivos atendidos pelo filtro de visitantes (mobile, tablet, desktop); vazio = padrão de helpers.devices.js (celular e tablet)
+    devices:{
+        type:[String],
+        enum:deviceCodes
     },
     // moeda que a Shopify devolveu por país no último refresh de preços ({ FR:"EUR", GB:"GBP" }); define o símbolo na vitrine
     market_currencies:{

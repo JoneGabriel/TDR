@@ -6,7 +6,7 @@
         <script>window.TDR_ORDER = {{ order_chat|raw }};</script>
     {% endif %}
     {% if store == true %}
-        {{ menu_store}}
+        {{ menu_store|raw }}
     {% endif %}
 
      {% if admin == true %}
@@ -15,15 +15,17 @@
         {% include './confirm-admin.twig'%}
     {% endif %}
 
-        {% if store == true and policy !=true %}
-            {{ template}}
+        {# vitrine: HTML já renderizado pelo template da loja (uma passagem só, sem reavaliar como Twig) #}
+        {% if store == true and policy != true %}
+            {{ template|raw }}
         {% endif %}
-    {% if admin == true or policy == true %}
-        {% include (template_from_string(template)) %}
+    {# painel e políticas: arquivo .twig do projeto, informado pelo controller em `view` #}
+    {% if view is defined and view %}
+        {% include view %}
     {% endif %}
      
     {% if store == true %}
-        {{cart_template}}
+        {{ cart_template|raw }}
     {% endif %}
 
     {% include './footer.twig'%}

@@ -35,9 +35,9 @@ const saveNewIp = async(body, account)=>{
 
         body['createdAt'] = nowBrazil;
         body['account'] = account;
-        await save(WhiteList, body);
+        const saved = await save(WhiteList, body);
 
-        return statusHandler.newResponse(200, 'ok');
+        return statusHandler.newResponse(200, {_id:saved?._id, message:"ok"});
 
     }catch(error){
         throw(statusHandler.serviceError(error))

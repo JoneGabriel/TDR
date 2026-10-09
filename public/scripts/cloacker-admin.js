@@ -76,9 +76,14 @@ const saveIp = async(id=false)=>{
 
         if(response.status == 200){
             statusHandler.newMessage(`Ip ${!id ? "Cadastrado" : "Atualizado"}`);
+            // modal só de inclusão: continua aberto, limpo para o próximo IP
             cleanIpFilds();
-            await listAllIps()
+            await listAllIps();
+
+            return;
         }
+
+        throw(statusHandler.messageError(response.content || "Erro ao salvar IP", true));
 
     }catch(error){
         throw(statusHandler.messageError(error));
@@ -137,7 +142,6 @@ $(document).ready(function(){
             const id = $(e.target).attr("id");
 
             await saveIp(id);
-            $("[c-id=modal-ip]").modal("hide");
 
         }catch(error){
             statusHandler.messageError(error);
@@ -146,6 +150,7 @@ $(document).ready(function(){
 
 
     $("[c-id=new-ip]").on("click", ()=>{
+        cleanIpFilds();
         $("[c-id=modal-ip]").modal("show");
     });
 

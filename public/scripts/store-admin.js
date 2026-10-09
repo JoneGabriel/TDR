@@ -24,6 +24,8 @@ const showImage = (selector, src, inherited = false)=>{
     const $img = $(selector);
     const $preview = $img.closest(".image-picker-preview");
 
+    $preview.closest(".image-picker").toggleClass("has-image", !!src);
+
     if(!src){
         $img.attr("src", "");
         $preview.addClass("none").removeClass("is-inherited");
@@ -173,6 +175,19 @@ const getBase64 = async(fild = "[c-id=logo]")=>{
 // contador de países marcados
 const updateCountryCount = ()=> $("[c-id=country-count]").text($("[c-id=form]").find("[c-id=country] input:checked").length);
 
+// dispositivos atendidos (filtro de visitantes): padrão celular + tablet, igual às lojas antigas sem o campo
+const DEFAULT_DEVICES = ["mobile", "tablet"];
+const updateDeviceCount = ()=> $("[c-id=device-count]").text($("[c-id=form]").find("[c-id=devices] input:checked").length);
+const getDevices = ()=> $("[c-id=form]").find("[c-id=devices] input:checked").toArray().map(input=> input.value);
+const setDevices = (devices)=>{
+    const list = Array.isArray(devices) && devices.length ? devices : DEFAULT_DEVICES;
+
+    $("[c-id=form]").find("[c-id=devices] input").each(function(){
+        $(this).prop("checked", list.includes(this.value));
+    });
+    updateDeviceCount();
+};
+
 const getCountry = ()=>{
     try{
 
@@ -212,6 +227,11 @@ const getBodyStore = ()=>{
         body["idioma"] = $(ctx).find("[c-id=idioma]").val();
         body["moeda"] = $(ctx).find("[c-id=moeda]").val();
         body["country"] = getCountry();
+        body["devices"] = getDevices();
+
+        if(!body["devices"].length){
+            throw(statusHandler.messageError("Marque ao menos um dispositivo atendido (celular, tablet ou desktop)", true));
+        }
 
         // visuais por layout: first vai para a raiz da loja; second vai para layouts.second.* (vazio = herda do first)
         visual[visualLayout] = readVisualFromDom();
@@ -255,10 +275,11 @@ const saveStore = async(id = false) =>{
         if(response.status == 200){
             statusHandler.newMessage(`Loja ${!id ? "Criada" : "Atualizada"}`);
 
-            return;
+            // id da loja (a criada vem em content._id) para o modal seguir aberto em modo de edição
+            return id || response.content?._id;
         }
 
-        throw(statusHandler.messageError("Erro ao salvar loja", true));
+        throw(statusHandler.messageError(response.content || "Erro ao salvar loja", true));
 
     }catch(error){
         throw(statusHandler.messageError(error));
@@ -344,6 +365,7 @@ const listStoreInForm = (store)=>{
 
         $(ctx).find("[c-id=save-store]").attr("id", _id);
         updateCountryCount();
+        setDevices(store.devices);
 
         return visual.first.css;
 
@@ -632,21 +654,19 @@ $(document).ready(function(){
     });
 
     // logo e banners: arrastar e soltar (admin-media.js)
-    AdminMedia.bindDropzone(document.querySelector("[c-id=dropzone-logo]"), async(files)=>{
+    // a área de soltar é o card inteiro (zona vazia ou imagem já carregada, para trocar arrastando)
+    AdminMedia.bindDropzone(document.querySelector("[c-id=dropzone-logo]")?.closest(".image-picker"), async(files)=>{
         const [img] = await AdminMedia.filesToDataUrls(files);
 
         img && listLogo(img);
     });
 
-    [1, 2, 3].forEach(n=> AdminMedia.bindDropzone(document.querySelector(`[c-id=dropzone-banner_${n}]`), async(files)=>{
+    [1, 2, 3].forEach(n=> AdminMedia.bindDropzone(document.querySelector(`[c-id=dropzone-banner_${n}]`)?.closest(".image-picker"), async(files)=>{
         const [img] = await AdminMedia.filesToDataUrls(files);
 
         img && listBanner(img, `[c-id=banner-${n}]`);
     }));
 
-    // gerar logo e banners com IA (Higgsfield)
-    AdminMedia.bindAiBar(document.querySelector("[c-id=ai-bar-logo]"), (image)=> listLogo(image));
-    [1, 2, 3].forEach(n=> AdminMedia.bindAiBar(document.querySelector(`[c-id=ai-bar-banner_${n}]`), (image)=> listBanner(image, `[c-id=banner-${n}]`)));
 
     // países: filtro por nome/código e contador
     $("[c-id=country-filter]").on("input", (e)=>{
@@ -658,6 +678,7 @@ $(document).ready(function(){
     });
 
     $("[c-id=form]").on("change", "[c-id=country] input", updateCountryCount);
+    $("[c-id=form]").on("change", "[c-id=devices] input", updateDeviceCount);
 
     // alterna o layout editado pelos campos visuais (título, mensagem, cores, logo, posição, banners, CSS)
     $("[c-id=visual-layout]").on("change", "input", (e)=> switchVisualLayout(e.target.value));
@@ -748,12 +769,17 @@ $(document).ready(function(){
 
             $(e.target).addClass("none");
 
-            await saveStore(id);
-            cleanStoreFilds();
-        
-            $("[c-id=modal-store]").modal("hide");
+            const savedId = await saveStore(id);
+
             $(e.target).removeClass("none");
-           
+
+            // o modal continua aberto: loja nova passa a ser editada (id no botão, título e botões de template/políticas)
+            if(savedId){
+                $(e.target).attr("id", savedId);
+                $("[c-id=form]").find("[c-id=name-store]").text($("[c-id=form]").find("[c-id=name]").val());
+                $("[c-id=modal-store]").find("[c-id=open-template], [c-id=open-policies]").removeClass("none");
+            }
+
             await listStores();
 
         }catch(error){
@@ -765,6 +791,7 @@ $(document).ready(function(){
     $("[c-id=new-store]").on("click", ()=>{
         $("[c-id=modal-store]").modal("show");
         cleanStoreFilds();
+        setDevices(DEFAULT_DEVICES);
 
         $("#editor").html("");
         require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' }});
@@ -825,7 +852,8 @@ $(document).ready(function(){
 
     $("body").on("click", "[c-id=remove-img]", (e)=>{
         
-        $(e.currentTarget).closest("div")
+        $(e.currentTarget).closest(".image-picker").removeClass("has-image");
+        $(e.currentTarget).closest(".image-picker-preview")
         .addClass("none")
         .removeClass("is-inherited")
         .find("img").attr("src", "");

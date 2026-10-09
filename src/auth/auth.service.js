@@ -1,13 +1,14 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const statusHandler = require("../helpers/helpers.statusHandler");
-const { findOne, findById, save } = require("../query");
+const { findOne, findById, save, updateById } = require("../query");
 const { Admin, ADMIN_ROLES } = require("./auth.schema");
 const { Account } = require("../account/account.schema");
 
 const COOKIE_NAME = "admin_token";
 const IMPERSONATE_COOKIE = "admin_as";   // superadmin "entrando" numa conta: escopo do painel vira essa conta
 const LOGIN_PATH = "/admin/login";
+const HOME_PATH = "/admin/home";
 const REGISTER_PATH = "/admin/register";
 const PENDING_PATH = "/admin/pending";
 const SALT_ROUNDS = 10;
@@ -51,8 +52,9 @@ const signToken = (admin)=> jwt.sign({
     sub:String(admin._id),
     username:admin.username,
     role:admin.role || "owner",
-    account:admin.account ? String(admin.account) : null
-}, getSecret(), {expiresIn:getExpires()});
+    account:admin.account ? String(admin.account) : null,
+    tv:admin.token_version || 0
+}, getSecret(), {algorithm:"HS256", expiresIn:getExpires()});
 
 // ---------------------------------------------------------------- usuários
 const createAdmin = async({username, password, email, account = null, role = "owner"})=>{
@@ -184,13 +186,107 @@ const login = async({username, password} = {})=>{
     }
 };
 
+// ---------------------------------------------------------------- perfil (o próprio usuário, /admin/profile)
+// `id` é o `sub` do JWT (req.admin.sub). Usuário e papel não mudam por aqui: só e-mail e senha.
+const getProfile = async(id)=>{
+    try{
+
+        const admin = await findById(Admin, id);
+
+        if(!admin){
+            throw(statusHandler.newResponse(404, "Usuário não encontrado"));
+        }
+
+        const account = admin.account ? await findById(Account, admin.account) : null;
+
+        return statusHandler.newResponse(200, {
+            username:admin.username,
+            email:admin.email || "",
+            role:admin.role,
+            createdAt:admin.createdAt || null,
+            password_changed_at:admin.password_changed_at || null,
+            account:account ? {name:account.name, status:account.status, email:account.email || ""} : null
+        });
+
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
+
+const updateProfile = async(id, {email} = {})=>{
+    try{
+
+        email = normalizeEmail(email);
+
+        if(email && !validEmail(email)){
+            throw(statusHandler.newResponse(400, "E-mail inválido"));
+        }
+
+        const admin = await findById(Admin, id);
+
+        if(!admin){
+            throw(statusHandler.newResponse(404, "Usuário não encontrado"));
+        }
+
+        await updateById(Admin, id, {email});
+
+        return statusHandler.newResponse(200, "Dados atualizados");
+
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
+
+// troca de senha: exige a senha atual; o JWT não guarda a senha, então a sessão atual continua válida
+const changePassword = async(id, {current_password, password, password_confirm} = {})=>{
+    try{
+
+        if(!current_password || !password){
+            throw(statusHandler.newResponse(400, "Informe a senha atual e a nova senha"));
+        }
+
+        if(password.length < 8){
+            throw(statusHandler.newResponse(400, "A nova senha precisa ter no mínimo 8 caracteres"));
+        }
+
+        if(password !== password_confirm){
+            throw(statusHandler.newResponse(400, "A confirmação não confere com a nova senha"));
+        }
+
+        if(password === current_password){
+            throw(statusHandler.newResponse(400, "A nova senha precisa ser diferente da atual"));
+        }
+
+        const admin = await findById(Admin, id);
+
+        if(!admin){
+            throw(statusHandler.newResponse(404, "Usuário não encontrado"));
+        }
+
+        if(!(await bcrypt.compare(current_password, admin.password))){
+            throw(statusHandler.newResponse(400, "Senha atual incorreta"));
+        }
+
+        const token_version = (admin.token_version || 0) + 1;
+
+        await updateById(Admin, id, {password:await bcrypt.hash(password, SALT_ROUNDS), password_changed_at:nowBrazil(), token_version});
+        forgetAdmin(id);
+
+        // as outras sessões (tv antigo) caem; esta recebe um token novo pelo controller
+        return statusHandler.newResponse(200, {message:"Senha alterada", token:signToken({...admin.toObject(), token_version})});
+
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
+
 // ---------------------------------------------------------------- sessão e escopo
 // Lê e valida o JWT do cookie; devolve o payload ou null. Tokens antigos (sem papel) são descartados: novo login.
 const getAdminFromRequest = (req)=>{
     try{
 
         const token = req.cookies?.[COOKIE_NAME];
-        const payload = token ? jwt.verify(token, getSecret()) : null;
+        const payload = token ? jwt.verify(token, getSecret(), {algorithms:["HS256"]}) : null;
 
         return payload && payload.role ? payload : null;
 
@@ -222,6 +318,29 @@ const accountInfo = async(id)=>{
 
 const forgetAccount = (id)=> accountCache.delete(String(id));
 
+// status e versão de token do usuário, com o mesmo cache curto: usuário desativado ou senha trocada derruba a sessão
+const adminCache = new Map();
+
+const adminInfo = async(id)=>{
+    if(!id) return null;
+
+    const key = String(id);
+    const hit = adminCache.get(key);
+
+    if(hit && Date.now() - hit.at < ACCOUNT_CACHE_MS){
+        return hit.info;
+    }
+
+    const doc = await findById(Admin, key).catch(()=> null);
+    const info = doc ? {status:doc.status !== false, token_version:doc.token_version || 0} : null;
+
+    adminCache.set(key, {info, at:Date.now()});
+
+    return info;
+};
+
+const forgetAdmin = (id)=> adminCache.delete(String(id));
+
 // conta em uso: a do usuário; para o superadmin, a conta em que ele "entrou" (cookie) ou null = todas
 const scopeOf = (req)=> req.admin?.role == "superadmin" ? (req.cookies?.[IMPERSONATE_COOKIE] || null) : (req.admin?.account || null);
 
@@ -231,6 +350,12 @@ const loadContext = async(req, res)=>{
     const admin = getAdminFromRequest(req);
 
     if(!admin){
+        return {ok:false, reason:"auth"};
+    }
+
+    const info = await adminInfo(admin.sub);
+
+    if(!info || !info.status || (admin.tv || 0) !== info.token_version){
         return {ok:false, reason:"auth"};
     }
 
@@ -318,35 +443,58 @@ const requireScope = (req, res, next)=> req.scope ? next() : res.status(400).sen
 const requireSuperadmin = (req, res, next)=> req.admin?.role == "superadmin" ? next() : res.status(403).send(statusHandler.newResponse(403, "Somente o superadmin"));
 const requireSuperadminPage = (req, res, next)=> req.admin?.role == "superadmin" ? next() : res.redirect("/admin/home");
 
-// Domínios exclusivos do painel: ADMIN_HOSTS=admin.loja.com,painel.outra.com. Neles a vitrine não existe: rota de
-// vitrine ou inexistente redireciona para o login do admin. Um host listado aqui NÃO pode ser domínio de loja.
-// Sem a variável o recurso fica desligado (nenhum fallback, para não bloquear por engano uma loja que use o mesmo host de HOST).
+// Domínios reservados ao sistema: ADMIN_HOSTS=admin.loja.com,painel.outra.com e o host de HOST (endereço do painel).
+// Neles a vitrine não existe (rota de vitrine ou inexistente redireciona para o login) e eles não podem ser
+// cadastrados como domínio de loja em /admin/domain (nem com www.). localhost e IPs ficam fora da reserva.
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
 const cleanHost = (value)=> String(value || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/[/:].*$/, "");
 const adminHosts = ()=> (process.env.ADMIN_HOSTS || "").split(",").map(cleanHost).filter(Boolean);
-const isAdminHost = (req)=> {
-    const host = cleanHost(req.hostname || req.get("host"));
+const reservedHosts = ()=>{
+    const hosts = new Set(adminHosts());
+    const main = cleanHost(process.env.HOST);
 
-    return !!host && adminHosts().includes(host);
+    main && !LOCAL_HOSTS.has(main) && !/^\d+\.\d+\.\d+\.\d+$/.test(main) && hosts.add(main);
+
+    return [...hosts];
 };
-const notOnAdminHost = (req, res, next)=> isAdminHost(req) ? res.redirect(LOGIN_PATH) : next();
+const isReservedHost = (value)=>{
+    const host = cleanHost(value);
+
+    if(!host) return false;
+
+    const bare = host.replace(/^www\./, "");
+
+    return reservedHosts().some(reserved=> reserved == host || reserved.replace(/^www\./, "") == bare);
+};
+const isAdminHost = (req)=> isReservedHost(req.hostname || req.get("host"));
+// rotas de vitrine num host reservado vão para a home do painel (login, se não houver sessão)
+const notOnAdminHost = (req, res, next)=> isAdminHost(req) ? res.redirect(HOME_PATH) : next();
 
 module.exports = {
     COOKIE_NAME,
     IMPERSONATE_COOKIE,
     LOGIN_PATH,
+    HOME_PATH,
     REGISTER_PATH,
     PENDING_PATH,
     adminHosts,
+    reservedHosts,
+    isReservedHost,
     isAdminHost,
     notOnAdminHost,
     createAdmin,
     register,
     login,
+    getProfile,
+    updateProfile,
+    changePassword,
     cookieMaxAge,
     cookieOptions,
     getAdminFromRequest,
     accountInfo,
     forgetAccount,
+    adminInfo,
+    forgetAdmin,
     scopeOf,
     loadContext,
     requireAdminPage,

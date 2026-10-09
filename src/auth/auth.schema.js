@@ -36,7 +36,13 @@ const Admin = mongoose.model("admin", {
         enum:ADMIN_ROLES,
         default:"owner"
     },
-    createdAt:Date
+    createdAt:Date,
+    password_changed_at:Date,
+    // entra no JWT como `tv`; trocar a senha incrementa e invalida as outras sessões
+    token_version:{
+        type:Number,
+        default:0
+    }
 });
 
 module.exports = {

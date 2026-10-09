@@ -95,6 +95,10 @@ crontab -e
 
 Para não esperar o cron: `./scripts/domain.sh sync` (ou `sync --dry-run` para só ver o plano). `./scripts/domain.sh list` mostra o que está configurado e a validade dos certificados.
 
+**Antes de abrir o cadastro para outros usuários**: confira no `.env` `TRUST_PROXY` (1 = só o nginx deste compose; 2 se houver Cloudflare ou outro proxy na frente; nunca `true`), `IPWHOIS_KEY` (gere uma chave nova no ipwhois.pro: a antiga ficou no histórico do código) e `JWT_SECRET` forte. O app limita tentativas de login/cadastro por IP, o tamanho dos corpos de requisição e executa os templates das lojas num sandbox; o painel escapa tudo o que vem dos inquilinos.
+
+**Acompanhamento pelo painel**: em `/admin/domain`, a coluna "Provisionamento" mostra em que etapa cada domínio está (aguardando DNS, DNS em outro IP, aguardando SSL, pronto, sem resposta...) e, ao cadastrar um domínio, aparecem as instruções com o IP para o registro A e os prazos (propagação de minutos a 48 h; SSL em até 10 min depois). A verificação é feita pelo próprio app (DNS + uma chamada HTTPS ao domínio), não substitui o log do `sync`. O IP mostrado vem de `PUBLIC_IP` no `.env` ou, sem ele, de `api.ipify.org`; defina `PUBLIC_IP` se a VPS tiver mais de um IP ou a saída para o ipify estiver bloqueada.
+
 Regras do `sync`:
 
 - Com `loja.com` e `www.loja.com` cadastrados, os dois servem a loja. Com só um deles cadastrado, o outro entra no certificado (se o DNS dele também apontar para a VPS) e redireciona para o cadastrado. Assim nenhum visitante cai no certificado autoassinado.

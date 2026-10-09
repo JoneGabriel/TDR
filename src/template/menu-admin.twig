@@ -30,9 +30,6 @@
         <li class="nav-item">
           <a class="nav-link {{domain}}" href="/admin/domain"><i class="bi bi-globe"></i>Dominios</a>
         </li>
-        <li class="nav-item">
-          <a class="nav-link {{integrations}}" href="/admin/integrations"><i class="bi bi-plug"></i>Integrações</a>
-        </li>
         {% if admin_user is defined and admin_user.superadmin %}
         <li class="nav-item">
           <a class="nav-link {{accounts}}" href="/admin/accounts"><i class="bi bi-people"></i>Contas</a>
@@ -54,8 +51,13 @@
           <span class="nav-link"><i class="bi bi-building"></i>{{ admin_user.account.name }}</span>
         </li>
         {% endif %}
+        {% if admin_user is defined %}
+        <li class="nav-item nav-profile">
+          <a class="nav-link {{profile}}" href="/admin/profile" title="Meus dados: e-mail e senha"><i class="bi bi-person-circle"></i><span>{{ admin_user.username }}</span></a>
+        </li>
+        {% endif %}
         <li class="nav-item">
-          <a class="nav-link" href="/admin/logout" {% if admin_user is defined %}title="{{ admin_user.username }}"{% endif %}><i class="bi bi-box-arrow-right"></i>Sair</a>
+          <a class="nav-link" href="/admin/logout" title="Sair"><i class="bi bi-box-arrow-right"></i>Sair</a>
         </li>
       </ul>
     </div>

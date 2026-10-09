@@ -4,7 +4,9 @@ const {
     changeStatusDomain,
     getDomainById,
     changeDomain,
-    removeDomain
+    removeDomain,
+    checkDomainById,
+    getServerIp
 } = require("./domain.service");
 
 const router = require("express").Router();
@@ -48,6 +50,34 @@ router.get("/domain", async(req, res)=>{
     try{
 
         const response = await getAllDomains(req.query, req.scope);
+
+        return res.status(response.status).send(response);
+    }catch(error){  
+
+        return statusHandler.responseError(error, res);
+    }
+});
+
+// IP desta VPS para o registro A (antes de /domain/:id, que trataria "server-ip" como id)
+router.get("/domain/server-ip", async(req, res)=>{
+    try{
+
+        const response = await getServerIp();
+
+        return res.status(response.status).send(response);
+    }catch(error){  
+
+        return statusHandler.responseError(error, res);
+    }
+});
+
+// status de provisionamento (DNS + SSL) de um domínio; grava o resultado em Domain.check
+router.get("/domain/:id/check", async(req, res)=>{
+    try{
+
+        await assertDomain(req.scope, req.params.id);
+
+        const response = await checkDomainById(req.params);
 
         return res.status(response.status).send(response);
     }catch(error){  

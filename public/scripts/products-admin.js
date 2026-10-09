@@ -1,3 +1,24 @@
+// lojas e coleções carregadas nos selects, por id (a loja traz `currency_symbol` da moeda base)
+const storesById = {};
+const collectionsById = {};
+
+// símbolo da moeda base do produto: loja escolhida ou, sem ela, a loja da coleção
+const currencySymbol = ()=>{
+    const store = $("[c-id=store-config]").val() || collectionsById[$("[c-id=collection]").val()]?.store;
+
+    return storesById[store]?.currency_symbol || "";
+};
+
+// aplica o símbolo em todos os prefixos de preço do formulário (first, second e bundles, inclusive clones)
+const applyCurrencySymbol = ()=>{
+    const symbol = currencySymbol();
+
+    $("[c-id=form]").find("[c-id=currency-symbol]")
+        .text(symbol || "¤")
+        .toggleClass("is-unknown", !symbol)
+        .attr("title", symbol ? `Moeda base da loja: ${symbol}` : "Escolha a loja ou a coleção para ver a moeda base");
+};
+
 const cleanProductFilds = ()=>{
     try{
 
@@ -13,6 +34,7 @@ const cleanProductFilds = ()=>{
 
         $("[c-id=form]").find("[c-id=name-product]").text("");
         $("[c-id=discount-preview]").addClass("none").text("");
+        applyCurrencySymbol();
 
 
     }catch(error){
@@ -98,6 +120,7 @@ const listBundles = (bundles)=>{
             $(model).attr("id", _id);
 
             $(ctx).append(model);
+            applyCurrencySymbol();
             $(model).removeClass("none");
 
         });
@@ -210,6 +233,8 @@ const listCollections = async()=>{
                 content.forEach((collection, index)=>{
                     const {status, name, _id} = collection;
 
+                    collectionsById[_id] = collection;
+
                     !index && $(ctx).append(`<option  selected disabled hidden>Escolha uma coleção</option>`)
 
                     if(status){
@@ -237,7 +262,12 @@ const saveProduct = async(id = false)=>{
 
         if(response.status == 200){
             statusHandler.newMessage(`Produto ${!id ? "Criado" : "Atualizado"}`);
+
+            // id do produto (o criado vem em content._id) para o modal seguir aberto em modo de edição
+            return id || response.content?._id;
         }
+
+        throw(statusHandler.messageError(response.content || "Erro ao salvar produto", true));
 
     }catch(error){
         throw(statusHandler.messageError(error));
@@ -350,6 +380,7 @@ const listProductInForm = (product)=>{
 
 
         $(ctx).find("[c-id=collection]").val(collection_);
+        applyCurrencySymbol();
         $(ctx).find("[c-id=description]").val(description);
         $(ctx).find("[c-id=save-product]").attr("id", _id);
 
@@ -562,6 +593,8 @@ const listStores = async()=>{
                 content.forEach((store, index)=>{
                     const {status, name, _id} = store;
 
+                    storesById[_id] = store;
+
                     !index && $(ctx).append(`<option  selected disabled hidden>Escolha uma Loja</option>`)
 
                     if(status){
@@ -679,6 +712,9 @@ $(document).ready(function(){
     listShopifys();
     listStores();
 
+    // prefixo de moeda dos preços segue a loja (ou a loja da coleção)
+    $("[c-id=store-config], [c-id=collection]").on("change", applyCurrencySymbol);
+
     // fotos: arrastar e soltar, reordenar, capa e contador (componente em admin-media.js)
     AdminMedia.bindDropzone(document.querySelector("[c-id=dropzone-images]"), async(files)=> listImg(await AdminMedia.filesToDataUrls(files)));
     AdminMedia.bindDropzone(document.querySelector("[c-id=dropzone-images-second]"), async(files)=> listImg(await AdminMedia.filesToDataUrls(files), "[c-id=image-list-second]"));
@@ -695,9 +731,6 @@ $(document).ready(function(){
 
     $("[c-id=form]").on("input", "[c-id=price], [c-id=last_price]", updateDiscountPreview);
 
-    // gerar foto com IA (Higgsfield) nas duas versões
-    AdminMedia.bindAiBar(document.querySelector("[c-id=ai-bar-images]"), (image)=> listImg([image]));
-    AdminMedia.bindAiBar(document.querySelector("[c-id=ai-bar-images-second]"), (image)=> listImg([image], "[c-id=image-list-second]"));
     
     $("body").on("click", "[c-id=remove-bundle]", async(e)=>{
         try{
@@ -732,6 +765,7 @@ $(document).ready(function(){
             
             $(model).removeClass("none");
             $("[c-id=all-bundles]").append(model);
+            applyCurrencySymbol();
 
         }catch(error){
             statusHandler.messageError(error);
@@ -767,6 +801,7 @@ $(document).ready(function(){
     $("[c-id=new-product]").on("click", async()=>{
         try{
 
+            cleanProductFilds();
             $("[c-id=modal-product]").modal("show");
             await ensureProductEditors();
             setEditorContent('description', '');
@@ -873,11 +908,19 @@ $(document).ready(function(){
             $("[c-id=loading-btn]").removeClass("none");
             $(e.target).addClass("none");
 
-            await saveProduct(id);
-            cleanProductFilds();
+            const savedId = await saveProduct(id);
+
             $("[c-id=loading-btn]").addClass("none");
-            $("[c-id=modal-product]").modal("hide");
             $(e.target).removeClass("none");
+
+            // o modal continua aberto: recarrega o produto salvo (ids novos de bundles e variantes) e atualiza a lista atrás
+            if(savedId){
+                const product = await getProductById(savedId);
+
+                setEditorContent('description', product?.description || '');
+                setEditorContent('description_second', product?.layouts?.second?.description || '');
+            }
+
             loadingAfterOpenModal(true);
             await listProducts();
             loadingAfterOpenModal(false);

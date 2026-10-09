@@ -1,5 +1,5 @@
 // Migração para multiusuário: cria a "Conta principal" (ativa) e liga a ela tudo o que ainda não tem dono:
-// lojas, lista branca e página branca do cloaker, configurações (Higgsfield) e usuários do painel (viram superadmin).
+// lojas, lista branca e página branca do cloaker, configurações e usuários do painel (viram superadmin).
 // Idempotente: pode rodar mais de uma vez. Uso: npm run migrate-accounts [-- --dry-run]
 //   na VPS: docker compose exec app npm run migrate-accounts
 require("dotenv").config();

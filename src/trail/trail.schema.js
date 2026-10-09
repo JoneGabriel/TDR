@@ -19,6 +19,10 @@ const Trail = mongoose.model("Trail", {
     isMobile:{
         type:Boolean,
     },
+    // mobile | tablet | desktop (helpers.devices.js); base da regra de dispositivos do filtro
+    device:{
+        type:String,
+    },
     browser:{
         type:String,
     },
