@@ -67,6 +67,9 @@ const currencyOf = (code)=> findCountry(code)?.currency;
 
 const symbolOf = (currency)=> currencySymbols[currency] || currency || "";
 
+// moeda base da loja em ISO (Store.moeda é legado: euro/dolar/libra); sem valor, EUR, como na vitrine
+const baseCurrencyOf = (moeda)=> legacyMoeda[moeda] || "EUR";
+
 // País do comprador: o pedido, se a loja o atende; senão o primeiro país da loja (define moeda e checkout)
 // fuso e localidade de datas de um país do catálogo; fora do catálogo, os padrões (Paris / en-GB)
 const timeZoneOf = (code, fallback = "Europe/Paris")=> findCountry(code)?.timezone || fallback;
@@ -78,7 +81,7 @@ const pickBuyerCountry = (served = [], requested = null)=>{
     return (served || []).includes(code) ? code : ((served || [])[0] || null);
 };
 
-module.exports = {
+module.exports = { baseCurrencyOf,
     countries,
     countryCodes,
     currencySymbols,

@@ -1577,6 +1577,9 @@ input[type="color"].form-control,
 }
 
 /* ---------- toasts (notify.js) ---------- */
+/* o notify.js usa z-index 1050, igual ao fundo do modal do Bootstrap (1050) e abaixo do modal (1055):
+   como os modais ficam abertos após salvar, o toast precisa estar acima de modal, confirmação e lightbox (2000) */
+.notifyjs-corner{z-index:2100 !important}
 .notifyjs-bootstrap-base{
     background-image:none !important;
     background-color:rgba(7, 10, 18, .96) !important;

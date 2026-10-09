@@ -35,7 +35,7 @@ const {
     compareVariants
 } = require("../cart/cart.service");
 const { Store } = require("../store/store.schema");
-const { pickBuyerCountry, legacyMoeda, symbolOf } = require("../helpers/helpers.countries");
+const { baseCurrencyOf, pickBuyerCountry, legacyMoeda, symbolOf } = require("../helpers/helpers.countries");
 const { refreshProductPrices } = require("../pricing/pricing.service");
 
 // Campos do produto que têm versão por layout da loja
@@ -557,11 +557,19 @@ const getAllProducts = async(scope = null)=>{
     try{
 
         let products = await findAll(Product, await storeFilter(scope), 
-            {name:1, price:1, collection_:1, status:1, images:{
+            {name:1, price:1, collection_:1, status:1, store:1, images:{
             $slice:1
         }}
         );
-        products = await populate(Product, products, "collection_")
+        products = await populate(Product, products, [{path:"collection_"}, {path:"store", select:"name moeda"}]);
+
+        // o painel mostra o preço com o símbolo da moeda base da loja do produto (não existe conversão)
+        products = products.map(product=>{
+            const doc = product.toObject ? product.toObject() : product;
+            const currency = baseCurrencyOf(doc.store?.moeda);
+
+            return {...doc, currency, currency_symbol:symbolOf(currency)};
+        });
 
         return statusHandler.newResponse(200, products);
     }catch(error){

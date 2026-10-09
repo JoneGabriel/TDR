@@ -62,12 +62,30 @@ const serverIp = async()=>{
     return ipCache.ip;
 };
 
-const resolveHost = async(host)=>{
+// Resolvedores públicos além do do sistema: o resolvedor da VPS (ou do Docker) pode guardar um NXDOMAIN antigo por
+// horas depois de o registro A ser criado, e o domínio parece "não resolver" enquanto o resto do mundo já o enxerga
+const PUBLIC_RESOLVERS = ["1.1.1.1", "8.8.8.8"];
+
+const resolveWith = async(host, servers = null)=>{
     try{
-        return await dns.resolve4(host);
+        if(!servers){
+            return await dns.resolve4(host);
+        }
+
+        const resolver = new dns.Resolver({timeout:4000, tries:1});
+
+        resolver.setServers(servers);
+
+        return await resolver.resolve4(host);
     }catch(error){
         return [];
     }
+};
+
+const resolveHost = async(host)=>{
+    const [public_ips, local_ips] = await Promise.all([resolveWith(host, PUBLIC_RESOLVERS), resolveWith(host)]);
+
+    return {ips:[...new Set([...public_ips, ...local_ips])], public_ips, local_ips};
 };
 
 // GET https://<ip>/health com SNI do domínio: diz se algo responde na 443, que certificado serve e se quem responde é o TDR.
@@ -127,7 +145,7 @@ const fmtDay = (iso)=> iso ? new Date(iso).toLocaleDateString("pt-BR") : "";
 const checkDomain = async(host, active = true)=>{
     const expected_ip = await serverIp();
     const result = {host, expected_ip, sync_minutes:SYNC_MINUTES, checked_at:new Date().toISOString(), dns:{ips:[], ok:false}, ssl:null};
-    const done = (state, label, message)=> ({...result, state, label, message});
+    const done = (state, label, message)=> ({...result, state, label, message:result.dns.note ? `${message} ${result.dns.note}` : message});
 
     if(!active){
         return done("inactive", "Desativado", "Domínio desativado no painel: o sync remove o bloco do nginx e não renova o certificado. Ative para provisionar.");
@@ -137,12 +155,16 @@ const checkDomain = async(host, active = true)=>{
         return done("local", "Local", "Host local ou IP: não há DNS público nem certificado para verificar.");
     }
 
-    const ips = await resolveHost(host);
+    const {ips, public_ips, local_ips} = await resolveHost(host);
 
-    result.dns = {ips, ok:ips.length > 0 && (!expected_ip || ips.includes(expected_ip))};
+    result.dns = {ips, public_ips, local_ips, ok:ips.length > 0 && (!expected_ip || ips.includes(expected_ip))};
+
+    if(public_ips.length && !local_ips.length){
+        result.dns.note = "(Resolvedores públicos já enxergam o registro; o desta VPS ainda guarda a resposta antiga em cache, o que se resolve sozinho.)";
+    }
 
     if(!ips.length){
-        return done("dns_pending", "Aguardando DNS", `O domínio ainda não resolve. Crie um registro A de ${host} apontando para ${expected_ip || "o IP desta VPS"}. A propagação leva de alguns minutos até 48 h; depois o SSL sai sozinho em até ${SYNC_MINUTES} min.`);
+        return done("dns_pending", "Aguardando DNS", `O domínio ainda não resolve (conferido em 1.1.1.1, 8.8.8.8 e no resolvedor desta VPS). Crie um registro A de ${host} apontando para ${expected_ip || "o IP desta VPS"}. A propagação leva de alguns minutos até 48 h; depois o SSL sai sozinho em até ${SYNC_MINUTES} min.`);
     }
 
     if(ips.some(isPrivateIp)){

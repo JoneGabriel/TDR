@@ -3,7 +3,7 @@ const statusHandler = require("../helpers/helpers.statusHandler");
 const { Product, Collection } = require("../product/product.schema");
 const { findAll, findById, save, findOne, updateById, removeOne, countDocuments } = require("../query");
 const { Shopify } = require("../shopify/shopify.schema");
-const { countries, legacyMoeda, symbolOf, pickBuyerCountry } = require("../helpers/helpers.countries");
+const { countries, legacyMoeda, symbolOf, pickBuyerCountry, baseCurrencyOf } = require("../helpers/helpers.countries");
 const { DEVICES, deviceCodes } = require("../helpers/helpers.devices");
 const { Store, defaultLayout, layoutNames, visualFieldNames } = require("./store.schema");
 const Twig = require('twig');
@@ -57,9 +57,6 @@ const createStore = async(store, scope = null)=>{
         throw(statusHandler.serviceError(error));
     }
 };
-
-// moeda base da loja em ISO (Store.moeda é legado: euro/dolar/libra); sem valor, EUR, como na vitrine
-const baseCurrencyOf = (moeda)=> legacyMoeda[moeda] || "EUR";
 
 const getAllStores = async(scope = null)=>{
     try{

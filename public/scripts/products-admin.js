@@ -195,12 +195,12 @@ const listProducts = async()=>{
 
                 content.forEach(product=>{
 
-                    const {images, name, _id, price, collection_, status} = product;
+                    const {images, name, _id, price, collection_, status, currency_symbol} = product;
                     const model = $("[c-id=model-product]").clone()[0];
                     
                     $(model).find("img").attr("src", images?.[0]?.base64 || 'https://gravitec.net/pt/empty.jpg');
                     $(model).find("a").text(name);
-                    $(model).find("[c-id=price]").text(`${price} €`);
+                    $(model).find("[c-id=price]").text(`${price} ${currency_symbol || ""}`.trim());
                     $(model).find("[c-id=collection-product]").text(collection_?.name);
                     $(model).find("[c-id=status]").prop('checked', status);
                     
