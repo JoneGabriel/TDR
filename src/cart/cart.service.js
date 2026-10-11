@@ -1,4 +1,4 @@
-const { pickBuyerCountry } = require("../helpers/helpers.countries");
+const { pickBuyerCountry, baseCurrencyOf } = require("../helpers/helpers.countries");
 const statusHandler = require("../helpers/helpers.statusHandler")
 const {request, isEmpty} = require("../helpers/helpers.global");
 
@@ -460,9 +460,191 @@ const getInfoProductsNew = async(cart)=>{
     }
 };
 
+// ---------------------------------------------------------------- checkout externo (PagAmerican)
+// O script pag-checkout da plataforma foi feito para temas Shopify: lê o carrinho em /cart.js e envia à plataforma.
+// Na vitrine do TDR o carrinho é local e só o servidor sabe os ids de variante, então esta função monta o carrinho
+// local no formato do /cart.js (ids de variante e produto da Shopify, preços em centavos na moeda da visita) para
+// public/scripts/pag-checkout.js enviar. Produto sem variante da Shopify não pode ser comprado: 400 com a mensagem.
+const cents = (value)=> Math.round(Number(value || 0) * 100);
+
+// entrada de variant_values que casa com as opções escolhidas (mesma regra de compareVariants, devolvendo o objeto)
+const matchVariant = (variantsCart = [], variantsProduct = {})=>{
+    let values = variantsProduct?.variant_values || [];
+
+    (Array.isArray(variantsCart) ? variantsCart : []).forEach(({value})=>{
+        values = values.filter(variant=> variant.value_1 == value || variant.value_2 == value || variant.value_3 == value);
+    });
+
+    return values[0] || null;
+};
+
+const variantOptions = (variant, variants = {})=> ["1", "2", "3"]
+    .filter(n=> variants[`title_${n}`] && variant[`value_${n}`])
+    .map(n=> ({name:variants[`title_${n}`], value:variant[`value_${n}`]}));
+
+const cartJsonItem = ({product, otherVariants, variant, quantity, country})=>{
+    const local = variant.prices?.[country];
+    const price = cents(local?.price ?? variant.price ?? product.price);
+    const compareAt = cents(local?.last_price ?? variant.last_price ?? product.last_price ?? 0);
+    const variantId = Number(variant.id_shopify) || variant.id_shopify;
+    const productId = Number(otherVariants.id_shopify) || otherVariants.id_shopify;
+    const options = variantOptions(variant, otherVariants.variants);
+    const variantTitle = options.length ? options.map(option=> option.value).join(" / ") : null;
+    const image = variant.img || product.images?.[0]?.base64 || null;
+
+    return {
+        id:variantId,
+        properties:{},
+        quantity,
+        variant_id:variantId,
+        key:`${variantId}:tdr`,
+        title:variantTitle ? `${product.name} - ${variantTitle}` : product.name,
+        price,
+        original_price:price,
+        discounted_price:price,
+        line_price:price * quantity,
+        original_line_price:price * quantity,
+        total_discount:0,
+        discounts:[],
+        sku:"",
+        grams:0,
+        vendor:"",
+        taxable:true,
+        product_id:productId,
+        product_has_only_default_variant:options.length == 0,
+        gift_card:false,
+        final_price:price,
+        final_line_price:price * quantity,
+        url:`/products/${product._id}`,
+        featured_image:{url:image, aspect_ratio:null, alt:product.name},
+        image,
+        handle:String(product._id),
+        requires_shipping:true,
+        product_type:"",
+        product_title:product.name,
+        product_description:"",
+        variant_title:variantTitle,
+        variant_options:options.map(option=> option.value),
+        options_with_values:options,
+        line_level_discount_allocations:[],
+        line_level_total_discount:0,
+        // extra (não existe no /cart.js): preço "de" para a plataforma mostrar desconto, se quiser
+        compare_at_price:compareAt > price ? compareAt : null
+    };
+};
+
+const buildCartJson = async(cart, requestedCountry = null)=>{
+    try{
+
+        if(!Array.isArray(cart) || !cart.length){
+            throw(statusHandler.newResponse(400, "Carrinho vazio"));
+        }
+
+        const items = [];
+        const codes = new Set();
+        let shopify = null;
+        let country = null;
+        let currency = null;
+
+        for(const line of cart){
+            const {product:productId, variants:chosen, amount, is_bundle} = line || {};
+            const product = productId ? await findById(Product, productId) : null;
+
+            if(!product){
+                throw(statusHandler.newResponse(400, "Produto do carrinho não encontrado"));
+            }
+
+            const otherVariants = await findOne(OtherVariants, {product:product._id});
+
+            if(!otherVariants?.variants?.variant_values?.length){
+                throw(statusHandler.newResponse(400, `"${product.name}" não tem variante da Shopify vinculada e não pode ser comprado`));
+            }
+
+            if(!shopify){
+                shopify = await findById(Shopify, otherVariants.store);
+            }else if(String(otherVariants.store) != String(shopify._id)){
+                throw(statusHandler.newResponse(400, "O carrinho mistura produtos de lojas Shopify diferentes"));
+            }
+
+            if(!shopify){
+                throw(statusHandler.newResponse(400, "Loja Shopify do produto não encontrada"));
+            }
+
+            if(!country){
+                const store = await findById(Store, product.store);
+
+                country = pickBuyerCountry(store?.country, requestedCountry);
+                currency = store?.market_currencies?.[country] || baseCurrencyOf(store?.moeda);
+            }
+
+            if(is_bundle){
+                const bundle = await findById(Bundle, is_bundle);
+
+                if(!bundle){
+                    throw(statusHandler.newResponse(400, "Bundle do carrinho não encontrado"));
+                }
+
+                const options = Array.isArray(chosen) && chosen.length ? chosen : [[]];
+                // mesma divisão de createLinesCheckout: a quantidade do bundle repartida entre as opções escolhidas
+                const perVariant = Math.max(1, Math.round((Number(bundle.amount) || options.length) / options.length));
+
+                options.forEach(option=>{
+                    const variant = matchVariant(option, otherVariants.variants);
+
+                    if(!variant){
+                        throw(statusHandler.newResponse(400, `Opção do bundle "${bundle.title_bundle}" não encontrada`));
+                    }
+
+                    items.push(cartJsonItem({product, otherVariants, variant, quantity:perVariant, country}));
+                });
+
+                bundle.cupom_code && codes.add(String(bundle.cupom_code).trim());
+                continue;
+            }
+
+            const variant = matchVariant(chosen, otherVariants.variants);
+
+            if(!variant){
+                throw(statusHandler.newResponse(400, `Opção escolhida de "${product.name}" não encontrada`));
+            }
+
+            items.push(cartJsonItem({product, otherVariants, variant, quantity:Math.max(1, parseInt(amount, 10) || 1), country}));
+        }
+
+        const total = items.reduce((sum, item)=> sum + item.line_price, 0);
+
+        return statusHandler.newResponse(200, {
+            shop:shopify.url,
+            country,
+            currency,
+            cart:{
+                token:`tdr-${Date.now().toString(36)}`,
+                note:null,
+                attributes:{tdr_country:country},
+                original_total_price:total,
+                total_price:total,
+                total_discount:0,
+                total_weight:0,
+                item_count:items.reduce((sum, item)=> sum + item.quantity, 0),
+                items,
+                requires_shipping:true,
+                currency,
+                items_subtotal_price:total,
+                cart_level_discount_applications:[],
+                // extra: cupons dos bundles (o /cart.js não tem este campo; a plataforma usa se souber)
+                discount_codes:[...codes]
+            }
+        });
+
+    }catch(error){
+        throw(statusHandler.serviceError(error));
+    }
+};
+
 module.exports = {
     createUrlCheckout,
     getInfoProducts,
     compareVariants,
-    getInfoProductsNew
+    getInfoProductsNew,
+    buildCartJson
 };
