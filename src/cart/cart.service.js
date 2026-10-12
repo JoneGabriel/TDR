@@ -482,54 +482,36 @@ const variantOptions = (variant, variants = {})=> ["1", "2", "3"]
     .filter(n=> variants[`title_${n}`] && variant[`value_${n}`])
     .map(n=> ({name:variants[`title_${n}`], value:variant[`value_${n}`]}));
 
+// Item no formato que a Pagou.ai (plataforma irmã) aceita, com os campos que o /cart.js da Shopify também tem.
+// Sem token/key/handle/url inventados e sem imagem em base64: só URL de imagem vinda da Shopify (ou nenhuma).
 const cartJsonItem = ({product, otherVariants, variant, quantity, country})=>{
     const local = variant.prices?.[country];
-    const price = cents(local?.price ?? variant.price ?? product.price);
-    const compareAt = cents(local?.last_price ?? variant.last_price ?? product.last_price ?? 0);
-    const variantId = Number(variant.id_shopify) || variant.id_shopify;
-    const productId = Number(otherVariants.id_shopify) || otherVariants.id_shopify;
+    const unit = Number(local?.price ?? variant.price ?? product.price) || 0;
+    const price = cents(unit);
+    const variantId = parseInt(variant.id_shopify, 10) || variant.id_shopify;
+    const productId = parseInt(otherVariants.id_shopify, 10) || otherVariants.id_shopify;
     const options = variantOptions(variant, otherVariants.variants);
     const variantTitle = options.length ? options.map(option=> option.value).join(" / ") : null;
-    const image = variant.img || product.images?.[0]?.base64 || null;
+    const image = typeof variant.img == "string" && /^https?:\/\//.test(variant.img) ? variant.img : null;
 
     return {
         id:variantId,
-        properties:{},
         quantity,
         variant_id:variantId,
-        key:`${variantId}:tdr`,
         title:variantTitle ? `${product.name} - ${variantTitle}` : product.name,
         price,
         original_price:price,
+        presentment_price:unit,
         discounted_price:price,
         line_price:price * quantity,
         original_line_price:price * quantity,
-        total_discount:0,
-        discounts:[],
-        sku:"",
-        grams:0,
-        vendor:"",
-        taxable:true,
         product_id:productId,
-        product_has_only_default_variant:options.length == 0,
-        gift_card:false,
         final_price:price,
         final_line_price:price * quantity,
-        url:`/products/${product._id}`,
-        featured_image:{url:image, aspect_ratio:null, alt:product.name},
         image,
-        handle:String(product._id),
         requires_shipping:true,
-        product_type:"",
         product_title:product.name,
-        product_description:"",
-        variant_title:variantTitle,
-        variant_options:options.map(option=> option.value),
-        options_with_values:options,
-        line_level_discount_allocations:[],
-        line_level_total_discount:0,
-        // extra (não existe no /cart.js): preço "de" para a plataforma mostrar desconto, se quiser
-        compare_at_price:compareAt > price ? compareAt : null
+        variant_title:variantTitle
     };
 };
 
@@ -613,26 +595,20 @@ const buildCartJson = async(cart, requestedCountry = null)=>{
 
         const total = items.reduce((sum, item)=> sum + item.line_price, 0);
 
+        // mesmo formato do objeto enviado à Pagou.ai em getInfoProductsNew (um subconjunto do /cart.js da Shopify)
         return statusHandler.newResponse(200, {
             shop:shopify.url,
             country,
             currency,
+            discount_codes:[...codes],
             cart:{
-                token:`tdr-${Date.now().toString(36)}`,
-                note:null,
-                attributes:{tdr_country:country},
-                original_total_price:total,
-                total_price:total,
-                total_discount:0,
-                total_weight:0,
-                item_count:items.reduce((sum, item)=> sum + item.quantity, 0),
                 items,
-                requires_shipping:true,
                 currency,
+                requires_shipping:true,
+                total_price:total,
+                item_count:items.reduce((sum, item)=> sum + item.quantity, 0),
                 items_subtotal_price:total,
-                cart_level_discount_applications:[],
-                // extra: cupons dos bundles (o /cart.js não tem este campo; a plataforma usa se souber)
-                discount_codes:[...codes]
+                original_total_price:total
             }
         });
 
