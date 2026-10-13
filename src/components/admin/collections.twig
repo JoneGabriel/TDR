@@ -28,6 +28,7 @@
                 <div class="col-lg-3">
                     <img style="width:49px!important;height: fit-content;" class="ms-2 img-fluid" src=""> 
                     <a class="ms-2"></a>
+                    <small c-id="collection-second" class="collection-second none"></small>
                 </div>
                 <div class="col-lg-3">
                     <label c-id="collection-product" class="ms-2"></label>
@@ -51,6 +52,7 @@
                         <div class="col-lg-3">
                             <img style="width:49px!important;height: fit-content;" class="ms-2 img-fluid" src="{{ colecao.image|default('https://gravitec.net/pt/empty.jpg') }}">
                             <a class="ms-2">{{colecao.name}}</a>
+                            {% if colecao.layouts.second.name %}<small class="collection-second">second: {{colecao.layouts.second.name}}</small>{% elseif colecao.layouts.second.image %}<small class="collection-second">second: imagem própria</small>{% endif %}
                         </div>
                         <div class="col-lg-3">
                             <label c-id="collection-product" class="ms-2">{{colecao.products}}</label>
@@ -124,6 +126,30 @@
                                 </div>
                             </div>
                             <div c-id="image-list" class="media-grid media-grid-single"></div>
+                        </div>
+                    </section>
+                </div>
+                <div class="col-lg-12">
+                    <section c-id="second-version" class="modal-section modal-section-second">
+                        <h6 class="modal-section-title"><i class="bi bi-layers"></i> Versão second (visitante filtrado)</h6>
+                        <p class="modal-section-hint">Nome e imagem mostrados com o layout second da loja (menu, home e página da coleção). Campo vazio usa o valor da versão first. Diferente dos produtos, a coleção aparece na loja second mesmo sem nada preenchido aqui.</p>
+                        <div class="row g-3">
+                            <div class="col-lg-6">
+                                <label class="form-label">Título <span class="layout-tag">second</span></label>
+                                <input c-id="name_second" type="text" class="form-control" placeholder="Mesmo título da versão first">
+                            </div>
+                            <div class="col-lg-6">
+                                <label class="form-label">Imagem <span class="layout-tag">second</span></label>
+                                <div class="media-field">
+                                    <label class="dropzone dropzone-sm" c-id="dropzone-images-second">
+                                        <input c-id="images-second" type="file" accept="image/*" class="dropzone-input">
+                                        <i class="bi bi-cloud-arrow-up"></i>
+                                        <span class="dropzone-title">Arraste a imagem aqui ou clique para escolher</span>
+                                        <span class="dropzone-hint">Vazio usa a imagem da versão first</span>
+                                    </label>
+                                    <div c-id="image-list-second" class="media-grid media-grid-single"></div>
+                                </div>
+                            </div>
                         </div>
                     </section>
                 </div>

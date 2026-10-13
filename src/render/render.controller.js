@@ -281,7 +281,7 @@ router.get("/", notOnAdminHost, async(req, res)=>{
 
         // produtos na versão do layout em uso (first/second); /order/:id fica fora dessa regra
         const firstCollection = await getFirtsCollection(config._id, config.layout, config.buyer_country);
-        const all_collections =  await getAllCollections(false, config._id);
+        const all_collections =  await getAllCollections(false, config._id, null, config.layout);
 
         let {header_template, menu_store, cart_template, footer_template, home_template} = config;
 
@@ -343,7 +343,7 @@ router.get("/collections/:id", notOnAdminHost, async(req, res)=>{
         
         const {id} = req.params;
         const info = await getInfoCollection(id, config.layout, config.buyer_country);
-        const all_collections =  await getAllCollections(false, config._id);
+        const all_collections =  await getAllCollections(false, config._id, null, config.layout);
 
         let {header_template, menu_store, cart_template, footer_template, collection_template} = config;
 
@@ -404,7 +404,7 @@ router.get("/products/:id", notOnAdminHost, async(req, res)=>{
         
         
 
-        const all_collections =  await getAllCollections(false, config._id);
+        const all_collections =  await getAllCollections(false, config._id, null, config.layout);
         const ramdonProducts = await getProductsRamdon(product.collection_, config._id, config.layout, config.buyer_country);
 
         let {header_template, menu_store, cart_template, footer_template, product_template} = config;
@@ -566,7 +566,7 @@ router.get("/privacy-policy", notOnAdminHost, async(req, res)=>{
         // moeda e preços pelo país da visita (?country= pré-visualiza outro país atendido)
         useCountry(config, req.query.country || req.visitorCountry);
         
-        const all_collections =  await getAllCollections(false, config._id);
+        const all_collections =  await getAllCollections(false, config._id, null, config.layout);
         
         let {header_template, menu_store, cart_template, footer_template} = config;
 
@@ -620,7 +620,7 @@ router.get("/shipping-policy", notOnAdminHost, async(req, res)=>{
         // moeda e preços pelo país da visita (?country= pré-visualiza outro país atendido)
         useCountry(config, req.query.country || req.visitorCountry);
         
-        const all_collections =  await getAllCollections(false, config._id);
+        const all_collections =  await getAllCollections(false, config._id, null, config.layout);
         
         let {header_template, menu_store, cart_template, footer_template} = config;
 
@@ -674,7 +674,7 @@ router.get("/return-refund", notOnAdminHost, async(req, res)=>{
         // moeda e preços pelo país da visita (?country= pré-visualiza outro país atendido)
         useCountry(config, req.query.country || req.visitorCountry);
         
-        const all_collections =  await getAllCollections(false, config._id);
+        const all_collections =  await getAllCollections(false, config._id, null, config.layout);
 
         let {header_template, menu_store, cart_template, footer_template} = config;
 
@@ -728,7 +728,7 @@ router.get("/terms-of-service", notOnAdminHost, async(req, res)=>{
         // moeda e preços pelo país da visita (?country= pré-visualiza outro país atendido)
         useCountry(config, req.query.country || req.visitorCountry);
         
-        const all_collections =  await getAllCollections(false, config._id);
+        const all_collections =  await getAllCollections(false, config._id, null, config.layout);
         
         let {header_template, menu_store, cart_template, footer_template} = config;
 

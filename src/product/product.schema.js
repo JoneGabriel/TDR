@@ -52,6 +52,13 @@ const Collection = mongoose.model("Collection", {
         required:true,
         type:String
     },
+    // versão "second" (visitante filtrado): nome e imagem próprios; vazio herda o da raiz (versão first)
+    layouts:{
+        second:{
+            name:String,
+            image:String
+        }
+    },
     status:{
         required:true,
         type:Boolean,

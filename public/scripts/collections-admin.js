@@ -14,10 +14,13 @@ const listAllCollections = async()=>{
                 $(ctx).html("");
 
                 content.forEach(collection=>{
-                    const {name, image, products, _id, status} = collection;
+                    const {name, image, products, _id, status, layouts} = collection;
                     const model = $("[c-id=model-collection]").clone()[0];
+                    // nome da versão second (ou só a imagem própria), quando cadastrados
+                    const second = layouts?.second?.name ? `second: ${layouts.second.name}` : (layouts?.second?.image ? "second: imagem própria" : "");
 
                     $(model).find("a").text(name);
+                    $(model).find("[c-id=collection-second]").text(second).toggleClass("none", !second);
                     $(model).find("[c-id=collection-product]").text(products);
                     $(model).attr("id", _id)
 
@@ -35,12 +38,13 @@ const listAllCollections = async()=>{
     };
 };
 
-const getImageCollection = () =>{
+// imagem da grade indicada (first: image-list; second: image-list-second)
+const getImageCollection = (target = "[c-id=image-list]") =>{
     try{    
 
         let imgs = [];
 
-        const models = $("[c-id=image-list]").find("[c-id=model-img]");
+        const models = $(target).find("[c-id=model-img]");
 
         $(models).each(function(el){
             const src = $(this).find("img").attr("src");
@@ -64,6 +68,7 @@ const cleanCollectionFilds = ()=>{
         });
 
         $("[c-id=form]").find("[c-id=image-list]").html("");
+        $("[c-id=form]").find("[c-id=image-list-second]").html("");
         $("[c-id=form]").find("[c-id=name-collection]").text("");
         $("[c-id=form]").find("[c-id=save-collection]").removeAttr("id");
 
@@ -79,6 +84,11 @@ const saveCollection = async(id=false)=>{
 
         let body = {};
         body["name"] = $("[c-id=name]").val();
+        // versão second: nome e imagem próprios; vazio herda da versão first
+        body["layouts"] = {second:{
+            name:($("[c-id=name_second]").val() || "").trim(),
+            image:getImageCollection("[c-id=image-list-second]") || ""
+        }};
 
         const img = getImageCollection();
 
@@ -107,18 +117,19 @@ const saveCollection = async(id=false)=>{
     }
 }
 
-const listImg = (imgs)=>{
+// lista imagens na grade indicada; o modelo clonado é sempre o oculto (.none), nunca uma miniatura já exibida
+const listImg = (imgs, target = "[c-id=image-list]")=>{
     try{
 
-        $("[c-id=image-list]").html("");
+        $(target).html("");
 
         imgs.forEach(val => {
 
-            const model = $("[c-id=model-img]").clone()[0];
+            const model = $("[c-id=model-img].none").first().clone()[0];
 
             $(model).find("img").attr("src", val);
             $(model).removeClass("none");
-            $("[c-id=image-list]").append(model);
+            $(target).append(model);
         });
 
     }catch(error){
@@ -142,7 +153,7 @@ const listCollectionInForm = (collection)=>{
         
         cleanCollectionFilds();
         
-        let {image, name, _id, store} = collection;
+        let {image, name, _id, store, layouts} = collection;
     
 
         listImg([image].filter(Boolean));
@@ -151,6 +162,8 @@ const listCollectionInForm = (collection)=>{
 
         $(ctx).find("[c-id=name-collection]").text(name);
         $(ctx).find("[c-id=name]").val(name);
+        $(ctx).find("[c-id=name_second]").val(layouts?.second?.name || "");
+        listImg([layouts?.second?.image].filter(Boolean), "[c-id=image-list-second]");
         $(ctx).find("[c-id=store-config]").val(store);
 
 
@@ -283,6 +296,7 @@ $(document).ready(function(){
 
     // arrastar e soltar a imagem da coleção (admin-media.js)
     AdminMedia.bindDropzone(document.querySelector("[c-id=dropzone-images]"), async(files)=> listImg(await AdminMedia.filesToDataUrls(files)));
+    AdminMedia.bindDropzone(document.querySelector("[c-id=dropzone-images-second]"), async(files)=> listImg(await AdminMedia.filesToDataUrls(files), "[c-id=image-list-second]"));
 
      $("body").on("click", "[c-id=copy]", async(e)=>{
         try{
@@ -345,6 +359,18 @@ $(document).ready(function(){
     });
     
 
+    // imagem da versão second escolhida pelo seletor de arquivo
+    $("[c-id=images-second]").on("change", async(e)=>{
+        try{
+
+            listImg(await AdminMedia.filesToDataUrls(e.target.files), "[c-id=image-list-second]");
+            $(e.target).val('');
+
+        }catch(error){
+            statusHandler.messageError(error);
+        }
+    });
+
     $("[c-id=save-collection]").on("click", async(e)=>{
         try{
 
@@ -382,7 +408,7 @@ $(document).ready(function(){
         }
     });
 
-    $("[c-id=image-list]").on("click", "[c-id=remove-img]", (e)=>{
+    $("[c-id=image-list], [c-id=image-list-second]").on("click", "[c-id=remove-img]", (e)=>{
         $(e.currentTarget).closest("[c-id=model-img]").remove();
     });
 });

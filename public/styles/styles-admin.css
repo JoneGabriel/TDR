@@ -1842,3 +1842,6 @@ body.media-lightbox-open{overflow:hidden}
 .password-field .form-control{padding-right:2.6rem}
 .password-toggle{position:absolute;top:50%;right:.5rem;transform:translateY(-50%);width:28px;height:28px;border:0;border-radius:4px;background:transparent;color:var(--cy-muted);cursor:pointer}
 .password-toggle:hover{color:var(--cy-cyan)}
+
+/* ---------- coleções: nome da versão second na listagem ---------- */
+.collection-second{display:block;margin:2px 0 0 .5rem;font-family:'Share Tech Mono', monospace;font-size:.7rem;letter-spacing:.04em;color:var(--cy-muted)}

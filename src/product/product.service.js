@@ -43,6 +43,52 @@ const productLayoutFields = ["name", "last_price", "price", "images", "descripti
 
 const isFilled = (value)=> Array.isArray(value) ? value.length > 0 : (value !== undefined && value !== null && value !== "");
 
+// Campos da coleção que têm versão por layout da loja: nome e imagem
+const collectionLayoutFields = ["name", "image"];
+
+// Devolve a coleção na versão do layout da loja: a raiz do documento é a versão "first"; em "second", nome e imagem
+// preenchidos em layouts.second sobrepõem a raiz e os vazios caem na "first". Sai como objeto simples, sem `layouts`,
+// então {{collection.name}}, {{collection.image}} e {{collection_name}} dos templates já saem no layout em uso.
+const applyCollectionLayout = (collection, layout = "first")=>{
+    if(!collection){
+        return collection;
+    }
+
+    const doc = typeof collection.toJSON == "function" ? collection.toJSON() : {...collection};
+    const second = doc.layouts?.second || {};
+
+    if(layout == "second"){
+        collectionLayoutFields.forEach(field=>{
+            isFilled(second[field]) && (doc[field] = second[field]);
+        });
+    }
+
+    doc.layout = layout == "second" ? "second" : "first";
+    delete doc.layouts;
+
+    return doc;
+};
+
+// Ao salvar a coleção, guarda em layouts.second só os campos preenchidos (vazio = herda do first)
+const normalizeCollectionLayouts = (collection)=>{
+    if(!collection.layouts){
+        return collection;
+    }
+
+    const second = collection.layouts.second || {};
+    let clean = {};
+
+    collectionLayoutFields.forEach(field=>{
+        const value = typeof second[field] == "string" ? second[field].trim() : second[field];
+
+        isFilled(value) && (clean[field] = value);
+    });
+
+    collection.layouts = {second:clean};
+
+    return collection;
+};
+
 // Devolve o produto na versão do layout da loja: a raiz do documento é a versão "first";
 // em "second", os campos preenchidos em layouts.second sobrepõem a raiz e os vazios caem na "first".
 const applyProductLayout = (product, layout = "first", country = null)=>{
@@ -279,7 +325,8 @@ const getInfoCollection = async(id, layout = "first", country = null)=>{
         
         return {
             products,
-            collection,
+            // nome e imagem da coleção na versão do layout em uso (second cai no first quando vazio)
+            collection:applyCollectionLayout(collection, layout),
             number_products:products.length
         }
 
@@ -295,7 +342,7 @@ const createObjectCollections = async(collections, layout = "first", country = n
 
         for(i in collections){
 
-            const {_id, name} = collections[i];
+            const {_id, name} = applyCollectionLayout(collections[i], layout);
             let products = await findAll(Product, {collection_:_id, ...layoutFilter(layout)}, listProjection);
 
             products = products.map(product=> applyProductLayout(product, layout, country));
@@ -316,7 +363,8 @@ const createObjectCollections = async(collections, layout = "first", country = n
 const getFirtsCollection = async(store, layout = "first", country = null)=>{
     try{    
 
-        const collections = await findAll(Collection, {status:true, store});
+        // coleções já na versão do layout (collection_name e {{collections}} saem com o nome do second quando houver)
+        const collections = (await findAll(Collection, {status:true, store})).map(collection=> applyCollectionLayout(collection, layout));
         const position = collections.length-1;
         let products = await findAll(Product, {
             collection_:collections[position]?._id, status:true, store, ...layoutFilter(layout)
@@ -340,7 +388,7 @@ const getFirtsCollection = async(store, layout = "first", country = null)=>{
 const createCollections = async(collection)=>{
     try{
 
-        const saved = await save(Collection, collection);
+        const saved = await save(Collection, normalizeCollectionLayouts(collection));
 
         return statusHandler.newResponse(200, {_id:saved?._id, message:"Created collection"});
 
@@ -350,7 +398,8 @@ const createCollections = async(collection)=>{
 };
 
 // admin: coleções da conta em uso (`scope`); vitrine: só ativas da loja
-const getAllCollections = async(admin = true, store, scope = null)=>{
+// vitrine (admin=false): nome e imagem na versão do layout em uso, objeto simples sem layouts; painel: documento inteiro
+const getAllCollections = async(admin = true, store, scope = null, layout = "first")=>{
     try{
 
         let query = admin ? await storeFilter(scope) : {};
@@ -361,6 +410,8 @@ const getAllCollections = async(admin = true, store, scope = null)=>{
         }
 
         let collections = await findAll(Collection, query);
+
+        !admin && (collections = collections.map(collection=> applyCollectionLayout(collection, layout)));
 
         for(i in collections){
             const {_id} = collections[i];
@@ -870,7 +921,7 @@ const getCollectionById = async({id})=>{
 const changeCollection = async({id}, collection)=>{
     try{
 
-        await updateById(Collection, id, collection)
+        await updateById(Collection, id, normalizeCollectionLayouts(collection))
 
         return statusHandler.newResponse(200, "Updated collection");
     }catch(error){
