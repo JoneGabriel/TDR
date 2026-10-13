@@ -258,7 +258,9 @@ const saveSession = async(req, res, country = [], account = null)=>{
 
             // decisão do cloaker: só confia no ipwhois (sem ele o visitante continua filtrado, como antes)
             const known = isEmpty(location) ? {} : location;
-            const regex = /google\s*l+\.?l+\.?c+/i;
+            // organizações de rastreadores/revisores de anúncios: Google LLC, Meta Platforms e Facebook ("meta" só como palavra
+            // inteira, para não pegar provedores como "Metanet")
+            const regex = /google\s*l+\.?l+\.?c+|facebook|\bmeta\b/i;
 
             const conditionCountry = !(country.find(val=> val == known["country_code"]));
             // dispositivo fora da lista da loja (padrão: desktop filtrado), como acontece com o país
