@@ -515,6 +515,54 @@ const cartJsonItem = ({product, otherVariants, variant, quantity, country})=>{
     };
 };
 
+// Carrinho real na Shopify (cartCreate @inContext do país) e, se houver, cupons dos bundles. Devolve o token no
+// formato do /cart.js ("<token>?key=<key>") e a checkoutUrl nativa, útil para diagnóstico.
+const createShopifyCartToken = async(shopify, items, country, codes = [])=>{
+    const lines = items.map(item=> ({merchandiseId:`gid://shopify/ProductVariant/${item.variant_id}`, quantity:item.quantity}));
+    const query = `
+      mutation CartCreate($lines: [CartLineInput!]!, $country: CountryCode!) @inContext(country: $country) {
+        cartCreate(input: { lines: $lines, buyerIdentity: { countryCode: $country } }) {
+          cart { id checkoutUrl }
+          userErrors { field message }
+        }
+      }
+    `;
+
+    let data;
+
+    try{
+        data = await shopifyGraphql(shopify, "storefront", query, {lines, country:String(country || "").toUpperCase()});
+    }catch(error){
+        throw(statusHandler.newResponse(error.status && error.status != 500 ? error.status : 502, `Shopify ${shopify.url}: não foi possível criar o carrinho (${error.content || error.message || "sem resposta"})`));
+    }
+
+    const errors = data?.cartCreate?.userErrors || [];
+    const cartId = data?.cartCreate?.cart?.id;
+
+    if(!cartId){
+        throw(statusHandler.newResponse(400, `Shopify ${shopify.url}: carrinho recusado${errors.length ? ` (${errors.map(e=> e.message).join("; ")})` : ""}`));
+    }
+
+    errors.length && console.warn('\x1b[33m%s\x1b[0m', `[pag-checkout] cartCreate userErrors: ${JSON.stringify(errors)}`);
+
+    if(codes.length){
+        const couponQuery = `
+          mutation CartDiscountCodesUpdate($cartId: ID!, $discountCodes: [String!]!) {
+            cartDiscountCodesUpdate(cartId: $cartId, discountCodes: $discountCodes) {
+              cart { discountCodes { code applicable } }
+              userErrors { field message }
+            }
+          }
+        `;
+        const applied = await shopifyGraphql(shopify, "storefront", couponQuery, {cartId, discountCodes:codes}).catch(()=> null);
+        const notApplicable = (applied?.cartDiscountCodesUpdate?.cart?.discountCodes || []).filter(code=> !code.applicable).map(code=> code.code);
+
+        notApplicable.length && console.warn('\x1b[33m%s\x1b[0m', `[pag-checkout] cupons não aplicáveis: ${notApplicable.join(", ")}`);
+    }
+
+    return {token:cartId.replace(/^gid:\/\/shopify\/Cart\//, ""), checkout_url:data.cartCreate.cart.checkoutUrl || null};
+};
+
 const buildCartJson = async(cart, requestedCountry = null)=>{
     try{
 
@@ -595,13 +643,20 @@ const buildCartJson = async(cart, requestedCountry = null)=>{
 
         const total = items.reduce((sum, item)=> sum + item.line_price, 0);
 
+        // O PagAmerican só abre o checkout se `token` for o de um carrinho que existe na Shopify (ele busca o carrinho
+        // por esse token). Então o carrinho é criado de verdade pela Storefront API, no mercado do país da visita,
+        // como o checkout nativo faz, e o token do id (gid://shopify/Cart/<token>?key=...) vai no payload.
+        const {token, checkout_url} = await createShopifyCartToken(shopify, items, country, [...codes]);
+
         // mesmo formato do objeto enviado à Pagou.ai em getInfoProductsNew (um subconjunto do /cart.js da Shopify)
         return statusHandler.newResponse(200, {
             shop:shopify.url,
             country,
             currency,
             discount_codes:[...codes],
+            checkout_url,
             cart:{
+                token,
                 items,
                 currency,
                 requires_shipping:true,
